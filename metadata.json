@@ -1,0 +1,5 @@
+{
+  "name": "Remix: Payhub",
+  "description": "A professional multi-stage web installer for the Payhub platform, featuring system requirement checks, database configuration, and admin setup.",
+  "requestFramePermissions": []
+}
