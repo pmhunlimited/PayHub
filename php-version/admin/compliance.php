@@ -15,7 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $merchantId = (int)$_POST['merchant_id'];
         $status = (int)$_POST['status'];
         $notes = sanitize($_POST['notes']);
-        $stmt = $db->prepare("UPDATE users SET is_kyc_verified = ?, kyc_notes = ? WHERE id = ?");
+        // If approved (status = 1), also turn off test mode
+        $test_mode_sql = ($status == 1) ? ", is_test_mode = 0" : "";
+        $stmt = $db->prepare("UPDATE users SET is_kyc_verified = ?, kyc_notes = ? $test_mode_sql WHERE id = ?");
         $stmt->execute([$status, $notes, $merchantId]);
         $success_msg = "KYC application processed.";
 

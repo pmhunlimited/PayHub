@@ -87,6 +87,7 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 status ENUM('pending', 'success', 'failed', 'refunded') DEFAULT 'pending',
                 customer_email VARCHAR(255),
                 customer_name VARCHAR(255),
+                currency VARCHAR(10) DEFAULT 'NGN',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             ) ENGINE=InnoDB;
@@ -242,6 +243,21 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 meta_description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS email_templates (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                body TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS marketing_contacts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                full_name VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 
             CREATE TABLE IF NOT EXISTS config (

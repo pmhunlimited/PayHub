@@ -136,15 +136,33 @@ include '../includes/dashboard-head.php';
                                     </div>
                                 </div>
 
+                                <div class="space-y-6" x-show="businessType !== 'Starter'">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Business Documents</h4>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="cac_cert" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i class="lucide-file-text text-slate-400 mb-2"></i>
+                                            <p class="text-[10px] font-bold text-slate-500 uppercase">CAC Certificate</p>
+                                        </div>
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="cac_form" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i class="lucide-file-text text-slate-400 mb-2"></i>
+                                            <p class="text-[10px] font-bold text-slate-500 uppercase">Form CAC 1.1</p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <div class="space-y-6">
                                     <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Document Uploads</h4>
                                     <div class="grid md:grid-cols-2 gap-6">
-                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="utility_bill" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i class="lucide-upload text-slate-400 mb-2"></i>
                                             <p class="text-[10px] font-bold text-slate-500 uppercase">Utility Bill</p>
                                             <p class="text-[9px] text-slate-400 mt-1">Not older than 3 months</p>
                                         </div>
-                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="liveliness" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i class="lucide-camera text-slate-400 mb-2"></i>
                                             <p class="text-[10px] font-bold text-slate-500 uppercase">Liveliness Snapshot</p>
                                             <p class="text-[9px] text-slate-400 mt-1">Real-time selfie photo</p>

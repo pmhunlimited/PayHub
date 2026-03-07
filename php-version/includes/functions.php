@@ -2,8 +2,22 @@
 // php-version/functions.php
 
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
+
+// Security Headers
+header("X-Frame-Options: SAMEORIGIN");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
+header("Referrer-Policy: strict-origin-when-cross-origin");
 
 // Define base path
 define('BASE_PATH', dirname(__DIR__) . '/');
@@ -62,6 +76,9 @@ function getAuthUser() {
 }
 
 function sanitize($data) {
+    if (is_array($data)) {
+        return array_map('sanitize', $data);
+    }
     return htmlspecialchars(strip_tags(trim($data)));
 }
 
@@ -216,13 +233,18 @@ function sendEmail($to, $subject, $body) {
     $headers .= "From: $site_name <$smtp_from>" . "\r\n";
 
     $full_body = "
-    <div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
-        $logo_html
-        <div style='padding: 20px; color: #333;'>
-            $body
-        </div>
-        <div style='text-align: center; margin-top: 30px; font-size: 12px; color: #999;'>
-            &copy; " . date('Y') . " $site_name. All rights reserved.
+    <div style='background-color: #f9fafb; padding: 40px 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
+            <div style='padding: 32px; background-color: #ffffff; border-bottom: 1px solid #f3f4f6; text-align: center;'>
+                $logo_html
+            </div>
+            <div style='padding: 40px; line-height: 1.6; color: #374151;'>
+                $body
+            </div>
+            <div style='padding: 32px; background-color: #f9fafb; text-align: center; font-size: 12px; color: #9ca3af;'>
+                <p style='margin-bottom: 8px;'>&copy; " . date('Y') . " $site_name. All rights reserved.</p>
+                <p>You are receiving this email because you have an account with $site_name.</p>
+            </div>
         </div>
     </div>";
 

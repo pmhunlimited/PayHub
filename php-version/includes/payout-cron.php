@@ -42,7 +42,14 @@ foreach ($merchants as $m) {
         continue;
     }
 
+    // Total wallet balance
     $amount = (float)$m['wallet_balance'];
+
+    // Logic: Received in USD can be paid in NGN/USD.
+    // For simplicity, we check if they have a non-NGN transaction history.
+    // In a real system, we'd have sub-wallets.
+    // Here we enforce settlement currency from user settings.
+
     $fee = (float)getConfig('payout_fee', '50');
     $net = $amount - $fee;
 

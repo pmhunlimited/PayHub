@@ -96,6 +96,7 @@ include '../includes/dashboard-head.php';
                                 Update Configuration
                             </h3>
                             <form method="POST" class="space-y-6">
+                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <input type="hidden" name="action" value="update_config">
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
@@ -120,6 +121,7 @@ include '../includes/dashboard-head.php';
                             Site Logo
                         </h3>
                         <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                             <input type="hidden" name="action" value="update_logo">
                             <?php $currentLogo = getConfig('site_logo'); ?>
                             <?php if ($currentLogo): ?>

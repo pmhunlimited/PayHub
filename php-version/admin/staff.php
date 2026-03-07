@@ -130,6 +130,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="add_role">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Role Name</label>
@@ -166,6 +167,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="add_staff">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>

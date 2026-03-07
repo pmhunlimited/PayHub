@@ -45,20 +45,8 @@ $stmt = $db->prepare("SELECT * FROM payouts WHERE user_id = ? ORDER BY request_d
 $stmt->execute([$user['id']]);
 $payouts = $stmt->fetchAll();
 
+include '../includes/dashboard-head.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payouts - Payhub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
 

@@ -57,6 +57,10 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i class="lucide-key w-5 h-5"></i>
                 API Manager
             </a>
+            <a href="<?php echo BASE_URL; ?>admin/cron-manager.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'cron-manager.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i class="lucide-clock w-5 h-5"></i>
+                Cron Manager
+            </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Content & Support</div>
             <a href="<?php echo BASE_URL; ?>admin/tickets.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'tickets.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
@@ -66,6 +70,10 @@ $role = $_SESSION['role'] ?? 'merchant';
             <a href="<?php echo BASE_URL; ?>admin/blog.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'blog.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i class="lucide-file-text w-5 h-5"></i>
                 Blog Manager
+            </a>
+            <a href="<?php echo BASE_URL; ?>admin/email-marketing.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'email-marketing.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i class="lucide-mail w-5 h-5"></i>
+                Email Marketing
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuration</div>

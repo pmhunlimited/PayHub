@@ -1,0 +1,193 @@
+<?php
+// php-version/admin/email-marketing.php
+require_once '../includes/functions.php';
+
+if (!isLoggedIn() || !isAdmin()) redirect('../login.php');
+
+$user = getAuthUser();
+$pageTitle = 'Email Marketing - Admin Hub';
+
+$db = Database::connect();
+
+// Handle Actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'save_template') {
+        $name = sanitize($_POST['name']);
+        $subject = sanitize($_POST['subject']);
+        $body = $_POST['body'];
+        $stmt = $db->prepare("INSERT INTO email_templates (name, subject, body) VALUES (?, ?, ?)");
+        $stmt->execute([$name, $subject, $body]);
+        $success_msg = "Email template saved.";
+    } elseif ($_POST['action'] === 'add_contact') {
+        $email = sanitize($_POST['email']);
+        $name = sanitize($_POST['full_name']);
+        $stmt = $db->prepare("INSERT IGNORE INTO marketing_contacts (email, full_name) VALUES (?, ?)");
+        $stmt->execute([$email, $name]);
+        $success_msg = "Marketing contact added.";
+    } elseif ($_POST['action'] === 'send_bulk') {
+        $template_id = (int)$_POST['template_id'];
+        $target = $_POST['target']; // 'merchants' or 'external'
+
+        $stmt = $db->prepare("SELECT subject, body FROM email_templates WHERE id = ?");
+        $stmt->execute([$template_id]);
+        $tpl = $stmt->fetch();
+
+        $recipients = [];
+        if ($target === 'merchants') {
+            $recipients = $db->query("SELECT email, full_name FROM users WHERE role = 'merchant'")->fetchAll();
+        } else {
+            $recipients = $db->query("SELECT email, full_name FROM marketing_contacts")->fetchAll();
+        }
+
+        $sent_count = 0;
+        foreach ($recipients as $r) {
+            if (sendEmail($r['email'], $tpl['subject'], $tpl['body'])) {
+                $sent_count++;
+            }
+        }
+        $success_msg = "Bulk email sent to $sent_count recipients.";
+    }
+}
+
+$templates = $db->query("SELECT * FROM email_templates ORDER BY created_at DESC")->fetchAll();
+$contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DESC")->fetchAll();
+
+include '../includes/dashboard-head.php';
+?>
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+    <?php include '../includes/sidebar.php'; ?>
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showTpl: false, showContact: false, showSend: false }">
+        <?php include '../includes/topbar.php'; ?>
+        <div class="flex-1 overflow-y-auto p-8">
+            <?php if (isset($success_msg)): ?>
+                <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
+            <?php endif; ?>
+
+            <div class="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900 mb-2">Email Marketing</h1>
+                    <p class="text-slate-500">Design templates and manage campaigns for merchants and external leads</p>
+                </div>
+                <div class="flex gap-3">
+                    <button @click="showSend = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100"><i class="lucide-send w-4 h-4"></i> Send Campaign</button>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-3 gap-8">
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-900">Email Templates</h3>
+                            <button @click="showTpl = true" class="text-xs font-bold text-indigo-600 hover:underline">+ New Template</button>
+                        </div>
+                        <div class="p-6 grid md:grid-cols-2 gap-4">
+                            <?php foreach ($templates as $t): ?>
+                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all">
+                                    <p class="font-bold text-slate-900 text-sm mb-1"><?php echo $t['name']; ?></p>
+                                    <p class="text-xs text-slate-500 mb-4"><?php echo $t['subject']; ?></p>
+                                    <div class="flex gap-2">
+                                        <button class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
+                                        <button class="text-[10px] font-bold text-slate-400">Preview</button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                            <h3 class="font-bold text-slate-900">External Contacts</h3>
+                            <button @click="showContact = true" class="text-xs font-bold text-indigo-600 hover:underline">+ Add</button>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <?php foreach ($contacts as $c): ?>
+                                <div class="flex items-center justify-between">
+                                    <div class="min-w-0">
+                                        <p class="text-xs font-bold text-slate-900 truncate"><?php echo $c['full_name']; ?></p>
+                                        <p class="text-[10px] text-slate-400 truncate"><?php echo $c['email']; ?></p>
+                                    </div>
+                                    <button class="text-slate-300 hover:text-red-500"><i class="lucide-trash-2 w-3 h-3"></i></button>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div x-show="showTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-900">Design Template</h3>
+                    <button @click="showTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="save_template">
+                        <input type="text" name="name" required placeholder="Internal Template Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
+                        <input type="text" name="subject" required placeholder="Email Subject Line" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <textarea name="body" required rows="10" placeholder="HTML or Plain Text Message Body" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Save Template</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="showContact" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-900">Add Contact</h3>
+                    <button @click="showContact = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="add_contact">
+                        <input type="text" name="full_name" required placeholder="Contact Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <input type="email" name="email" required placeholder="Email Address" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Save Contact</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="showSend" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-900">Send Campaign</h3>
+                    <button @click="showSend = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="send_bulk">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Template</label>
+                            <select name="template_id" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                                <?php foreach($templates as $t): ?>
+                                    <option value="<?php echo $t['id']; ?>"><?php echo $t['name']; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Target Audience</label>
+                            <select name="target" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                                <option value="merchants">All Active Merchants</option>
+                                <option value="external">External Marketing List</option>
+                            </select>
+                        </div>
+                        <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
+                            <p class="text-[10px] text-amber-700 font-medium">Emails will be delivered individually to respect recipient privacy.</p>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Launch Campaign</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>
