@@ -18,6 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("UPDATE users SET is_kyc_verified = ?, kyc_notes = ? WHERE id = ?");
         $stmt->execute([$status, $notes, $merchantId]);
         $success_msg = "KYC application processed.";
+
+        // Notify Merchant
+        $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");
+        $stmt->execute([$merchantId]);
+        $m = $stmt->fetch();
+        $status_text = $status == 1 ? 'Approved' : 'Rejected';
+        sendEmail($m['email'], "KYC Verification $status_text", "<h2>Hello {$m['business_name']},</h2><p>Your KYC verification request has been <strong>$status_text</strong>.</p><p>Admin Notes: $notes</p>");
     }
 }
 

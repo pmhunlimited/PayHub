@@ -158,6 +158,23 @@ function log_transaction_event($transactionId, $type, $desc) {
     return $stmt->execute([$transactionId, $type, $desc]);
 }
 
+function calculate_fees($amount, $is_international = false) {
+    if ($is_international) {
+        $percent = (float)getConfig('international_fee_percent', '3.9');
+        $flat = (float)getConfig('international_fee_flat', '100');
+        $fee = ($amount * ($percent / 100)) + $flat;
+        return $fee;
+    } else {
+        $percent = (float)getConfig('transaction_fee_percent', '1.5');
+        $flat = ($amount < 2500) ? 0 : (float)getConfig('transaction_fee_flat', '100');
+        $cap = (float)getConfig('transaction_fee_cap', '2000');
+
+        $fee = ($amount * ($percent / 100)) + $flat;
+        if ($fee > $cap) $fee = $cap;
+        return $fee;
+    }
+}
+
 function log_ledger_entry($userId, $amount, $type, $category, $desc) {
     $db = Database::connect();
 
@@ -175,4 +192,39 @@ function log_ledger_entry($userId, $amount, $type, $category, $desc) {
     // Log entry
     $stmt = $db->prepare("INSERT INTO ledger (user_id, amount, type, category, description, balance_after) VALUES (?, ?, ?, ?, ?, ?)");
     return $stmt->execute([$userId, $amount, $type, $category, $desc, $newBalance]);
+}
+
+function sendEmail($to, $subject, $body) {
+    $smtp_host = getConfig('smtp_host');
+    $smtp_port = getConfig('smtp_port');
+    $smtp_user = getConfig('smtp_user');
+    $smtp_pass = getConfig('smtp_pass');
+    $smtp_from = getConfig('smtp_from');
+    $site_name = getConfig('site_name', 'Payhub');
+    $logo = getConfig('site_logo');
+
+    if (!$smtp_host || !$smtp_user) return false;
+
+    $logo_html = '';
+    if ($logo) {
+        $logo_url = BASE_URL . 'uploads/' . $logo;
+        $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 40px;'></div>";
+    }
+
+    $headers = "MIME-Version: 1.0" . "\r\n";
+    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
+    $headers .= "From: $site_name <$smtp_from>" . "\r\n";
+
+    $full_body = "
+    <div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;'>
+        $logo_html
+        <div style='padding: 20px; color: #333;'>
+            $body
+        </div>
+        <div style='text-align: center; margin-top: 30px; font-size: 12px; color: #999;'>
+            &copy; " . date('Y') . " $site_name. All rights reserved.
+        </div>
+    </div>";
+
+    return mail($to, $subject, $full_body, $headers);
 }

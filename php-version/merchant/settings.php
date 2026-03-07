@@ -26,12 +26,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error_msg = "Failed to update profile: " . $e->getMessage();
         }
     } elseif ($_POST['action'] === 'update_settlement') {
-        $bank_name = sanitize($_POST['bank_name']);
+        $bank_info = explode('|', $_POST['bank_data']);
+        $bank_name = sanitize($bank_info[0]);
+        $bank_code = sanitize($bank_info[1] ?? '');
         $account_number = sanitize($_POST['account_number']);
+        $payout_method = sanitize($_POST['payout_method']);
+        $currency = sanitize($_POST['settlement_currency']);
         
         try {
-            $stmt = $db->prepare("UPDATE users SET settlement_bank = ?, settlement_account_number = ? WHERE id = ?");
-            $stmt->execute([$bank_name, $account_number, $user['id']]);
+            $stmt = $db->prepare("UPDATE users SET settlement_bank = ?, settlement_bank_code = ?, settlement_account_number = ?, payout_method = ?, settlement_currency = ? WHERE id = ?");
+            $stmt->execute([$bank_name, $bank_code, $account_number, $payout_method, $currency, $user['id']]);
             $success_msg = "Settlement details updated successfully!";
             $user = getAuthUser();
         } catch (Exception $e) {
@@ -39,6 +43,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         }
     }
 }
+
+// Fetch bank list from Paystack
+$banks_response = paystack_call('bank?currency=NGN');
+$banks = $banks_response['data'] ?? [];
 
 ?>
 <!DOCTYPE html>
@@ -113,34 +121,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
                     <h3 class="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
                         <i class="lucide-landmark text-emerald-600 w-6 h-6"></i>
-                        Settlement Bank
+                        Settlement Settings
                     </h3>
-                    <form method="POST" class="space-y-6">
+                    <form method="POST" class="space-y-8">
                         <input type="hidden" name="action" value="update_settlement">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-2">Bank Name</label>
-                                <input 
-                                    type="text" 
-                                    name="bank_name"
-                                    value="<?php echo htmlspecialchars($user['settlement_bank']); ?>"
-                                    class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
-                                    placeholder="e.g. Zenith Bank"
-                                >
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Payout Method</label>
+                                <select name="payout_method" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium">
+                                    <option value="manual" <?php echo $user['payout_method'] === 'manual' ? 'selected' : ''; ?>>Manual Payout</option>
+                                    <option value="automated" <?php echo $user['payout_method'] === 'automated' ? 'selected' : ''; ?>>Automated Next-Day</option>
+                                </select>
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-slate-700 mb-2">Account Number</label>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Settlement Currency</label>
+                                <select name="settlement_currency" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium">
+                                    <option value="NGN" <?php echo $user['settlement_currency'] === 'NGN' ? 'selected' : ''; ?>>Nigerian Naira (NGN)</option>
+                                    <option value="USD" <?php echo $user['settlement_currency'] === 'USD' ? 'selected' : ''; ?>>US Dollars (USD)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Settlement Bank</label>
+                                <select name="bank_data" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium">
+                                    <option value="">Select Bank</option>
+                                    <?php foreach($banks as $b): ?>
+                                        <option value="<?php echo $b['name'].'|'.$b['code']; ?>" <?php echo $user['settlement_bank'] === $b['name'] ? 'selected' : ''; ?>><?php echo $b['name']; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Account Number</label>
                                 <input 
                                     type="text" 
                                     name="account_number"
                                     value="<?php echo htmlspecialchars($user['settlement_account_number']); ?>"
-                                    class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
-                                    placeholder="10-digit account number"
+                                    class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 outline-none font-medium"
+                                    placeholder="0123456789"
                                 >
                             </div>
                         </div>
                         <button type="submit" class="bg-emerald-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">
-                            Update Settlement Details
+                            Update Settlement Settings
                         </button>
                     </form>
                 </div>

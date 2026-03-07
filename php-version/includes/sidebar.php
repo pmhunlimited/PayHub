@@ -8,10 +8,15 @@ $role = $_SESSION['role'] ?? 'merchant';
 <aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
     <div class="p-6 border-b border-slate-100">
         <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <i class="lucide-credit-card text-white w-5 h-5"></i>
-            </div>
-            <span class="text-xl font-bold tracking-tight text-slate-900">Payhub</span>
+            <?php $logo = getConfig('site_logo'); ?>
+            <?php if ($logo): ?>
+                <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-8 object-contain">
+            <?php else: ?>
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <i class="lucide-credit-card text-white w-5 h-5"></i>
+                </div>
+            <?php endif; ?>
+            <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
     </div>
     

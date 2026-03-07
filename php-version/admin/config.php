@@ -10,13 +10,31 @@ $pageTitle = 'Platform Config - Admin Hub';
 $db = Database::connect();
 
 // Handle Actions
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_config') {
-    $key = sanitize($_POST['key']);
-    $value = $_POST['value'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'update_config') {
+        $key = sanitize($_POST['key']);
+        $value = $_POST['value'];
 
-    $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
-    $stmt->execute([$key, $value]);
-    $success_msg = "Configuration updated: $key";
+        $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+        $stmt->execute([$key, $value]);
+        $success_msg = "Configuration updated: $key";
+    } elseif ($_POST['action'] === 'update_logo') {
+        if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
+            $ext = pathinfo($_FILES['site_logo']['name'], PATHINFO_EXTENSION);
+            $logo_name = 'logo_' . time() . '.' . $ext;
+            $upload_path = '../uploads/' . $logo_name;
+
+            if (!is_dir('../uploads')) mkdir('../uploads');
+
+            if (move_uploaded_file($_FILES['site_logo']['tmp_name'], $upload_path)) {
+                $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES ('site_logo', ?) ON DUPLICATE KEY UPDATE `value` = ?");
+                $stmt->execute([$logo_name, $logo_name]);
+                $success_msg = "Site logo updated successfully.";
+            } else {
+                $error_msg = "Failed to upload logo.";
+            }
+        }
+    }
 }
 
 $stmt = $db->query("SELECT * FROM config ORDER BY `key` ASC");
@@ -95,7 +113,25 @@ include '../includes/dashboard-head.php';
                     </div>
                 </div>
 
-                <div class="lg:col-span-1">
+                <div class="lg:col-span-1 space-y-8">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                            <i class="lucide-image text-indigo-600 w-5 h-5"></i>
+                            Site Logo
+                        </h3>
+                        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+                            <input type="hidden" name="action" value="update_logo">
+                            <?php $currentLogo = getConfig('site_logo'); ?>
+                            <?php if ($currentLogo): ?>
+                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-center">
+                                    <img src="../uploads/<?php echo $currentLogo; ?>" alt="Site Logo" class="h-12 object-contain">
+                                </div>
+                            <?php endif; ?>
+                            <input type="file" name="site_logo" required class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                            <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">Upload Logo</button>
+                        </form>
+                    </div>
+
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-8">
                         <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
                             <i class="lucide-shield-alert text-amber-500 w-5 h-5"></i>
@@ -105,7 +141,11 @@ include '../includes/dashboard-head.php';
                             <?php
                             $ref = [
                                 ['key' => 'paystack_secret_key', 'label' => 'Paystack Secret Key', 'desc' => 'API key for payment processing'],
-                                ['key' => 'transaction_fee_percent', 'label' => 'Transaction Fee (%)', 'desc' => 'Percentage fee on collections'],
+                                ['key' => 'transaction_fee_percent', 'label' => 'Local Fee (%)', 'desc' => 'Percentage fee on local collections'],
+                                ['key' => 'transaction_fee_flat', 'label' => 'Local Fee (Flat)', 'desc' => 'Flat fee on local collections'],
+                                ['key' => 'transaction_fee_cap', 'label' => 'Local Fee Cap', 'desc' => 'Maximum fee for local transactions'],
+                                ['key' => 'international_fee_percent', 'label' => 'Intl. Fee (%)', 'desc' => 'Percentage fee on international collections'],
+                                ['key' => 'international_fee_flat', 'label' => 'Intl. Fee (Flat)', 'desc' => 'Flat fee on international collections'],
                                 ['key' => 'payout_fee', 'label' => 'Payout Fee (NGN)', 'desc' => 'Flat fee per withdrawal'],
                                 ['key' => 'smtp_host', 'label' => 'SMTP Host', 'desc' => 'Email server address']
                             ];

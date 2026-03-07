@@ -44,6 +44,7 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 business_type VARCHAR(100),
                 registration_number VARCHAR(100),
                 settlement_bank VARCHAR(255),
+                settlement_bank_code VARCHAR(10),
                 settlement_account_number VARCHAR(50),
                 settlement_account_name VARCHAR(255),
                 fee_percentage DECIMAL(5, 2),
@@ -70,6 +71,8 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 id_expiry_date DATE,
                 utility_bill_path VARCHAR(255),
                 liveliness_path VARCHAR(255),
+                payout_method ENUM('manual', 'automated') DEFAULT 'manual',
+                settlement_currency ENUM('NGN', 'USD') DEFAULT 'NGN',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 
@@ -250,6 +253,9 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT IGNORE INTO config (`key`, `value`) VALUES 
             ('transaction_fee_percent', '1.5'),
             ('transaction_fee_flat', '100'),
+            ('transaction_fee_cap', '2000'),
+            ('international_fee_percent', '3.9'),
+            ('international_fee_flat', '100'),
             ('payout_fee', '50'),
             ('min_payout_amount', '1000'),
             ('global_payout_review', '1'),

@@ -4,6 +4,9 @@ require_once 'includes/functions.php';
 
 $fee_percent = getConfig('transaction_fee_percent', '1.5');
 $fee_flat = getConfig('transaction_fee_flat', '100');
+$fee_cap = getConfig('transaction_fee_cap', '2000');
+$int_fee_percent = getConfig('international_fee_percent', '3.9');
+$int_fee_flat = getConfig('international_fee_flat', '100');
 
 $pageTitle = 'Simple & Transparent Pricing - Payhub';
 include 'includes/header.php';
@@ -29,6 +32,14 @@ include 'includes/header.php';
                     <p class="text-sm text-slate-500 mb-8">per successful transaction</p>
 
                     <ul class="space-y-4 mb-10">
+                        <li class="flex gap-3 text-slate-600 font-medium">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>Fee capped at <?php echo formatCurrency($fee_cap); ?></span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>₦100 fee waived for transactions under ₦2500</span>
+                        </li>
                         <li class="flex gap-3 text-slate-600">
                             <i class="lucide-check text-emerald-500 w-5 h-5"></i>
                             <span>All local cards supported</span>
@@ -49,8 +60,8 @@ include 'includes/header.php';
                 <div class="p-12 lg:p-16 bg-slate-50">
                     <h3 class="text-2xl font-bold text-slate-900 mb-8">International</h3>
                     <div class="flex items-baseline gap-1 mb-2">
-                        <span class="text-5xl font-extrabold text-slate-900">3.9%</span>
-                        <span class="text-slate-400 font-bold">+ <?php echo formatCurrency($fee_flat); ?></span>
+                        <span class="text-5xl font-extrabold text-slate-900"><?php echo $int_fee_percent; ?>%</span>
+                        <span class="text-slate-400 font-bold">+ <?php echo formatCurrency($int_fee_flat); ?></span>
                     </div>
                     <p class="text-sm text-slate-500 mb-8">per successful transaction</p>
 

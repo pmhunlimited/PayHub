@@ -19,10 +19,15 @@ require_once __DIR__ . '/functions.php';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
                 <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-                        <i data-lucide="credit-card" class="text-white w-6 h-6"></i>
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight text-slate-900">Payhub</span>
+                    <?php $logo = getConfig('site_logo'); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-10 object-contain">
+                    <?php else: ?>
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="credit-card" class="text-white w-6 h-6"></i>
+                        </div>
+                    <?php endif; ?>
+                    <span class="text-2xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
                 </a>
                 
                 <div class="hidden md:flex items-center gap-8">
