@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="flex items-start gap-3 py-2">
                         <input type="checkbox" required class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <p class="text-xs text-slate-500 leading-relaxed">
-                            I agree to the <a href="#" class="text-indigo-600 font-bold">Terms of Service</a> and <a href="#" class="text-indigo-600 font-bold">Privacy Policy</a>.
+                            I agree to the <a href="terms.php" target="_blank" class="text-indigo-600 font-bold">Terms of Service</a> and <a href="privacy.php" target="_blank" class="text-indigo-600 font-bold">Privacy Policy</a>.
                         </p>
                     </div>
 

@@ -90,6 +90,10 @@ function check_migrations() {
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'net_amount' => "DECIMAL(15, 2) NOT NULL DEFAULT 0.00",
                 'status_details' => "TEXT"
+            ],
+            'tickets' => [
+                'guest_email' => "VARCHAR(255)",
+                'is_registered' => "TINYINT DEFAULT 1"
             ]
         ];
 
@@ -102,11 +106,19 @@ function check_migrations() {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB");
 
+        $db->exec("CREATE TABLE IF NOT EXISTS marketing_groups (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB");
+
         $db->exec("CREATE TABLE IF NOT EXISTS marketing_contacts (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) UNIQUE NOT NULL,
+            email VARCHAR(255) NOT NULL,
             full_name VARCHAR(255),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            group_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (group_id) REFERENCES marketing_groups(id) ON DELETE CASCADE
         ) ENGINE=InnoDB");
 
         foreach ($tables as $table => $columns) {

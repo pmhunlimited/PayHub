@@ -80,7 +80,7 @@ include 'includes/header.php';
                         </li>
                     </ul>
 
-                    <button class="block w-full text-center py-4 bg-white border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-all shadow-sm">Contact Sales</button>
+                    <a href="support.php" class="block w-full text-center py-4 bg-white border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-all shadow-sm">Contact Sales</a>
                 </div>
             </div>
         </div>

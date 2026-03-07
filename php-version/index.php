@@ -27,9 +27,9 @@ include 'includes/header.php';
                         <a href="register.php" class="bg-indigo-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center gap-2">
                             Get Started Now <i class="lucide-arrow-right w-5 h-5"></i>
                         </a>
-                        <button class="bg-slate-50 text-slate-900 px-8 py-4 rounded-full text-lg font-semibold hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
+                        <a href="support.php" class="bg-slate-50 text-slate-900 px-8 py-4 rounded-full text-lg font-semibold hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
                             Contact Sales
-                        </button>
+                        </a>
                     </div>
                     <div class="mt-12 flex items-center gap-6 grayscale opacity-60">
                         <img src="https://picsum.photos/seed/brand1/100/40" alt="Partner" class="h-8" referrerPolicy="no-referrer">

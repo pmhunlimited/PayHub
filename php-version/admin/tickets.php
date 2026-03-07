@@ -17,17 +17,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("UPDATE tickets SET status = ? WHERE id = ?");
         $stmt->execute([$status, $ticketId]);
         $success_msg = "Ticket status updated to $status.";
+    } elseif ($_POST['action'] === 'reply_ticket') {
+        $ticketId = (int)$_POST['ticket_id'];
+        $message = sanitize($_POST['message']);
+
+        $stmt = $db->prepare("INSERT INTO ticket_messages (ticket_id, message, is_admin) VALUES (?, ?, 1)");
+        $stmt->execute([$ticketId, $message]);
+
+        // Get recipient
+        $stmt = $db->prepare("SELECT t.guest_email, u.email as user_email, t.is_registered, t.subject FROM tickets t LEFT JOIN users u ON t.user_id = u.id WHERE t.id = ?");
+        $stmt->execute([$ticketId]);
+        $ticket = $stmt->fetch();
+
+        $to = $ticket['is_registered'] ? $ticket['user_email'] : $ticket['guest_email'];
+        sendEmail($to, "Re: " . $ticket['subject'], "<h2>Support Reply</h2><p>$message</p><hr><p>This is a reply to your support ticket. You can manage your tickets in your dashboard.</p>");
+
+        $success_msg = "Reply sent to $to";
     }
 }
 
-$stmt = $db->query("SELECT t.*, u.business_name, u.email as user_email FROM tickets t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC");
+$stmt = $db->query("SELECT t.*, u.business_name, u.email as user_email FROM tickets t LEFT JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC");
 $tickets = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReply: false, ticketId: null, ticketSubject: '' }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -73,7 +89,7 @@ include '../includes/dashboard-head.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex gap-2">
-                                            <button class="text-indigo-600 hover:underline text-xs font-bold">Reply</button>
+                                            <button @click="showReply = true; ticketId = <?php echo $t['id']; ?>; ticketSubject = '<?php echo addslashes($t['subject']); ?>'" class="text-indigo-600 hover:underline text-xs font-bold">Reply</button>
                                             <form method="POST" class="inline">
                                                 <input type="hidden" name="action" value="update_status">
                                                 <input type="hidden" name="ticket_id" value="<?php echo $t['id']; ?>">
@@ -85,6 +101,26 @@ include '../includes/dashboard-head.php';
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reply Modal -->
+        <div x-show="showReply" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">Reply to Ticket</h3>
+                    <button @click="showReply = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                </div>
+                <div class="p-8">
+                    <p class="text-xs font-bold text-slate-400 uppercase mb-2">Subject</p>
+                    <p class="text-sm font-bold text-slate-900 mb-6" x-text="ticketSubject"></p>
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="reply_ticket">
+                        <input type="hidden" name="ticket_id" :value="ticketId">
+                        <textarea name="message" required rows="6" placeholder="Type your response here..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"></textarea>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Send Response</button>
+                    </form>
                 </div>
             </div>
         </div>

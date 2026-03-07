@@ -268,6 +268,12 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 
+            INSERT INTO blog_posts (title, slug, content, excerpt) VALUES
+            ('Getting Started with Payhub Integration', 'getting-started-integration', 'Our APIs are designed to be simple, powerful, and easy to integrate...', 'Learn how to start with Payhub.'),
+            ('Understanding Transaction Fees', 'understanding-fees', 'Payhub charges 1.5% + NGN 100 for local transactions...', 'A guide to Payhub pricing.'),
+            ('Setting up Virtual Bank Accounts', 'virtual-accounts-setup', 'Dedicated bank accounts for your customers to pay via bank transfer...', 'Learn about virtual accounts.'),
+            ('Managing Your Payouts', 'managing-payouts', 'Request settlements to your linked bank account. automated or manual...', 'A guide to getting paid.');
+
             INSERT IGNORE INTO config (`key`, `value`) VALUES 
             ('transaction_fee_percent', '1.5'),
             ('transaction_fee_flat', '100'),
