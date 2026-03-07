@@ -1,8 +1,8 @@
 <?php
 // php-version/privacy.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 $pageTitle = 'Privacy Policy - Payhub';
-include 'header.php';
+include 'includes/header.php';
 ?>
 <div class="pt-20">
     <div class="max-w-3xl mx-auto py-24 px-4">

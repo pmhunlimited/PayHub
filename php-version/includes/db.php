@@ -7,7 +7,7 @@ class Database {
     public static function connect() {
         if (self::$pdo === null) {
             if (!file_exists(__DIR__ . '/config.php')) {
-                header("Location: install/index.php");
+                header("Location: " . BASE_URL . "install/index.php");
                 exit;
             }
             require_once __DIR__ . '/config.php';

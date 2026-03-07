@@ -113,7 +113,7 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $config_content .= "define('DB_USER', '$user');\n";
         $config_content .= "define('DB_PASS', '$pass');\n";
         
-        file_put_contents('../config.php', $config_content);
+        file_put_contents('../includes/config.php', $config_content);
         
         header("Location: ?stage=3");
         exit;
@@ -124,7 +124,7 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Stage 3: Handle Admin Setup
 if ($stage === 3 && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    require '../config.php';
+    require '../includes/config.php';
     $email = $_POST['admin_email'];
     $pass = password_hash($_POST['admin_pass'], PASSWORD_DEFAULT);
     $name = $_POST['admin_name'];

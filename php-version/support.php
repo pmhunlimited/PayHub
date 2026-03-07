@@ -1,8 +1,8 @@
 <?php
 // php-version/support.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 $pageTitle = 'Support Center - Payhub';
-include 'header.php';
+include 'includes/header.php';
 ?>
 <div class="pt-20">
     <div class="bg-indigo-600 py-24 px-4 text-center">

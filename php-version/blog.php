@@ -1,6 +1,6 @@
 <?php
 // php-version/blog.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 
 $db = Database::connect();
 $search = $_GET['q'] ?? '';
@@ -40,7 +40,7 @@ if (empty($posts)) {
 }
 
 $pageTitle = 'Payhub Blog - Latest Insights in Fintech';
-include 'header.php';
+include 'includes/header.php';
 ?>
 <div class="pt-32 pb-24 px-4 bg-slate-50 min-h-screen">
     <div class="max-w-5xl mx-auto">
@@ -89,4 +89,4 @@ include 'header.php';
             <?php endif; ?>
         </div>
     </div>
-    <?php include 'footer.php'; ?>
+    <?php include 'includes/footer.php'; ?>

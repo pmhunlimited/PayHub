@@ -1,10 +1,10 @@
 <?php
 // php-version/login.php
-require_once 'functions.php';
-require_once 'db.php';
+require_once 'includes/functions.php';
+require_once 'includes/db.php';
 
 if (isLoggedIn()) {
-    redirect('dashboard.php');
+    redirect('merchant/dashboard.php');
 }
 
 $error = '';
@@ -24,9 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
             if ($user['role'] === 'admin') {
-                redirect('admin.php');
+                redirect('admin/index.php');
             } else {
-                redirect('dashboard.php');
+                redirect('merchant/dashboard.php');
             }
         }
     } else {

@@ -5,7 +5,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-require_once 'db.php';
+// Define base path
+define('BASE_PATH', dirname(__DIR__) . '/');
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
+$host = $_SERVER['HTTP_HOST'];
+$script_name = $_SERVER['SCRIPT_NAME'];
+$base_dir = str_replace(basename($script_name), '', $script_name);
+// Ensure we get the root of the php-version directory
+if (strpos($base_dir, '/admin/') !== false) {
+    $base_dir = str_replace('/admin/', '/', $base_dir);
+} elseif (strpos($base_dir, '/merchant/') !== false) {
+    $base_dir = str_replace('/merchant/', '/', $base_dir);
+}
+define('BASE_URL', $protocol . "://" . $host . $base_dir);
+
+require_once __DIR__ . '/db.php';
 
 function isLoggedIn() {
     return isset($_SESSION['user_id']);

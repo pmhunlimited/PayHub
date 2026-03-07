@@ -1,9 +1,9 @@
 <?php
 // php-version/admin.php
-require_once 'functions.php';
+require_once '../includes/functions.php';
 
 if (!isLoggedIn() || !isAdmin()) {
-    redirect('login.php');
+    redirect('../login.php');
 }
 
 $user = getAuthUser();
@@ -127,7 +127,7 @@ if (empty($chartData)) {
     <!-- Sidebar -->
     <aside class="w-64 bg-slate-900 text-slate-400 flex flex-col hidden md:flex">
         <div class="p-6 border-b border-slate-800">
-            <a href="index.php" class="flex items-center gap-2">
+            <a href="<?php echo BASE_URL; ?>admin/index.php" class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
                     <i class="lucide-shield-check text-white w-5 h-5"></i>
                 </div>
@@ -160,7 +160,7 @@ if (empty($chartData)) {
         </nav>
 
         <div class="p-4 border-t border-slate-800">
-            <a href="logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all">
+            <a href="<?php echo BASE_URL; ?>logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-400 hover:bg-red-500/10 transition-all">
                 <i class="lucide-log-out w-5 h-5"></i>
                 Logout
             </a>

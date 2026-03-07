@@ -1,9 +1,9 @@
 <?php
 // php-version/register.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 
 if (isLoggedIn()) {
-    redirect('dashboard.php');
+    redirect('merchant/dashboard.php');
 }
 
 $error = '';

@@ -1,6 +1,6 @@
 <?php
 // php-version/reset-password.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 
 $token = $_GET['token'] ?? '';
 $error = '';

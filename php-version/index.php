@@ -1,8 +1,8 @@
 <?php
 // php-version/index.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 $pageTitle = 'Payhub - Modern Payments for Ambitious Businesses';
-include 'header.php';
+include 'includes/header.php';
 ?>
 
     <!-- Hero Section -->
@@ -79,4 +79,4 @@ include 'header.php';
         </div>
     </section>
 
-    <?php include 'footer.php'; ?>
+    <?php include 'includes/footer.php'; ?>

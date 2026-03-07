@@ -1,8 +1,8 @@
 <?php
 // php-version/docs.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 $pageTitle = 'Documentation - Payhub';
-include 'header.php';
+include 'includes/header.php';
 ?>
 <div class="pt-20 flex min-h-screen">
     <aside class="w-64 border-r border-slate-100 p-8 hidden md:block sticky top-0 h-screen overflow-y-auto">

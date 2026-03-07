@@ -1,8 +1,8 @@
 <?php
 // php-version/pricing.php
-require_once 'functions.php';
+require_once 'includes/functions.php';
 $pageTitle = 'Pricing - Payhub';
-include 'header.php';
+include 'includes/header.php';
 ?>
 <div class="pt-32 pb-24 px-4">
     <div class="max-w-7xl mx-auto">
@@ -116,4 +116,4 @@ include 'header.php';
             </div>
         </div>
     </div>
-    <?php include 'footer.php'; ?>
+    <?php include 'includes/footer.php'; ?>

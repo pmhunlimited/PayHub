@@ -1,14 +1,14 @@
 <?php
 // php-version/dashboard.php
-require_once 'functions.php';
+require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
-    redirect('login.php');
+    redirect('../login.php');
 }
 
 $user = getAuthUser();
 if ($user['role'] === 'admin') {
-    redirect('admin.php');
+    redirect('../admin/index.php');
 }
 
 $tab = $_GET['tab'] ?? 'overview';
@@ -97,11 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
-    <?php include 'sidebar.php'; ?>
+    <?php include '../includes/sidebar.php'; ?>
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col overflow-hidden">
-        <?php include 'topbar.php'; ?>
+        <?php include '../includes/topbar.php'; ?>
 
         <!-- Scrollable Content -->
         <div class="flex-1 overflow-y-auto p-8">

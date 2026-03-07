@@ -1,9 +1,9 @@
 <?php
 // php-version/transactions.php
-require_once 'functions.php';
+require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
-    redirect('login.php');
+    redirect('../login.php');
 }
 
 $user = getAuthUser();
@@ -29,10 +29,10 @@ $transactions = $stmt->fetchAll();
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
-    <?php include 'sidebar.php'; ?>
+    <?php include '../includes/sidebar.php'; ?>
 
     <main class="flex-1 flex flex-col overflow-hidden">
-        <?php include 'topbar.php'; ?>
+        <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
         <div class="max-w-6xl mx-auto">
             <div class="flex items-center justify-between mb-8">
