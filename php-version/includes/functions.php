@@ -38,6 +38,72 @@ if (file_exists(__DIR__ . '/config.php')) {
 }
 require_once __DIR__ . '/db.php';
 
+// Simple Migration Helper
+function check_migrations() {
+    if (!isInstalled()) return;
+    try {
+        $db = Database::connect();
+
+        // Ensure we are working on the right table structure
+        $tables = [
+            'users' => [
+                'phone_number' => "VARCHAR(50)",
+                'is_deleted' => "TINYINT DEFAULT 0",
+                'parent_id' => "INT DEFAULT NULL",
+                'kyc_notes' => "TEXT",
+                'require_payout_review' => "TINYINT DEFAULT 0",
+                'payout_method' => "ENUM('manual', 'automated') DEFAULT 'manual'",
+                'settlement_currency' => "ENUM('NGN', 'USD') DEFAULT 'NGN'",
+                'id_type' => "VARCHAR(100)",
+                'id_path' => "VARCHAR(255)",
+                'bvn' => "VARCHAR(20)",
+                'residential_address' => "TEXT",
+                'rc_number' => "VARCHAR(100)",
+                'tin' => "VARCHAR(100)",
+                'cac_cert_path' => "VARCHAR(255)",
+                'cac_form_path' => "VARCHAR(255)",
+                'memart_path' => "VARCHAR(255)",
+                'business_address_proof_path' => "VARCHAR(255)",
+                'bn_number' => "VARCHAR(100)",
+                'bn_cert_path' => "VARCHAR(255)",
+                'bn_form_path' => "VARCHAR(255)",
+                'ngo_form_path' => "VARCHAR(255)",
+                'ngo_constitution_path' => "VARCHAR(255)",
+                'gov_auth_letter_path' => "VARCHAR(255)",
+                'gov_gazette_path' => "VARCHAR(255)",
+                'id_expiry_date' => "DATE",
+                'utility_bill_path' => "VARCHAR(255)",
+                'liveliness_path' => "VARCHAR(255)",
+                'settlement_bank_code' => "VARCHAR(10)"
+            ],
+            'transactions' => [
+                'currency' => "VARCHAR(10) DEFAULT 'NGN'",
+                'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'gateway_reference' => "VARCHAR(100)"
+            ],
+            'payouts' => [
+                'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'net_amount' => "DECIMAL(15, 2) NOT NULL DEFAULT 0.00",
+                'status_details' => "TEXT"
+            ]
+        ];
+
+        foreach ($tables as $table => $columns) {
+            foreach ($columns as $col => $def) {
+                $stmt = $db->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
+                if (!$stmt->fetch()) {
+                    $db->exec("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+                }
+            }
+        }
+
+    } catch (Exception $e) {
+        // Log error if needed: error_log($e->getMessage());
+    }
+}
+check_migrations();
+
 function isInstalled() {
     return file_exists(__DIR__ . '/config.php');
 }
