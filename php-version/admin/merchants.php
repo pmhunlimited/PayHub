@@ -122,6 +122,7 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50 border-b border-slate-100">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Name</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
@@ -135,6 +136,9 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-slate-900"><?php echo $m['business_name']; ?></div>
                                         <div class="text-xs text-slate-500"><?php echo $m['email']; ?></div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-500">
+                                        <?php echo date('M d, Y', strtotime($m['created_at'])); ?>
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $m['is_kyc_verified'] == 1 ? 'bg-emerald-100 text-emerald-700' : ($m['is_kyc_verified'] == 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'); ?>">
