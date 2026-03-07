@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <?php include '../includes/sidebar.php'; ?>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
 
         <!-- Scrollable Content -->

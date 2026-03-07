@@ -35,79 +35,96 @@ $stmt = $db->prepare("SELECT * FROM tickets WHERE user_id = ? ORDER BY created_a
 $stmt->execute([$user['id']]);
 $tickets = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
-            <div class="mb-8">
-                <h1 class="text-2xl font-bold text-slate-900 mb-2">Support Center</h1>
-                <p class="text-slate-500">A built-in helpdesk to communicate directly with the Payhub admin team</p>
-            </div>
-
-            <div class="grid lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-1 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm h-fit">
-                    <h3 class="font-bold mb-6 flex items-center gap-2"><i class="lucide-plus-circle text-indigo-600"></i> Open New Ticket</h3>
-                    <form method="POST" class="space-y-4">
-                        <input type="hidden" name="action" value="new_ticket">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Subject</label>
-                            <input type="text" name="subject" required placeholder="Brief description of issue" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Priority</label>
-                            <select name="priority" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="critical">Critical</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Describe Your Issue</label>
-                            <textarea name="message" required rows="5" placeholder="Provide more details here..." class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"></textarea>
-                        </div>
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Submit Ticket</button>
-                    </form>
+            <div class="max-w-6xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Support Center</h1>
+                    <p class="text-slate-500">Communicate directly with our support team to resolve any issues</p>
                 </div>
-                <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 font-bold">My Tickets</div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-50">
-                                <tr>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Subject</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Priority</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <?php foreach ($tickets as $t): ?>
-                                    <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo $t['subject']; ?></td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['priority'] === 'critical' || $t['priority'] === 'high' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'; ?>"><?php echo $t['priority']; ?></span>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['status'] === 'open' ? 'bg-indigo-50 text-indigo-700' : ($t['status'] === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'); ?>"><?php echo $t['status']; ?></span>
-                                        </td>
-                                        <td class="px-6 py-4 text-xs text-slate-500 font-medium"><?php echo date('M d, Y', strtotime($t['created_at'])); ?></td>
-                                        <td class="px-6 py-4">
-                                            <button class="text-indigo-600 hover:text-indigo-700 font-bold text-xs">View Thread</button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <?php if (empty($tickets)): ?>
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-12 text-center text-slate-500 font-medium">No support tickets found.</td>
-                                    </tr>
-                                <?php endif; ?>
-                            </tbody>
-                        </table>
+
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm h-fit">
+                            <h3 class="font-bold text-lg text-slate-900 mb-6 flex items-center gap-2">
+                                <i class="lucide-plus-circle text-indigo-600"></i> New Ticket
+                            </h3>
+                            <form method="POST" class="space-y-6">
+                                <input type="hidden" name="action" value="new_ticket">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Subject</label>
+                                    <input type="text" name="subject" required placeholder="What do you need help with?" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Priority</label>
+                                    <select name="priority" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                        <option value="low">Low</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="high">High</option>
+                                        <option value="critical">Critical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message</label>
+                                    <textarea name="message" required rows="5" placeholder="Detailed description of your issue..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"></textarea>
+                                </div>
+                                <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Send Ticket</button>
+                            </form>
+                        </div>
+
+                        <div class="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
+                            <i class="lucide-help-circle mb-4 opacity-80" size="32"></i>
+                            <h3 class="font-bold mb-2">Knowledge Base</h3>
+                            <p class="text-sm text-indigo-100 mb-6">Find quick answers to common questions in our detailed documentation.</p>
+                            <a href="../docs.php" class="inline-block bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all">Browse FAQs</a>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                            <div class="p-6 border-b border-slate-100 font-bold text-slate-900 bg-slate-50/50">My Support History</div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="bg-slate-50 border-b border-slate-100">
+                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</th>
+                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <?php foreach ($tickets as $t): ?>
+                                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                                <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo $t['subject']; ?></td>
+                                                <td class="px-6 py-4">
+                                                    <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['status'] === 'open' ? 'bg-indigo-50 text-indigo-700' : ($t['status'] === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'); ?>"><?php echo $t['status']; ?></span>
+                                                </td>
+                                                <td class="px-6 py-4 text-xs text-slate-500 font-medium"><?php echo date('M d, Y', strtotime($t['created_at'])); ?></td>
+                                                <td class="px-6 py-4">
+                                                    <button class="text-indigo-600 hover:underline text-xs font-bold">View Thread</button>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                        <?php if (empty($tickets)): ?>
+                                            <tr>
+                                                <td colspan="4" class="px-6 py-20 text-center">
+                                                    <div class="flex flex-col items-center gap-2 opacity-30">
+                                                        <i class="lucide-ticket w-12 h-12"></i>
+                                                        <p class="font-bold">No support tickets found</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

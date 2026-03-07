@@ -1,10 +1,8 @@
 <?php
-// php-version/compliance.php
+// php-version/merchant/compliance.php
 require_once '../includes/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('../login.php');
-}
+if (!isLoggedIn()) redirect('../login.php');
 
 $user = getAuthUser();
 $db = Database::connect();
@@ -14,154 +12,187 @@ $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_compliance') {
     $business_type = sanitize($_POST['business_type']);
-    $registration_number = sanitize($_POST['registration_number']);
+    $registration_number = sanitize($_POST['registration_number'] ?? '');
+    $id_type = sanitize($_POST['id_type']);
+    $id_expiry = sanitize($_POST['id_expiry_date'] ?? '');
+    $bvn = sanitize($_POST['bvn'] ?? '');
+    $address = sanitize($_POST['residential_address'] ?? '');
+
+    // Basic logic for expiry date requirement
+    $needs_expiry = in_with_any($id_type, ["Drivers License", "International Passport"]);
     
     try {
-        $stmt = $db->prepare("UPDATE users SET business_type = ?, registration_number = ? WHERE id = ?");
-        $stmt->execute([$business_type, $registration_number, $user['id']]);
-        $success_msg = "Compliance information updated successfully!";
-        $user = getAuthUser(); // Refresh user data
+        $stmt = $db->prepare("UPDATE users SET
+            business_type = ?,
+            registration_number = ?,
+            id_type = ?,
+            id_expiry_date = ?,
+            bvn = ?,
+            residential_address = ?,
+            is_kyc_verified = 2
+            WHERE id = ?");
+        $stmt->execute([
+            $business_type,
+            $registration_number,
+            $id_type,
+            $needs_expiry ? $id_expiry : null,
+            $bvn,
+            $address,
+            $user['id']
+        ]);
+        $success_msg = "Compliance documents submitted for review!";
+        $user = getAuthUser();
     } catch (Exception $e) {
-        $error_msg = "Failed to update compliance: " . $e->getMessage();
+        $error_msg = "Submission failed: " . $e->getMessage();
     }
 }
 
+function in_with_any($needle, $haystack) {
+    return in_array($needle, $haystack);
+}
+
+include '../includes/dashboard-head.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compliance - Payhub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
+        businessType: '<?php echo $user['business_type'] ?: 'Starter'; ?>',
+        idType: '<?php echo $user['id_type']; ?>',
+        get needsExpiry() { return ['Drivers License', 'International Passport'].includes(this.idType) }
+    }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
-        <div class="max-w-4xl mx-auto">
-            <div class="flex items-center gap-4 mb-8">
-                <div class="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                    <i class="lucide-shield-check w-6 h-6"></i>
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Compliance & KYC</h1>
+                    <p class="text-slate-500">Provide required documents to verify your business and increase limits</p>
                 </div>
-                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Compliance</h1>
-            </div>
 
-            <?php if ($success_msg): ?>
-                <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
-                    <?php echo $success_msg; ?>
-                </div>
-            <?php endif; ?>
-            <?php if ($error_msg): ?>
-                <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium">
-                    <?php echo $error_msg; ?>
-                </div>
-            <?php endif; ?>
+                <?php if ($success_msg): ?>
+                    <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
+                <?php endif; ?>
+                <?php if ($error_msg): ?>
+                    <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium"><?php echo $error_msg; ?></div>
+                <?php endif; ?>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="md:col-span-2 space-y-8">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 mb-6">Business Information</h3>
-                        <form method="POST" class="space-y-6">
-                            <input type="hidden" name="action" value="update_compliance">
-                            <div class="grid md:grid-cols-2 gap-6">
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                            <form method="POST" class="space-y-8">
+                                <input type="hidden" name="action" value="update_compliance">
+
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Business Type</label>
-                                    <select name="business_type" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700">
-                                        <option value="sole_proprietorship" <?php echo $user['business_type'] === 'sole_proprietorship' ? 'selected' : ''; ?>>Sole Proprietorship</option>
-                                        <option value="limited_liability" <?php echo $user['business_type'] === 'limited_liability' ? 'selected' : ''; ?>>Limited Liability Company</option>
-                                        <option value="non_profit" <?php echo $user['business_type'] === 'non_profit' ? 'selected' : ''; ?>>Non-Profit Organization</option>
-                                        <option value="partnership" <?php echo $user['business_type'] === 'partnership' ? 'selected' : ''; ?>>Partnership</option>
-                                    </select>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Select Business Type</label>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <?php
+                                        $types = [
+                                            ['id' => 'Starter', 'label' => 'Starter', 'desc' => 'Individual / Freelancer'],
+                                            ['id' => 'Registered', 'label' => 'Registered', 'desc' => 'LLC / CAC Registered'],
+                                            ['id' => 'Business Name', 'label' => 'Business Name', 'desc' => 'Sole Proprietorship'],
+                                            ['id' => 'Special', 'label' => 'Special', 'desc' => 'NGO / Government']
+                                        ];
+                                        foreach($types as $t):
+                                        ?>
+                                            <label class="relative flex flex-col p-4 border-2 rounded-2xl cursor-pointer transition-all" :class="businessType === '<?php echo $t['id']; ?>' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 hover:border-slate-200'">
+                                                <input type="radio" name="business_type" value="<?php echo $t['id']; ?>" x-model="businessType" class="absolute opacity-0">
+                                                <span class="font-bold text-sm" :class="businessType === '<?php echo $t['id']; ?>' ? 'text-indigo-600' : 'text-slate-900'"><?php echo $t['label']; ?></span>
+                                                <span class="text-[10px] text-slate-500 mt-1"><?php echo $t['desc']; ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Registration Number (RC/BN)</label>
-                                    <input 
-                                        type="text" 
-                                        name="registration_number"
-                                        value="<?php echo $user['registration_number']; ?>"
-                                        class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
-                                        placeholder="RC-1234567"
-                                    >
-                                </div>
-                            </div>
 
-                            <div class="pt-6 border-t border-slate-100">
-                                <button type="submit" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                                    Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 mb-6">Document Verification</h3>
-                        <div class="space-y-4">
-                            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                        <i class="lucide-file-text w-6 h-6"></i>
+                                <div class="space-y-6">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Identity Information</h4>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Government ID Type</label>
+                                            <select name="id_type" x-model="idType" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                <option value="">Select ID Type</option>
+                                                <option value="NIN Slip">NIN Slip</option>
+                                                <option value="Drivers License">Drivers License</option>
+                                                <option value="Voters Card">Voters Card</option>
+                                                <option value="International Passport">International Passport</option>
+                                            </select>
+                                        </div>
+                                        <div x-show="needsExpiry">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">ID Expiry Date</label>
+                                            <input type="date" name="id_expiry_date" value="<?php echo $user['id_expiry_date']; ?>" :required="needsExpiry" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BVN / NIN Number</label>
+                                            <input type="text" name="bvn" value="<?php echo $user['bvn']; ?>" placeholder="222********" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                        <div x-show="businessType !== 'Starter'">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Registration Number (RC/BN)</label>
+                                            <input type="text" name="registration_number" value="<?php echo $user['registration_number']; ?>" placeholder="RC123456" :required="businessType !== 'Starter'" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-bold text-slate-900">Certificate of Incorporation</p>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Required</p>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Residential Address</label>
+                                        <input type="text" name="residential_address" value="<?php echo $user['residential_address']; ?>" placeholder="123 Main St, Lagos" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-amber-600 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full">
-                                    <i class="lucide-clock w-3 h-3"></i>
-                                    Pending
-                                </div>
-                            </div>
 
-                            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                        <i class="lucide-user-check w-6 h-6"></i>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm font-bold text-slate-900">Director's ID Card</p>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Required</p>
+                                <div class="space-y-6">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Document Uploads</h4>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                                            <i class="lucide-upload text-slate-400 mb-2"></i>
+                                            <p class="text-[10px] font-bold text-slate-500 uppercase">Utility Bill</p>
+                                            <p class="text-[9px] text-slate-400 mt-1">Not older than 3 months</p>
+                                        </div>
+                                        <div class="p-4 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+                                            <i class="lucide-camera text-slate-400 mb-2"></i>
+                                            <p class="text-[10px] font-bold text-slate-500 uppercase">Liveliness Snapshot</p>
+                                            <p class="text-[9px] text-slate-400 mt-1">Real-time selfie photo</p>
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full">
-                                    <i class="lucide-check-circle-2 w-3 h-3"></i>
-                                    Verified
-                                </div>
-                            </div>
+
+                                <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Submit for Verification</button>
+                            </form>
                         </div>
                     </div>
-                </div>
 
-                <div class="md:col-span-1">
-                    <div class="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <h4 class="text-lg font-bold mb-4 relative z-10">Verification Status</h4>
-                        <div class="space-y-6 relative z-10">
-                            <div>
-                                <div class="flex justify-between text-xs font-bold mb-2 opacity-80 uppercase tracking-widest">
-                                    <span>Overall Progress</span>
-                                    <span>65%</span>
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-indigo-900 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                            <h4 class="font-bold mb-4 relative z-10">KYC Level</h4>
+                            <div class="space-y-4 relative z-10">
+                                <div class="p-4 bg-white/10 rounded-2xl border border-white/10">
+                                    <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-1">Status</p>
+                                    <p class="text-sm font-bold capitalize"><?php echo $user['is_kyc_verified'] == 1 ? 'Verified' : ($user['is_kyc_verified'] == 2 ? 'Under Review' : 'Action Required'); ?></p>
                                 </div>
-                                <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                                    <div class="h-full bg-white rounded-full" style="width: 65%"></div>
-                                </div>
+                                <p class="text-xs text-indigo-200 leading-relaxed">Verification typically takes 24-48 business hours. You'll be notified via email once processed.</p>
                             </div>
-                            <p class="text-sm opacity-80 leading-relaxed">Complete all verification steps to increase your transaction limits and enable all payment methods.</p>
-                            <button class="w-full bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all">
-                                View Limits
-                            </button>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+                            <h4 class="font-bold text-slate-900 mb-4">Why verify?</h4>
+                            <ul class="space-y-4">
+                                <li class="flex gap-3">
+                                    <i class="lucide-check-circle-2 text-emerald-500 w-4 h-4 shrink-0"></i>
+                                    <span class="text-xs text-slate-600">Increase collection limits</span>
+                                </li>
+                                <li class="flex gap-3">
+                                    <i class="lucide-check-circle-2 text-emerald-500 w-4 h-4 shrink-0"></i>
+                                    <span class="text-xs text-slate-600">Enable bank transfer payments</span>
+                                </li>
+                                <li class="flex gap-3">
+                                    <i class="lucide-check-circle-2 text-emerald-500 w-4 h-4 shrink-0"></i>
+                                    <span class="text-xs text-slate-600">Withdraw funds to bank</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>lucide.createIcons();</script>
 </body>
 </html>

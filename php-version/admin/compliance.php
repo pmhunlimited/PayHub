@@ -25,11 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $stmt = $db->query("SELECT * FROM users WHERE role = 'merchant' AND is_kyc_verified != 1 ORDER BY is_kyc_verified DESC, created_at DESC");
 $pending = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden" x-data="{ showReview: false, merchant: {} }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReview: false, merchant: {} }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>

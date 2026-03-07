@@ -23,11 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $stmt = $db->query("SELECT t.*, u.business_name, u.email as user_email FROM tickets t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC");
 $tickets = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>

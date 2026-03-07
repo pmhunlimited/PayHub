@@ -67,6 +67,9 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 ngo_constitution_path VARCHAR(255),
                 gov_auth_letter_path VARCHAR(255),
                 gov_gazette_path VARCHAR(255),
+                id_expiry_date DATE,
+                utility_bill_path VARCHAR(255),
+                liveliness_path VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 

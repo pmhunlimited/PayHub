@@ -12,11 +12,11 @@ $db = Database::connect();
 $stmt = $db->query("SELECT v.*, u.business_name FROM virtual_accounts v JOIN users u ON v.user_id = u.id ORDER BY v.created_at DESC");
 $accounts = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <div class="mb-8">

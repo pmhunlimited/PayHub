@@ -92,7 +92,7 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i class="lucide-arrow-up-right w-5 h-5"></i>
                 Transactions
             </a>
-            <?php if ($user['business_type'] !== 'Starter'): ?>
+            <?php if ($user['business_type'] !== 'Starter' && $user['is_kyc_verified'] == 1): ?>
             <a href="<?php echo BASE_URL; ?>merchant/virtual-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'virtual-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i class="lucide-wallet w-5 h-5"></i>
                 Virtual Accounts

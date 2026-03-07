@@ -21,11 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $stmt = $db->query("SELECT w.*, t.reference as transaction_ref FROM webhook_logs w JOIN transactions t ON w.transaction_id = t.id ORDER BY w.created_at DESC");
 $logs = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>

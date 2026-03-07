@@ -29,11 +29,11 @@ $staff = $stmt->fetchAll();
 $stmt = $db->query("SELECT * FROM staff_roles ORDER BY name ASC");
 $roles = $stmt->fetchAll();
 
-include '../includes/header.php';
+include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col overflow-hidden" x-data="{ showAdd: false }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showAdd: false }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
