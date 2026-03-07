@@ -8,10 +8,12 @@ $user = getAuthUser();
         <button class="md:hidden text-slate-500">
             <i class="lucide-menu w-6 h-6"></i>
         </button>
-        <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-            <div class="w-2 h-2 rounded-full <?php echo $user['is_test_mode'] ? 'bg-amber-500' : 'bg-emerald-500'; ?>"></div>
-            <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider"><?php echo $user['is_test_mode'] ? 'Test Mode' : 'Live Mode'; ?></span>
-        </div>
+        <?php if ($user['role'] !== 'admin'): ?>
+            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
+                <div class="w-2 h-2 rounded-full <?php echo $user['is_test_mode'] ? 'bg-amber-500' : 'bg-emerald-500'; ?>"></div>
+                <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider"><?php echo $user['is_test_mode'] ? 'Test Mode' : 'Live Mode'; ?></span>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div class="flex items-center gap-6">
@@ -21,11 +23,11 @@ $user = getAuthUser();
         </button>
         <div class="flex items-center gap-3 pl-6 border-l border-slate-100">
             <div class="text-right hidden sm:block">
-                <p class="text-sm font-bold text-slate-900"><?php echo $user['business_name']; ?></p>
+                <p class="text-sm font-bold text-slate-900"><?php echo $user['role'] === 'admin' ? 'System Administrator' : $user['business_name']; ?></p>
                 <p class="text-[10px] text-slate-500 font-medium"><?php echo $user['email']; ?></p>
             </div>
-            <div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center text-indigo-600 font-bold">
-                <?php echo strtoupper(substr($user['business_name'], 0, 1)); ?>
+            <div class="w-10 h-10 <?php echo $user['role'] === 'admin' ? 'bg-slate-900' : 'bg-indigo-100'; ?> rounded-xl flex items-center justify-center <?php echo $user['role'] === 'admin' ? 'text-white' : 'text-indigo-600'; ?> font-bold">
+                <?php echo strtoupper(substr($user['role'] === 'admin' ? 'Admin' : $user['business_name'], 0, 1)); ?>
             </div>
         </div>
     </div>

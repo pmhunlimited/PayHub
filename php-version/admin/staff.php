@@ -20,6 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("INSERT INTO staff_users (email, full_name, password_hash, role_id) VALUES (?, ?, ?, ?)");
         $stmt->execute([$email, $full_name, $password, $role_id]);
         $success_msg = "Staff member added successfully.";
+    } elseif ($_POST['action'] === 'add_role') {
+        $name = sanitize($_POST['role_name']);
+        $perms = json_encode($_POST['permissions'] ?? []);
+        $stmt = $db->prepare("INSERT INTO staff_roles (name, permissions) VALUES (?, ?)");
+        $stmt->execute([$name, $perms]);
+        $success_msg = "Staff role created successfully.";
     }
 }
 
@@ -33,7 +39,7 @@ include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showAdd: false }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showAdd: false, showAddRole: false }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -47,12 +53,18 @@ include '../includes/dashboard-head.php';
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Staff Management</h1>
                     <p class="text-slate-500">Create roles and manage staff access with granular permissions</p>
                 </div>
-                <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                    <i class="lucide-user-plus w-4 h-4"></i> Add Staff
-                </button>
+                <div class="flex gap-3">
+                    <button @click="showAddRole = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                        <i class="lucide-shield w-4 h-4"></i> Create Role
+                    </button>
+                    <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                        <i class="lucide-user-plus w-4 h-4"></i> Add Staff
+                    </button>
+                </div>
             </div>
 
-            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="grid lg:grid-cols-3 gap-8 mb-8">
+                <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 font-bold">Staff Members</div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
@@ -86,15 +98,70 @@ include '../includes/dashboard-head.php';
                     </table>
                 </div>
             </div>
+
+            <div class="lg:col-span-1 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-fit">
+                <div class="p-6 border-b border-slate-100 font-bold">Staff Roles</div>
+                <div class="p-6 space-y-4">
+                    <?php foreach ($roles as $r): ?>
+                        <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center group">
+                            <div>
+                                <p class="font-bold text-slate-900 text-sm"><?php echo $r['name']; ?></p>
+                                <p class="text-[10px] text-slate-400 font-medium"><?php echo count(json_decode($r['permissions'] ?: '[]')); ?> permissions set</p>
+                            </div>
+                            <button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-indigo-600 transition-all">
+                                <i class="lucide-settings w-4 h-4"></i>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                    <?php if (empty($roles)): ?>
+                        <p class="text-center text-xs text-slate-400 py-4 italic">No roles created yet.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
         </div>
 
-        <!-- Add Modal -->
+        <div x-show="showAddRole" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">Create Staff Role</h3>
+                    <button @click="showAddRole = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                        <i class="lucide-x w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="add_role">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Role Name</label>
+                            <input type="text" name="role_name" required placeholder="e.g. Support Manager" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Permissions</label>
+                            <div class="grid grid-cols-2 gap-4">
+                                <?php
+                                $perms = ['Manage Merchants', 'Process Payouts', 'Review KYC', 'Manage Blog', 'System Settings', 'Support Desk', 'View Reports', 'Webhook Logs'];
+                                foreach($perms as $p):
+                                ?>
+                                    <label class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:border-indigo-200 transition-all">
+                                        <input type="checkbox" name="permissions[]" value="<?php echo $p; ?>" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+                                        <span class="text-xs font-medium text-slate-700"><?php echo $p; ?></span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Create Role</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Staff Modal -->
         <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Add New Staff Member</h3>
-                    <button @click="showAdd = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                        <i class="lucide-x w-6 h-6"></i>
+                    <button @click="showAdd = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                        <i class="lucide-x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">

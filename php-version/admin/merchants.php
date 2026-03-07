@@ -30,6 +30,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("UPDATE users SET fee_percentage = ?, fee_flat = ? WHERE id = ?");
         $stmt->execute([$percent, $flat, $merchantId]);
         $success_msg = "Merchant custom fees updated.";
+    } elseif ($_POST['action'] === 'update_details') {
+        $merchantId = (int)$_POST['merchant_id'];
+        $biz_name = sanitize($_POST['business_name']);
+        $email = sanitize($_POST['email']);
+        $stmt = $db->prepare("UPDATE users SET business_name = ?, email = ? WHERE id = ?");
+        $stmt->execute([$biz_name, $email, $merchantId]);
+        $success_msg = "Merchant details updated.";
+    } elseif ($_POST['action'] === 'toggle_payout_review') {
+        $merchantId = (int)$_POST['merchant_id'];
+        $status = (int)$_POST['status'];
+        $stmt = $db->prepare("UPDATE users SET require_payout_review = ? WHERE id = ?");
+        $stmt->execute([$status, $merchantId]);
+        $success_msg = "Payout review status updated for merchant.";
     } elseif ($_POST['action'] === 'impersonate') {
         $merchantId = (int)$_POST['merchant_id'];
         $_SESSION['user_id'] = $merchantId;
@@ -45,7 +58,7 @@ include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showFees: false, merchantId: null, feePercentage: null, feeFlat: null, merchantName: '' }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showFees: false, showEdit: false, merchantId: null, feePercentage: null, feeFlat: null, merchantName: '', merchantEmail: '' }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -72,6 +85,7 @@ include '../includes/dashboard-head.php';
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Name</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Custom Fees</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
@@ -93,6 +107,16 @@ include '../includes/dashboard-head.php';
                                             <?php echo $m['is_suspended'] ? 'Suspended' : 'Active'; ?>
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4">
+                                        <form method="POST" class="inline">
+                                            <input type="hidden" name="action" value="toggle_payout_review">
+                                            <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
+                                            <input type="hidden" name="status" value="<?php echo $m['require_payout_review'] ? 0 : 1; ?>">
+                                            <button type="submit" class="px-3 py-1 rounded-xl text-[10px] font-bold transition-all <?php echo $m['require_payout_review'] ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'; ?>">
+                                                <?php echo $m['require_payout_review'] ? 'Review ON' : 'Review OFF'; ?>
+                                            </button>
+                                        </form>
+                                    </td>
                                     <td class="px-6 py-4 text-sm">
                                         <?php if ($m['fee_percentage'] !== null): ?>
                                             <span class="text-indigo-600 font-bold"><?php echo $m['fee_percentage']; ?>% + <?php echo $m['fee_flat']; ?></span>
@@ -103,6 +127,9 @@ include '../includes/dashboard-head.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
+                                            <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="text-slate-400 hover:text-indigo-600 transition-colors">
+                                                <i class="lucide-edit w-4 h-4"></i>
+                                            </button>
                                             <form method="POST" class="inline">
                                                 <input type="hidden" name="action" value="impersonate">
                                                 <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
@@ -137,11 +164,38 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Fee Modal -->
+        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">Edit Merchant</h3>
+                    <button @click="showEdit = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                        <i class="lucide-x w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="action" value="update_details">
+                        <input type="hidden" name="merchant_id" :value="merchantId">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Business Name</label>
+                            <input type="text" name="business_name" x-model="merchantName" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                            <input type="email" name="email" x-model="merchantEmail" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Update Merchant</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fee Modal -->
         <div x-show="showFees" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Custom Fees</h3>
-                    <button @click="showFees = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                    <button @click="showFees = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
                         <i class="lucide-x w-5 h-5"></i>
                     </button>
                 </div>

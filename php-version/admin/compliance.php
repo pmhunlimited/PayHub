@@ -87,8 +87,8 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">KYC Document Review</h3>
-                    <button @click="showReview = false" class="text-slate-400 hover:text-slate-600 transition-colors">
-                        <i class="lucide-x w-6 h-6"></i>
+                    <button @click="showReview = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                        <i class="lucide-x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8 max-h-[70vh] overflow-y-auto">
