@@ -94,7 +94,8 @@ include '../includes/dashboard-head.php';
                 <div class="grid lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
-                            <form method="POST" class="space-y-8">
+                            <form method="POST" enctype="multipart/form-data" class="space-y-8">
+                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <input type="hidden" name="action" value="update_compliance">
 
                                 <div>

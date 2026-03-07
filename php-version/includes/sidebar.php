@@ -143,6 +143,10 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i class="lucide-ticket w-5 h-5"></i>
                 Support
             </a>
+            <a href="<?php echo BASE_URL; ?>merchant/sub-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'sub-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i class="lucide-layers w-5 h-5"></i>
+                Sub-accounts
+            </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Developer</div>
             <a href="<?php echo BASE_URL; ?>merchant/api-keys.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-keys.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">

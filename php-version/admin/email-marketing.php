@@ -126,6 +126,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="save_template">
                         <input type="text" name="name" required placeholder="Internal Template Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
                         <input type="text" name="subject" required placeholder="Email Subject Line" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -144,6 +145,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="add_contact">
                         <input type="text" name="full_name" required placeholder="Contact Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                         <input type="email" name="email" required placeholder="Email Address" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -161,6 +163,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="send_bulk">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Template</label>

@@ -36,9 +36,12 @@ $stmt->execute([$min_payout]);
 $merchants = $stmt->fetchAll();
 
 foreach ($merchants as $m) {
-    // Additional check: Does admin require review for this specific merchant?
-    if ($m['require_payout_review'] || getConfig('global_payout_review') == '1') {
-        // Skip for automated, needs manual processing by admin
+    // Logic: Global Review ON -> All need review.
+    // Global Review OFF -> Individual Review setting applies.
+    $needs_review = (getConfig('global_payout_review') == '1') || ($m['require_payout_review'] == 1);
+
+    if ($needs_review) {
+        // Skip for automated settlement, needs manual approval by admin in Settlements tab
         continue;
     }
 
