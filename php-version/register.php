@@ -27,8 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $public_key = generateApiKey('pk_live_');
             $secret_key = generateApiKey('sk_live_');
-            $stmt = $db->prepare("INSERT INTO users (email, password_hash, full_name, business_name, public_key, secret_key, role) VALUES (?, ?, ?, ?, ?, ?, 'merchant')");
-            if ($stmt->execute([$email, $hashedPassword, $full_name, $business_name, $public_key, $secret_key])) {
+            $test_pk = generateApiKey('pk_test_');
+            $test_sk = generateApiKey('sk_test_');
+            $stmt = $db->prepare("INSERT INTO users (email, password_hash, full_name, business_name, public_key, secret_key, test_public_key, test_secret_key, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'merchant')");
+            if ($stmt->execute([$email, $hashedPassword, $full_name, $business_name, $public_key, $secret_key, $test_pk, $test_sk])) {
                 // Auto-login or redirect to login
                 redirect('login.php?registered=1');
             } else {

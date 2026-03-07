@@ -110,17 +110,50 @@ include '../includes/dashboard-head.php';
                                     <p class="text-sm font-bold text-slate-900" x-text="merchant.business_name"></p>
                                 </div>
                                 <div>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Country</p>
+                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.country"></p>
+                                </div>
+                                <div>
                                     <p class="text-[10px] font-bold text-slate-400 uppercase">Business Type</p>
                                     <p class="text-sm font-bold text-slate-900" x-text="merchant.business_type"></p>
                                 </div>
                                 <div x-show="merchant.bvn">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">BVN</p>
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase">BVN/NIN</p>
                                     <p class="text-sm font-bold text-slate-900" x-text="merchant.bvn"></p>
                                 </div>
                                 <div x-show="merchant.rc_number">
                                     <p class="text-[10px] font-bold text-slate-400 uppercase">RC Number</p>
                                     <p class="text-sm font-bold text-slate-900" x-text="merchant.rc_number"></p>
                                 </div>
+                            </div>
+                        </div>
+                        <div class="col-span-2 mt-8">
+                            <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Uploaded Documents</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <template x-if="merchant.id_path">
+                                    <a :href="'../uploads/' + merchant.id_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                                        <i class="lucide-credit-card text-indigo-600"></i>
+                                        <span class="text-[10px] font-bold text-slate-700">Gov't ID</span>
+                                    </a>
+                                </template>
+                                <template x-if="merchant.utility_bill_path">
+                                    <a :href="'../uploads/' + merchant.utility_bill_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                                        <i class="lucide-file-text text-indigo-600"></i>
+                                        <span class="text-[10px] font-bold text-slate-700">Utility Bill</span>
+                                    </a>
+                                </template>
+                                <template x-if="merchant.liveliness_path">
+                                    <a :href="'../uploads/' + merchant.liveliness_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                                        <i class="lucide-user text-indigo-600"></i>
+                                        <span class="text-[10px] font-bold text-slate-700">Liveliness</span>
+                                    </a>
+                                </template>
+                                <template x-if="merchant.cac_cert_path">
+                                    <a :href="'../uploads/' + merchant.cac_cert_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                                        <i class="lucide-award text-indigo-600"></i>
+                                        <span class="text-[10px] font-bold text-slate-700">CAC Cert</span>
+                                    </a>
+                                </template>
                             </div>
                         </div>
                         <div>

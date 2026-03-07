@@ -48,6 +48,7 @@ function check_migrations() {
         $tables = [
             'users' => [
                 'phone_number' => "VARCHAR(50)",
+                'country' => "VARCHAR(100) DEFAULT 'Nigeria'",
                 'is_deleted' => "TINYINT DEFAULT 0",
                 'parent_id' => "INT DEFAULT NULL",
                 'kyc_notes' => "TEXT",
@@ -74,13 +75,16 @@ function check_migrations() {
                 'id_expiry_date' => "DATE",
                 'utility_bill_path' => "VARCHAR(255)",
                 'liveliness_path' => "VARCHAR(255)",
-                'settlement_bank_code' => "VARCHAR(10)"
+                'settlement_bank_code' => "VARCHAR(10)",
+                'test_public_key' => "VARCHAR(255)",
+                'test_secret_key' => "VARCHAR(255)"
             ],
             'transactions' => [
                 'currency' => "VARCHAR(10) DEFAULT 'NGN'",
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
-                'gateway_reference' => "VARCHAR(100)"
+                'gateway_reference' => "VARCHAR(100)",
+                'payment_method' => "VARCHAR(50) DEFAULT 'card'"
             ],
             'payouts' => [
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
@@ -88,6 +92,22 @@ function check_migrations() {
                 'status_details' => "TEXT"
             ]
         ];
+
+        // Create missing tables
+        $db->exec("CREATE TABLE IF NOT EXISTS email_templates (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(100) NOT NULL,
+            subject VARCHAR(255) NOT NULL,
+            body TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS marketing_contacts (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            full_name VARCHAR(255),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB");
 
         foreach ($tables as $table => $columns) {
             foreach ($columns as $col => $def) {

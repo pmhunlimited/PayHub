@@ -167,17 +167,25 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <?php if ($tab === 'active'): ?>
-                                                <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="text-slate-400 hover:text-indigo-600 transition-colors" title="Edit Details">
+                                                <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit Details">
                                                     <i class="lucide-edit w-4 h-4"></i>
                                                 </button>
-                                                <button @click="showReset = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="text-slate-400 hover:text-amber-600 transition-colors" title="Reset Password">
+                                                <button @click="showReset = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Reset Password">
                                                     <i class="lucide-key w-4 h-4"></i>
                                                 </button>
+                                                <form method="POST" class="inline">
+                                                    <input type="hidden" name="action" value="suspend_merchant">
+                                                    <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
+                                                    <input type="hidden" name="status" value="<?php echo $m['is_suspended'] ? 0 : 1; ?>">
+                                                    <button type="submit" class="p-2 bg-slate-50 <?php echo $m['is_suspended'] ? 'text-emerald-600 hover:bg-emerald-50' : 'text-rose-400 hover:bg-rose-50'; ?> rounded-lg transition-all" title="<?php echo $m['is_suspended'] ? 'Unsuspend' : 'Suspend'; ?>">
+                                                        <i class="lucide-<?php echo $m['is_suspended'] ? 'play' : 'pause'; ?> w-4 h-4"></i>
+                                                    </button>
+                                                </form>
                                                 <form method="POST" class="inline">
                                                     <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="impersonate">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
-                                                    <button type="submit" class="text-indigo-600 hover:text-indigo-800" title="Login as Merchant">
+                                                    <button type="submit" class="p-2 bg-slate-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-all" title="Login as Merchant">
                                                         <i class="lucide-log-in w-4 h-4"></i>
                                                     </button>
                                                 </form>
@@ -185,7 +193,7 @@ include '../includes/dashboard-head.php';
                                                     <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="soft_delete">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
-                                                    <button type="submit" class="text-slate-300 hover:text-red-500" title="Delete Account">
+                                                    <button type="submit" class="p-2 bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Account">
                                                         <i class="lucide-trash-2 w-4 h-4"></i>
                                                     </button>
                                                 </form>

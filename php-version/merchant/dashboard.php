@@ -46,6 +46,21 @@ foreach ($revenueRaw as $r) {
     ];
 }
 
+// Fetch Payment Methods breakdown
+$stmt = $db->prepare("
+    SELECT payment_method, COUNT(*) as count
+    FROM transactions
+    WHERE user_id = ? AND status = 'success'
+    GROUP BY payment_method
+");
+$stmt->execute([$user['id']]);
+$methodsRaw = $stmt->fetchAll();
+$total_success = array_sum(array_column($methodsRaw, 'count'));
+$methodBreakdown = [];
+foreach ($methodsRaw as $m) {
+    $methodBreakdown[$m['payment_method']] = $total_success > 0 ? round(($m['count'] / $total_success) * 100) : 0;
+}
+
 // Handle Payout Request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
     $amount = (float)$_POST['amount'];
@@ -189,33 +204,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-900 mb-6">Payment Methods</h3>
                         <div class="space-y-6">
-                            <div>
-                                <div class="flex justify-between text-sm font-bold mb-2">
-                                    <span>Card</span>
-                                    <span>65%</span>
+                            <?php
+                            $available_methods = [
+                                'card' => ['label' => 'Card', 'color' => 'bg-indigo-600'],
+                                'bank_transfer' => ['label' => 'Bank Transfer', 'color' => 'bg-emerald-500'],
+                                'ussd' => ['label' => 'USSD', 'color' => 'bg-amber-500']
+                            ];
+                            foreach($available_methods as $key => $meta):
+                                $pct = $methodBreakdown[$key] ?? 0;
+                            ?>
+                                <div>
+                                    <div class="flex justify-between text-sm font-bold mb-2">
+                                        <span><?php echo $meta['label']; ?></span>
+                                        <span><?php echo $pct; ?>%</span>
+                                    </div>
+                                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div class="h-full <?php echo $meta['color']; ?> rounded-full" style="width: <?php echo $pct; ?>%"></div>
+                                    </div>
                                 </div>
-                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-indigo-600 rounded-full" style="width: 65%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm font-bold mb-2">
-                                    <span>Bank Transfer</span>
-                                    <span>25%</span>
-                                </div>
-                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-emerald-500 rounded-full" style="width: 25%"></div>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-sm font-bold mb-2">
-                                    <span>USSD</span>
-                                    <span>10%</span>
-                                </div>
-                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full bg-amber-500 rounded-full" style="width: 10%"></div>
-                                </div>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
                 </div>

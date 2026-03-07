@@ -12,8 +12,10 @@ $db = Database::connect();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'regenerate') {
     $pk = generateApiKey('pk_live_');
     $sk = generateApiKey('sk_live_');
-    $stmt = $db->prepare("UPDATE users SET public_key = ?, secret_key = ? WHERE id = ?");
-    $stmt->execute([$pk, $sk, $user['id']]);
+    $tpk = generateApiKey('pk_test_');
+    $tsk = generateApiKey('sk_test_');
+    $stmt = $db->prepare("UPDATE users SET public_key = ?, secret_key = ?, test_public_key = ?, test_secret_key = ? WHERE id = ?");
+    $stmt->execute([$pk, $sk, $tpk, $tsk, $user['id']]);
     $success_msg = "API keys regenerated successfully!";
     $user = getAuthUser();
 }
@@ -39,28 +41,60 @@ include '../includes/dashboard-head.php';
                     <div class="lg:col-span-2 space-y-6">
                         <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                             <div class="space-y-8">
+                                <?php if ($user['is_kyc_verified'] == 1): ?>
+                                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Public Key</p>
+                                            <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase">Live</span>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input readonly value="<?php echo $user['public_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
+                                            <button onclick="navigator.clipboard.writeText('<?php echo $user['public_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <div class="flex justify-between items-center mb-4">
+                                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Live Secret Key</p>
+                                            <span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold uppercase">Private</span>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input type="password" readonly value="<?php echo $user['secret_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
+                                            <button onclick="navigator.clipboard.writeText('<?php echo $user['secret_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
+                                        </div>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="p-6 bg-amber-50 rounded-2xl border border-amber-100 mb-8">
+                                        <div class="flex gap-3">
+                                            <i class="lucide-lock text-amber-600"></i>
+                                            <div>
+                                                <p class="text-sm font-bold text-amber-900">Live API access is restricted</p>
+                                                <p class="text-xs text-amber-700 mt-1">Complete your compliance review to unlock live payments. You can use Test Keys for integration testing.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+
                                 <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                                     <div class="flex justify-between items-center mb-4">
-                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Public Key</p>
-                                        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase">Live</span>
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Test Public Key</p>
+                                        <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-bold uppercase">Test</span>
                                     </div>
                                     <div class="flex gap-2">
-                                        <input readonly value="<?php echo $user['public_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
-                                        <button onclick="navigator.clipboard.writeText('<?php echo $user['public_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
+                                        <input readonly value="<?php echo $user['test_public_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
+                                        <button onclick="navigator.clipboard.writeText('<?php echo $user['test_public_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
                                     </div>
-                                    <p class="mt-3 text-[10px] text-slate-400">Use this key to identify your account in client-side integrations.</p>
                                 </div>
 
                                 <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100">
                                     <div class="flex justify-between items-center mb-4">
-                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Secret Key</p>
-                                        <span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold uppercase">Private</span>
+                                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Test Secret Key</p>
+                                        <span class="text-[10px] bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold uppercase">Test</span>
                                     </div>
                                     <div class="flex gap-2">
-                                        <input type="password" id="sk_input" readonly value="<?php echo $user['secret_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
-                                        <button onclick="navigator.clipboard.writeText('<?php echo $user['secret_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
+                                        <input type="password" readonly value="<?php echo $user['test_secret_key']; ?>" class="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl font-mono text-sm focus:outline-none">
+                                        <button onclick="navigator.clipboard.writeText('<?php echo $user['test_secret_key']; ?>'); alert('Copied!');" class="px-6 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all active:scale-95">Copy</button>
                                     </div>
-                                    <p class="mt-3 text-[10px] text-slate-400">Keep this key secure. Never expose it in client-side code.</p>
                                 </div>
 
                                 <div class="pt-6 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
