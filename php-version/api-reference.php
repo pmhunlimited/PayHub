@@ -11,16 +11,16 @@ include 'includes/header.php';
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase mb-3">Core</p>
                 <div class="space-y-2">
-                    <a href="#authentication" class="block text-sm text-indigo-600 font-bold">Authentication</a>
-                    <a href="#inline-checkout" class="block text-sm text-slate-600 hover:text-slate-900">Inline Checkout</a>
-                    <a href="#webhooks" class="block text-sm text-slate-600 hover:text-slate-900">Webhooks & Callback</a>
+                    <a href="#authentication" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Authentication</a>
+                    <a href="#inline-checkout" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Inline Checkout</a>
+                    <a href="#webhooks" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Webhooks & Callback</a>
                 </div>
             </div>
             <div>
                 <p class="text-xs font-bold text-slate-400 uppercase mb-3">Payments</p>
                 <div class="space-y-2">
-                    <a href="#initialize" class="block text-sm text-slate-600 hover:text-slate-900">Initialize Transaction</a>
-                    <a href="#verify" class="block text-sm text-slate-600 hover:text-slate-900">Verify Transaction</a>
+                    <a href="#initialize" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Initialize Transaction</a>
+                    <a href="#verify" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Verify Transaction</a>
                 </div>
             </div>
             <div>
@@ -38,7 +38,7 @@ include 'includes/header.php';
             <p class="text-xl text-slate-500 leading-relaxed">Everything you need to build powerful payment experiences with Payhub.</p>
         </div>
 
-        <section id="authentication" class="mb-20">
+        <section id="authentication" class="mb-20 scroll-mt-24">
             <h2 class="text-2xl font-bold text-slate-900 mb-4">Authentication</h2>
             <p class="text-slate-600 mb-6 leading-relaxed">The Payhub API uses Secret Keys to authenticate requests. You can view and manage your API keys in the <a href="merchant/api-keys.php" class="text-indigo-600 font-bold">Dashboard</a>. Your secret keys carry many privileges, so be sure to keep them secure!</p>
             <div class="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm">
@@ -46,7 +46,7 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="inline-checkout" class="mb-20">
+        <section id="inline-checkout" class="mb-20 scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
                 <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-sm">JAVASCRIPT</span>
                 <h2 class="text-2xl font-bold text-slate-900">Inline Checkout</h2>
@@ -84,7 +84,51 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="woocommerce" class="mb-20">
+        <section id="initialize" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-bold text-sm">POST</span>
+                <h2 class="text-2xl font-bold text-slate-900">Initialize Transaction</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">Start a transaction from your server to get a checkout URL.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <pre>curl https://api.payhub.com/transaction/initialize \
+-H "Authorization: Bearer YOUR_SECRET_KEY" \
+-d email="customer@email.com" \
+-d amount=500000</pre>
+            </div>
+        </section>
+
+        <section id="verify" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold text-sm">GET</span>
+                <h2 class="text-2xl font-bold text-slate-900">Verify Transaction</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">Confirm the status of a transaction using its reference.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <pre>curl https://api.payhub.com/transaction/verify/:reference \
+-H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
+            </div>
+        </section>
+
+        <section id="webhooks" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">WEBHOOK</span>
+                <h2 class="text-2xl font-bold text-slate-900">Webhooks & Callback</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">Configure your server to listen for events from Payhub.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <pre>{
+  "event": "charge.success",
+  "data": {
+    "reference": "ref_123",
+    "amount": 10000,
+    "status": "success"
+  }
+}</pre>
+            </div>
+        </section>
+
+        <section id="woocommerce" class="mb-20 scroll-mt-24">
             <div class="p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex flex-col md:flex-row items-center gap-8">
                 <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm">
                     <i class="lucide-shopping-cart text-emerald-600 w-10 h-10"></i>
@@ -99,7 +143,7 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="whmcs" class="mb-20">
+        <section id="whmcs" class="mb-20 scroll-mt-24">
             <div class="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex flex-col md:flex-row items-center gap-8">
                 <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm">
                     <i class="lucide-server text-blue-600 w-10 h-10"></i>

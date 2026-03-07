@@ -21,25 +21,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     // Basic logic for expiry date requirement
     $needs_expiry = in_with_any($id_type, ["Drivers License", "International Passport"]);
     
+    // File Uploads
+    $uploads = [];
+    $files_to_handle = ['utility_bill', 'liveliness', 'cac_cert', 'cac_form'];
+    foreach ($files_to_handle as $field) {
+        if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+            $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
+            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $ext;
+            if (!is_dir('../uploads')) mkdir('../uploads');
+            move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            $uploads[$field . '_path'] = $filename;
+        }
+    }
+
     try {
-        $stmt = $db->prepare("UPDATE users SET
+        $sql = "UPDATE users SET
             business_type = ?,
             registration_number = ?,
             id_type = ?,
             id_expiry_date = ?,
             bvn = ?,
             residential_address = ?,
-            is_kyc_verified = 2
-            WHERE id = ?");
-        $stmt->execute([
-            $business_type,
-            $registration_number,
-            $id_type,
-            $needs_expiry ? $id_expiry : null,
-            $bvn,
-            $address,
-            $user['id']
-        ]);
+            is_kyc_verified = 2";
+
+        $params = [$business_type, $registration_number, $id_type, $needs_expiry ? $id_expiry : null, $bvn, $address];
+
+        foreach ($uploads as $col => $val) {
+            $sql .= ", $col = ?";
+            $params[] = $val;
+        }
+
+        $sql .= " WHERE id = ?";
+        $params[] = $user['id'];
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
         $success_msg = "Compliance documents submitted for review!";
         $user = getAuthUser();
     } catch (Exception $e) {
