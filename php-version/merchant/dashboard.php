@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             <i class="lucide-arrow-down-left text-amber-500 w-4.5 h-4.5"></i>
                             New Payout
                         </a>
-                        <a href="#" class="flex items-center gap-2 bg-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                        <a href="invoices.php" class="flex items-center gap-2 bg-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
                             <i class="lucide-plus w-4.5 h-4.5"></i>
                             Create Invoice
                         </a>

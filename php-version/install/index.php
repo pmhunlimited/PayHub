@@ -32,11 +32,13 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 password_hash VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255),
                 business_name VARCHAR(255),
+                phone_number VARCHAR(50),
                 role ENUM('admin', 'merchant') DEFAULT 'merchant',
                 wallet_balance DECIMAL(15, 2) DEFAULT 0.00,
                 public_key VARCHAR(255) UNIQUE,
                 secret_key VARCHAR(255) UNIQUE,
                 is_kyc_verified TINYINT DEFAULT 0,
+                kyc_notes TEXT,
                 is_suspended TINYINT DEFAULT 0,
                 is_test_mode TINYINT DEFAULT 1,
                 business_type VARCHAR(100),
@@ -46,6 +48,25 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 settlement_account_name VARCHAR(255),
                 fee_percentage DECIMAL(5, 2),
                 fee_flat DECIMAL(15, 2),
+                webhook_url VARCHAR(255),
+                require_payout_review TINYINT DEFAULT 1,
+                id_type VARCHAR(100),
+                id_path VARCHAR(255),
+                bvn VARCHAR(20),
+                residential_address TEXT,
+                rc_number VARCHAR(100),
+                tin VARCHAR(100),
+                cac_cert_path VARCHAR(255),
+                cac_form_path VARCHAR(255),
+                memart_path VARCHAR(255),
+                business_address_proof_path VARCHAR(255),
+                bn_number VARCHAR(100),
+                bn_cert_path VARCHAR(255),
+                bn_form_path VARCHAR(255),
+                ngo_form_path VARCHAR(255),
+                ngo_constitution_path VARCHAR(255),
+                gov_auth_letter_path VARCHAR(255),
+                gov_gazette_path VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 
@@ -53,19 +74,34 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
                 reference VARCHAR(100) UNIQUE NOT NULL,
+                gateway_reference VARCHAR(100),
                 amount DECIMAL(15, 2) NOT NULL,
-                status ENUM('pending', 'success', 'failed') DEFAULT 'pending',
+                fee_amount DECIMAL(15, 2) DEFAULT 0.00,
+                settled_amount DECIMAL(15, 2) DEFAULT 0.00,
+                status ENUM('pending', 'success', 'failed', 'refunded') DEFAULT 'pending',
                 customer_email VARCHAR(255),
                 customer_name VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             ) ENGINE=InnoDB;
 
+            CREATE TABLE IF NOT EXISTS transaction_timeline (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                transaction_id INT NOT NULL,
+                event_type VARCHAR(50) NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+
             CREATE TABLE IF NOT EXISTS payouts (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
                 amount DECIMAL(15, 2) NOT NULL,
-                status ENUM('pending', 'processed', 'failed') DEFAULT 'pending',
+                fee_amount DECIMAL(15, 2) DEFAULT 0.00,
+                net_amount DECIMAL(15, 2) NOT NULL,
+                status ENUM('pending', 'processed', 'declined', 'failed') DEFAULT 'pending',
+                status_details TEXT,
                 bank_name VARCHAR(255),
                 account_number VARCHAR(50),
                 request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -82,15 +118,124 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 FOREIGN KEY (user_id) REFERENCES users(id)
             ) ENGINE=InnoDB;
 
+            CREATE TABLE IF NOT EXISTS invoices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                customer_name VARCHAR(255),
+                customer_email VARCHAR(255),
+                amount DECIMAL(15, 2) NOT NULL,
+                due_date DATE,
+                status ENUM('pending', 'paid', 'overdue', 'cancelled') DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                plan_name VARCHAR(255) NOT NULL,
+                amount DECIMAL(15, 2) NOT NULL,
+                `interval` VARCHAR(50) NOT NULL,
+                status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS disputes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                transaction_id INT NOT NULL,
+                reason TEXT,
+                status ENUM('open', 'won', 'lost', 'closed') DEFAULT 'open',
+                evidence_path VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id),
+                FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS customers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                full_name VARCHAR(255),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS tickets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                subject VARCHAR(255) NOT NULL,
+                priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+                status ENUM('open', 'pending', 'resolved', 'closed') DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS ticket_messages (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ticket_id INT NOT NULL,
+                user_id INT NOT NULL,
+                message TEXT NOT NULL,
+                is_admin TINYINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS ledger (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                amount DECIMAL(15, 2) NOT NULL,
+                type ENUM('credit', 'debit') NOT NULL,
+                category VARCHAR(50),
+                description TEXT,
+                balance_after DECIMAL(15, 2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS staff_roles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                permissions TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS staff_users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                full_name VARCHAR(255),
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                role_id INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (role_id) REFERENCES staff_roles(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB;
+
+            CREATE TABLE IF NOT EXISTS webhook_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                transaction_id INT NOT NULL,
+                status ENUM('success', 'failed') DEFAULT 'failed',
+                attempt_count INT DEFAULT 0,
+                last_attempt_at TIMESTAMP NULL,
+                payload TEXT,
+                response TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+
             CREATE TABLE IF NOT EXISTS blog_posts (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                author_id INT,
                 title VARCHAR(255) NOT NULL,
                 slug VARCHAR(255) UNIQUE NOT NULL,
                 content TEXT,
                 excerpt TEXT,
                 meta_title VARCHAR(255),
                 meta_description TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE SET NULL
             ) ENGINE=InnoDB;
 
             CREATE TABLE IF NOT EXISTS config (
@@ -102,7 +247,18 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             INSERT IGNORE INTO config (`key`, `value`) VALUES 
             ('transaction_fee_percent', '1.5'),
             ('transaction_fee_flat', '100'),
-            ('min_payout_amount', '1000');
+            ('payout_fee', '50'),
+            ('min_payout_amount', '1000'),
+            ('global_payout_review', '1'),
+            ('paystack_secret_key', ''),
+            ('paystack_public_key', ''),
+            ('smtp_host', ''),
+            ('smtp_port', '587'),
+            ('smtp_user', ''),
+            ('smtp_pass', ''),
+            ('smtp_from', 'noreply@payhub.com'),
+            ('site_name', 'Payhub'),
+            ('site_logo', '');
         ";
         $pdo->exec($sql);
 

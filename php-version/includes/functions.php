@@ -19,7 +19,14 @@ if (strpos($base_dir, '/admin/') !== false) {
 }
 define('BASE_URL', $protocol . "://" . $host . $base_dir);
 
+if (file_exists(__DIR__ . '/config.php')) {
+    require_once __DIR__ . '/config.php';
+}
 require_once __DIR__ . '/db.php';
+
+function isInstalled() {
+    return file_exists(__DIR__ . '/config.php');
+}
 
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
@@ -69,6 +76,18 @@ function verify_csrf_token($token) {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+function getConfig($key, $default = '') {
+    try {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT `value` FROM config WHERE `key` = ?");
+        $stmt->execute([$key]);
+        $row = $stmt->fetch();
+        return $row ? $row['value'] : $default;
+    } catch (Exception $e) {
+        return $default;
+    }
+}
+
 function get_stats($userId) {
     $db = Database::connect();
     $stmt = $db->prepare("
@@ -98,4 +117,62 @@ function get_stats($userId) {
         'balance' => $stats['balance'] ?? 0,
         'success_rate' => $successRate . '%'
     ];
+}
+
+/**
+ * Paystack Integration Helpers
+ */
+function paystack_call($endpoint, $method = 'GET', $data = []) {
+    $secret_key = getConfig('paystack_secret_key');
+    if (!$secret_key) return ['status' => false, 'message' => 'Paystack not configured'];
+
+    $url = "https://api.paystack.co/" . $endpoint;
+    $headers = [
+        "Authorization: Bearer " . $secret_key,
+        "Content-Type: application/json"
+    ];
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    if ($method === 'POST') {
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    }
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response === false) return ['status' => false, 'message' => 'CURL error'];
+
+    $result = json_decode($response, true);
+    return $result;
+}
+
+function log_transaction_event($transactionId, $type, $desc) {
+    $db = Database::connect();
+    $stmt = $db->prepare("INSERT INTO transaction_timeline (transaction_id, event_type, description) VALUES (?, ?, ?)");
+    return $stmt->execute([$transactionId, $type, $desc]);
+}
+
+function log_ledger_entry($userId, $amount, $type, $category, $desc) {
+    $db = Database::connect();
+
+    // Get current balance
+    $stmt = $db->prepare("SELECT wallet_balance FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $current = $stmt->fetch()['wallet_balance'];
+
+    $newBalance = ($type === 'credit') ? ($current + $amount) : ($current - $amount);
+
+    // Update user balance
+    $stmt = $db->prepare("UPDATE users SET wallet_balance = ? WHERE id = ?");
+    $stmt->execute([$newBalance, $userId]);
+
+    // Log entry
+    $stmt = $db->prepare("INSERT INTO ledger (user_id, amount, type, category, description, balance_after) VALUES (?, ?, ?, ?, ?, ?)");
+    return $stmt->execute([$userId, $amount, $type, $category, $desc, $newBalance]);
 }

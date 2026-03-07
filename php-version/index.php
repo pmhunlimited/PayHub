@@ -1,6 +1,12 @@
 <?php
 // php-version/index.php
 require_once 'includes/functions.php';
+
+if (!isInstalled()) {
+    header("Location: install/index.php");
+    exit;
+}
+
 $pageTitle = 'Payhub - Modern Payments for Ambitious Businesses';
 include 'includes/header.php';
 ?>
