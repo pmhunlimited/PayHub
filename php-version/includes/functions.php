@@ -323,7 +323,7 @@ function sendEmail($to, $subject, $body) {
     $logo_html = '';
     if ($logo) {
         $logo_url = BASE_URL . 'uploads/' . $logo;
-        $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 40px;'></div>";
+        $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 60px; width: auto; max-width: 200px;'></div>";
     }
 
     $headers = "MIME-Version: 1.0" . "\r\n";

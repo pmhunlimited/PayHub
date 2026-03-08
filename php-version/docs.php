@@ -5,7 +5,7 @@ $pageTitle = 'Documentation - Payhub';
 include 'includes/header.php';
 ?>
 <div class="pt-20 flex min-h-screen">
-    <aside class="w-64 border-r border-slate-100 p-8 hidden md:block sticky top-0 h-screen overflow-y-auto">
+    <aside class="w-64 border-r border-slate-100 p-8 hidden md:block sticky top-20 h-[calc(100vh-80px)] overflow-y-auto">
         <h3 class="font-bold text-slate-900 mb-6 uppercase text-xs tracking-widest">Documentation</h3>
         <nav class="space-y-4">
             <a href="#getting-started" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Getting Started</a>

@@ -5,19 +5,25 @@ $user = getAuthUser();
 $current_page = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? 'merchant';
 ?>
-<aside class="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
-    <div class="p-6 border-b border-slate-100">
+<aside
+    :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+    class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
+>
+    <div class="p-6 border-b border-slate-100 flex items-center justify-between">
         <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
             <?php $logo = getConfig('site_logo'); ?>
             <?php if ($logo): ?>
-                <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-8 object-contain">
+                <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-10 object-contain">
             <?php else: ?>
-                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-                    <i class="lucide-credit-card text-white w-5 h-5"></i>
+                <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
+                    <i class="lucide-credit-card text-white w-6 h-6"></i>
                 </div>
             <?php endif; ?>
             <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
+        <button @click="mobileMenuOpen = false" class="md:hidden text-slate-500 hover:text-slate-900">
+            <i class="lucide-x w-6 h-6"></i>
+        </button>
     </div>
     
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">

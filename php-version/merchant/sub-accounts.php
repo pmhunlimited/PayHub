@@ -10,7 +10,7 @@ $pageTitle = 'Sub-accounts - Payhub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    if ($_POST['action'] === 'create_subaccount') {
+    if ($_POST['action'] === 'create_subaccount' && $user['parent_id'] === null) {
         $email = sanitize($_POST['email']);
         $biz_name = sanitize($_POST['business_name']);
         $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
@@ -26,58 +26,76 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error_msg = "Creation failed: " . $e->getMessage();
         }
     } elseif ($_POST['action'] === 'switch_account') {
-        $subId = (int)$_POST['sub_id'];
-        // Security check: is it actually a sub-account of this user?
-        $stmt = $db->prepare("SELECT id FROM users WHERE id = ? AND parent_id = ?");
-        $stmt->execute([$subId, $user['id']]);
+        $targetId = (int)$_POST['sub_id'];
+        $mainId = $user['parent_id'] ?: $user['id'];
+
+        // Security check: is it the main account or a sub-account of the same main account?
+        $stmt = $db->prepare("SELECT id FROM users WHERE id = ? AND (id = ? OR parent_id = ?)");
+        $stmt->execute([$targetId, $mainId, $mainId]);
         if ($stmt->fetch()) {
-            $_SESSION['user_id'] = $subId;
+            $_SESSION['user_id'] = $targetId;
             redirect('dashboard.php');
         }
     }
 }
 
-$stmt = $db->prepare("SELECT * FROM users WHERE parent_id = ?");
-$stmt->execute([$user['id']]);
-$subaccounts = $stmt->fetchAll();
+$mainId = $user['parent_id'] ?: $user['id'];
+$stmt = $db->prepare("SELECT * FROM users WHERE (id = ? OR parent_id = ?) AND id != ?");
+$stmt->execute([$mainId, $mainId, $user['id']]);
+$otherAccounts = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showAdd: false }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <div class="flex justify-between items-center mb-8">
                 <div>
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Sub-accounts</h1>
-                    <p class="text-slate-500">Manage multiple business branches or projects from one place</p>
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Accounts & Branches</h1>
+                    <p class="text-slate-500">Manage and switch between your different business units</p>
                 </div>
+                <?php if ($user['parent_id'] === null): ?>
                 <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
                     <i class="lucide-plus w-5 h-5"></i> Create Sub-account
                 </button>
+                <?php endif; ?>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <?php foreach ($subaccounts as $sub): ?>
+                <?php foreach ($otherAccounts as $acc): ?>
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm hover:border-indigo-600 transition-all group">
                         <div class="flex justify-between items-start mb-6">
                             <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
                                 <i class="lucide-building w-6 h-6"></i>
                             </div>
-                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $sub['is_kyc_verified'] == 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'; ?>">
-                                <?php echo $sub['is_kyc_verified'] == 1 ? 'Verified' : 'Unverified'; ?>
-                            </span>
+                            <div class="flex flex-col items-end gap-2">
+                                <?php if ($acc['parent_id'] === null): ?>
+                                    <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider">Main Account</span>
+                                <?php endif; ?>
+                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $acc['is_kyc_verified'] == 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'; ?>">
+                                    <?php echo $acc['is_kyc_verified'] == 1 ? 'Verified' : 'Unverified'; ?>
+                                </span>
+                            </div>
                         </div>
-                        <h3 class="font-bold text-xl text-slate-900 mb-1"><?php echo $sub['business_name']; ?></h3>
-                        <p class="text-sm text-slate-400 mb-8"><?php echo $sub['email']; ?></p>
+                        <h3 class="font-bold text-xl text-slate-900 mb-1"><?php echo $acc['business_name']; ?></h3>
+                        <p class="text-sm text-slate-400 mb-8"><?php echo $acc['email']; ?></p>
                         <form method="POST">
                             <input type="hidden" name="action" value="switch_account">
-                            <input type="hidden" name="sub_id" value="<?php echo $sub['id']; ?>">
+                            <input type="hidden" name="sub_id" value="<?php echo $acc['id']; ?>">
                             <button type="submit" class="w-full py-3 bg-slate-50 text-slate-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-sm">Switch to Account</button>
                         </form>
                     </div>
                 <?php endforeach; ?>
+                <?php if (empty($otherAccounts) && $user['parent_id'] !== null): ?>
+                    <!-- Should not happen if data is consistent, but for safety -->
+                <?php elseif (empty($otherAccounts)): ?>
+                    <div class="md:col-span-2 lg:col-span-3 text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-300">
+                        <i class="lucide-layers w-12 h-12 text-slate-200 mx-auto mb-4"></i>
+                        <p class="text-slate-500 font-medium">You haven't created any sub-accounts yet.</p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -100,7 +118,8 @@ include '../includes/dashboard-head.php';
                 </div>
             </div>
         </div>
-    </main>
+    <?php include "../includes/merchant-quick-actions.php"; ?>
+</main>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script>lucide.createIcons();</script>
 </body>

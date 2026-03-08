@@ -34,6 +34,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $error_msg = "Failed to upload logo.";
             }
         }
+    } elseif ($_POST['action'] === 'update_profile') {
+        $email = sanitize($_POST['email']);
+        $name = sanitize($_POST['business_name']);
+
+        if (!empty($_POST['password'])) {
+            $pass = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            $stmt = $db->prepare("UPDATE users SET email = ?, business_name = ?, password_hash = ? WHERE id = ?");
+            $stmt->execute([$email, $name, $pass, $user['id']]);
+        } else {
+            $stmt = $db->prepare("UPDATE users SET email = ?, business_name = ? WHERE id = ?");
+            $stmt->execute([$email, $name, $user['id']]);
+        }
+        $success_msg = "Admin profile updated successfully.";
+        $user = getAuthUser();
     }
 }
 
@@ -115,6 +129,29 @@ include '../includes/dashboard-head.php';
                 </div>
 
                 <div class="lg:col-span-1 space-y-8">
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
+                            <i class="lucide-user text-indigo-600 w-5 h-5"></i>
+                            Admin Profile
+                        </h3>
+                        <form method="POST" class="space-y-4">
+                            <input type="hidden" name="action" value="update_profile">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Display Name</label>
+                                <input type="text" name="business_name" value="<?php echo $user['business_name']; ?>" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                                <input type="email" name="email" value="<?php echo $user['email']; ?>" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">New Password (leave blank to keep current)</label>
+                                <input type="password" name="password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">
+                            </div>
+                            <button type="submit" class="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">Update Profile</button>
+                        </form>
+                    </div>
+
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
                             <i class="lucide-image text-indigo-600 w-5 h-5"></i>

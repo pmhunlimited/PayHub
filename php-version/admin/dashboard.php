@@ -19,6 +19,17 @@ $active_merchants = $stmt->fetch()['count'] ?? 0;
 $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE is_kyc_verified = 2");
 $pending_kyc = $stmt->fetch()['count'] ?? 0;
 
+// Fetch Paystack Balance
+$paystack_balance = 0;
+$paystack_res = paystack_call('balance');
+if ($paystack_res && $paystack_res['status']) {
+    foreach($paystack_res['data'] as $b) {
+        if ($b['currency'] === 'NGN') {
+            $paystack_balance = $b['balance'] / 100;
+        }
+    }
+}
+
 // Calculate success rate
 $stmt = $db->query("SELECT COUNT(*) as count FROM transactions");
 $total_tx = $stmt->fetch()['count'] ?? 0;
@@ -48,7 +59,7 @@ foreach ($revenueRaw as $r) {
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -78,6 +89,22 @@ include '../includes/dashboard-head.php';
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pending KYC</p>
                     <p class="text-2xl font-bold text-amber-600"><?php echo $pending_kyc; ?></p>
                     <p class="text-[10px] text-amber-500 font-bold mt-1">Needs attention</p>
+                </div>
+            </div>
+
+            <div class="mb-8 p-6 bg-slate-900 rounded-[2rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
+                        <i class="lucide-wallet text-indigo-400 w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold">Paystack Gateway Balance</h3>
+                        <p class="text-indigo-300 text-sm">Platform-wide funds available for settlements</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-3xl font-bold text-white"><?php echo formatCurrency($paystack_balance); ?></p>
+                    <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Real-time Balance</p>
                 </div>
             </div>
 

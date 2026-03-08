@@ -90,9 +90,9 @@ $merchants = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, showFees: false, showEdit: false, showReset: false, merchantId: null, feePercentage: null, feeFlat: null, merchantName: '', merchantEmail: '' }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showFees: false, showEdit: false, showReset: false, merchantId: null, feePercentage: null, feeFlat: null, merchantName: '', merchantEmail: '' }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -172,17 +172,17 @@ include '../includes/dashboard-head.php';
                                         <div class="flex items-center gap-3">
                                             <?php if ($tab === 'active'): ?>
                                                 <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit Details">
-                                                    <i class="lucide-edit w-4 h-4"></i>
+                                                    <i data-lucide="edit" class="w-4 h-4"></i>
                                                 </button>
                                                 <button @click="showReset = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Reset Password">
-                                                    <i class="lucide-key w-4 h-4"></i>
+                                                    <i data-lucide="key" class="w-4 h-4"></i>
                                                 </button>
                                                 <form method="POST" class="inline">
                                                     <input type="hidden" name="action" value="suspend_merchant">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <input type="hidden" name="status" value="<?php echo $m['is_suspended'] ? 0 : 1; ?>">
                                                     <button type="submit" class="p-2 bg-slate-50 <?php echo $m['is_suspended'] ? 'text-emerald-600 hover:bg-emerald-50' : 'text-rose-400 hover:bg-rose-50'; ?> rounded-lg transition-all" title="<?php echo $m['is_suspended'] ? 'Unsuspend' : 'Suspend'; ?>">
-                                                        <i class="lucide-<?php echo $m['is_suspended'] ? 'play' : 'pause'; ?> w-4 h-4"></i>
+                                                        <i data-lucide="<?php echo $m['is_suspended'] ? 'play' : 'pause'; ?>" class="w-4 h-4"></i>
                                                     </button>
                                                 </form>
                                                 <form method="POST" class="inline">
@@ -190,7 +190,7 @@ include '../includes/dashboard-head.php';
                                                     <input type="hidden" name="action" value="impersonate">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <button type="submit" class="p-2 bg-slate-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-all" title="Login as Merchant">
-                                                        <i class="lucide-log-in w-4 h-4"></i>
+                                                        <i data-lucide="log-in" class="w-4 h-4"></i>
                                                     </button>
                                                 </form>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Move this merchant to deleted list?');">
@@ -198,7 +198,7 @@ include '../includes/dashboard-head.php';
                                                     <input type="hidden" name="action" value="soft_delete">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <button type="submit" class="p-2 bg-slate-50 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Delete Account">
-                                                        <i class="lucide-trash-2 w-4 h-4"></i>
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                                                     </button>
                                                 </form>
                                             <?php else: ?>
@@ -307,6 +307,10 @@ include '../includes/dashboard-head.php';
     </main>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>lucide.createIcons();</script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
 </body>
 </html>

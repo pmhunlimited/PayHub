@@ -47,7 +47,7 @@ $payouts = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -168,6 +168,7 @@ include '../includes/dashboard-head.php';
                 </div>
             </div>
         </div>
-    </main>
+    <?php include "../includes/merchant-quick-actions.php"; ?>
+</main>
 </body>
 </html>

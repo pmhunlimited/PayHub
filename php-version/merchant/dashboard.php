@@ -111,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
 
     <!-- Main Content -->
@@ -132,6 +132,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <?php endif; ?>
 
             <?php if ($tab === 'overview'): ?>
+                <!-- Onboarding Checklist -->
+                <?php if (!$user['is_kyc_verified'] || !$user['settlement_bank']): ?>
+                <div class="mb-8 bg-white rounded-3xl border border-slate-200 overflow-hidden">
+                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
+                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
+                            <i class="lucide-check-circle-2 text-indigo-600 w-5 h-5"></i>
+                            Onboarding Checklist
+                        </h3>
+                    </div>
+                    <div class="p-6 grid md:grid-cols-3 gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs <?php echo $user['is_kyc_verified'] ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'; ?>">
+                                <?php echo $user['is_kyc_verified'] ? '✓' : '1'; ?>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold <?php echo $user['is_kyc_verified'] ? 'text-slate-400 line-through' : 'text-slate-900'; ?>">Verify Compliance</p>
+                                <a href="compliance.php" class="text-[10px] font-bold text-indigo-600 uppercase">Submit Docs</a>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs <?php echo $user['settlement_bank'] ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'; ?>">
+                                <?php echo $user['settlement_bank'] ? '✓' : '2'; ?>
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold <?php echo $user['settlement_bank'] ? 'text-slate-400 line-through' : 'text-slate-900'; ?>">Settlement Bank</p>
+                                <a href="settings.php" class="text-[10px] font-bold text-indigo-600 uppercase">Set Account</a>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-100 text-slate-400">
+                                3
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-900">First Payment</p>
+                                <a href="api-keys.php" class="text-[10px] font-bold text-indigo-600 uppercase">Get API Keys</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 class="text-2xl font-bold text-slate-900 mb-2">Welcome back, <?php echo $user['business_name']; ?></h1>
@@ -417,6 +458,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 </div>
             <?php endif; ?>
         </div>
+
+        <?php include '../includes/merchant-quick-actions.php'; ?>
     </main>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
+    </script>
 </body>
 </html>
