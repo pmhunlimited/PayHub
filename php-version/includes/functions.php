@@ -53,6 +53,7 @@ function check_migrations() {
                 'parent_id' => "INT DEFAULT NULL",
                 'kyc_notes' => "TEXT",
                 'require_payout_review' => "TINYINT DEFAULT 0",
+                'is_test_mode' => "TINYINT DEFAULT 1",
                 'payout_method' => "ENUM('manual', 'automated') DEFAULT 'manual'",
                 'settlement_currency' => "ENUM('NGN', 'USD') DEFAULT 'NGN'",
                 'id_type' => "VARCHAR(100)",
@@ -85,7 +86,8 @@ function check_migrations() {
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'gateway_reference' => "VARCHAR(100)",
-                'payment_method' => "VARCHAR(50) DEFAULT 'card'"
+                'payment_method' => "VARCHAR(50) DEFAULT 'card'",
+                'is_test' => "TINYINT DEFAULT 0"
             ],
             'payouts' => [
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
@@ -101,6 +103,20 @@ function check_migrations() {
                 'meta_title' => "VARCHAR(255)",
                 'meta_description' => "TEXT",
                 'meta_keywords' => "VARCHAR(255)"
+            ],
+            'virtual_accounts' => [
+                'customer_email' => "VARCHAR(255)"
+            ],
+            'invoices' => [
+                'reference' => "VARCHAR(100)",
+                'description' => "TEXT"
+            ],
+            'subscriptions' => [
+                'description' => "TEXT",
+                'plan_code' => "VARCHAR(100)"
+            ],
+            'config' => [
+                'updated_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
             ]
         ];
 
@@ -253,8 +269,15 @@ function get_stats($userId) {
 /**
  * Paystack Integration Helpers
  */
-function paystack_call($endpoint, $method = 'GET', $data = []) {
-    $secret_key = getConfig('paystack_secret_key');
+function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) {
+    if ($is_test === null) {
+        $user = getAuthUser();
+        $is_test = $user ? ($user['is_test_mode'] == 1) : false;
+    }
+
+    $secret_key = $is_test ? getConfig('paystack_test_secret_key') : getConfig('paystack_secret_key');
+    if (!$secret_key) $secret_key = getConfig('paystack_secret_key'); // Fallback to live key if test not set
+
     if (!$secret_key) return ['status' => false, 'message' => 'Paystack not configured'];
 
     $url = "https://api.paystack.co/" . $endpoint;
@@ -289,15 +312,31 @@ function log_transaction_event($transactionId, $type, $desc) {
     return $stmt->execute([$transactionId, $type, $desc]);
 }
 
-function calculate_fees($amount, $is_international = false) {
+function calculate_fees($amount, $is_international = false, $userId = null) {
+    $percent = null;
+    $flat = null;
+
+    if ($userId) {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT fee_percentage, fee_flat FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        if ($user) {
+            $percent = $user['fee_percentage'];
+            $flat = $user['fee_flat'];
+        }
+    }
+
     if ($is_international) {
-        $percent = (float)getConfig('international_fee_percent', '3.9');
-        $flat = (float)getConfig('international_fee_flat', '100');
+        if ($percent === null) $percent = (float)getConfig('international_fee_percent', '3.9');
+        if ($flat === null) $flat = (float)getConfig('international_fee_flat', '100');
         $fee = ($amount * ($percent / 100)) + $flat;
         return $fee;
     } else {
-        $percent = (float)getConfig('transaction_fee_percent', '1.5');
-        $flat = ($amount < 2500) ? 0 : (float)getConfig('transaction_fee_flat', '100');
+        if ($percent === null) $percent = (float)getConfig('transaction_fee_percent', '1.5');
+        if ($flat === null) {
+            $flat = ($amount < 2500) ? 0 : (float)getConfig('transaction_fee_flat', '100');
+        }
         $cap = (float)getConfig('transaction_fee_cap', '2000');
 
         $fee = ($amount * ($percent / 100)) + $flat;

@@ -123,6 +123,7 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 account_number VARCHAR(50) UNIQUE NOT NULL,
                 bank_name VARCHAR(255) NOT NULL,
                 account_name VARCHAR(255) NOT NULL,
+                customer_email VARCHAR(255),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             ) ENGINE=InnoDB;
@@ -130,10 +131,12 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
             CREATE TABLE IF NOT EXISTS invoices (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 user_id INT NOT NULL,
+                reference VARCHAR(100),
                 customer_name VARCHAR(255),
                 customer_email VARCHAR(255),
                 amount DECIMAL(15, 2) NOT NULL,
                 due_date DATE,
+                description TEXT,
                 status ENUM('pending', 'paid', 'overdue', 'cancelled') DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
@@ -145,6 +148,8 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 plan_name VARCHAR(255) NOT NULL,
                 amount DECIMAL(15, 2) NOT NULL,
                 `interval` VARCHAR(50) NOT NULL,
+                description TEXT,
+                plan_code VARCHAR(100),
                 status ENUM('active', 'cancelled', 'expired') DEFAULT 'active',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)

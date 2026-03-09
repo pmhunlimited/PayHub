@@ -16,7 +16,7 @@ $amount = 0;
 
 if ($tx) {
     // Call Paystack to verify
-    $res = paystack_call("transaction/verify/" . $ref);
+    $res = paystack_call("transaction/verify/" . $ref, 'GET', [], (bool)$tx['is_test']);
     if ($res['status'] && $res['data']['status'] === 'success') {
         $status = 'success';
         $amount = $res['data']['amount'] / 100;
@@ -30,11 +30,19 @@ if ($tx) {
 
                 // Calculate fees
                 $is_intl = ($res['data']['currency'] !== 'NGN');
-                $fee = calculate_fees($amount, $is_intl);
+                $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
                 $settled = $amount - $fee;
 
                 $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
                 $stmt->execute([$fee, $settled, $tx['id']]);
+
+                // Update or Create Customer record
+                $stmt = $db->prepare("SELECT id FROM customers WHERE user_id = ? AND email = ?");
+                $stmt->execute([$tx['user_id'], $tx['customer_email']]);
+                if (!$stmt->fetch()) {
+                    $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email) VALUES (?, ?, ?)");
+                    $stmt->execute([$tx['user_id'], $tx['customer_name'] ?: 'Guest Customer', $tx['customer_email']]);
+                }
 
                 // Log ledger and update user balance
                 log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");

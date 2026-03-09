@@ -112,7 +112,7 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
                                             <button
-                                                @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx)); ?>; loadingTimeline = true; fetch('/api-reference.php?action=get_timeline&id=' + selectedTx.id).then(r => r.json()).then(data => { timeline = data; loadingTimeline = false; })"
+                                                @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx)); ?>; loadingTimeline = true; fetch('../api-reference.php?action=get_timeline&id=' + selectedTx.id).then(r => r.json()).then(data => { timeline = data; loadingTimeline = false; })"
                                                 class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                                 title="View Timeline"
                                             >

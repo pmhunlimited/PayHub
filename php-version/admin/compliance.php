@@ -130,8 +130,8 @@ include '../includes/dashboard-head.php';
                         <div class="col-span-2 mt-8">
                             <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Uploaded Documents</h4>
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <template x-if="merchant.id_path">
-                                    <a :href="'../uploads/' + merchant.id_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+                                <template x-if="merchant.id_card_path">
+                                    <a :href="'../uploads/' + merchant.id_card_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
                                         <i data-lucide="credit-card" class="text-indigo-600"></i>
                                         <span class="text-[10px] font-bold text-slate-700">Gov't ID</span>
                                     </a>

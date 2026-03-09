@@ -10,18 +10,22 @@ $pageTitle = 'API Manager - Admin Hub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_keys') {
-    $pk = sanitize($_POST['paystack_public_key']);
-    $sk = sanitize($_POST['paystack_secret_key']);
-
-    $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES ('paystack_public_key', ?) ON DUPLICATE KEY UPDATE `value` = ?");
-    $stmt->execute([$pk, $pk]);
-    $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES ('paystack_secret_key', ?) ON DUPLICATE KEY UPDATE `value` = ?");
-    $stmt->execute([$sk, $sk]);
+    $keys = [
+        'paystack_public_key', 'paystack_secret_key',
+        'paystack_test_public_key', 'paystack_test_secret_key'
+    ];
+    foreach ($keys as $key) {
+        $val = sanitize($_POST[$key] ?? '');
+        $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = ?");
+        $stmt->execute([$key, $val, $val]);
+    }
     $success_msg = "Paystack integration keys updated.";
 }
 
 $pk = getConfig('paystack_public_key');
 $sk = getConfig('paystack_secret_key');
+$tpk = getConfig('paystack_test_public_key');
+$tsk = getConfig('paystack_test_secret_key');
 
 include '../includes/dashboard-head.php';
 ?>
@@ -54,14 +58,29 @@ include '../includes/dashboard-head.php';
 
                 <form method="POST" class="space-y-6">
                     <input type="hidden" name="action" value="update_keys">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Paystack Public Key</label>
-                        <input type="text" name="paystack_public_key" value="<?php echo $pk; ?>" placeholder="pk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Live Public Key</label>
+                            <input type="text" name="paystack_public_key" value="<?php echo $pk; ?>" placeholder="pk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Live Secret Key</label>
+                            <input type="password" name="paystack_secret_key" value="<?php echo $sk; ?>" placeholder="sk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Paystack Secret Key</label>
-                        <input type="password" name="paystack_secret_key" value="<?php echo $sk; ?>" placeholder="sk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Test Public Key</label>
+                            <input type="text" name="paystack_test_public_key" value="<?php echo $tpk; ?>" placeholder="pk_test_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Test Secret Key</label>
+                            <input type="password" name="paystack_test_secret_key" value="<?php echo $tsk; ?>" placeholder="sk_test_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
+                        </div>
                     </div>
+
                     <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-3">
                         <i data-lucide="shield-alert" class="text-amber-500 w-5 h-5 shrink-0"></i>
                         <p class="text-xs text-amber-700 leading-relaxed">

@@ -9,25 +9,37 @@ $pageTitle = 'Support Center - Payhub';
 
 $db = Database::connect();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'new_ticket') {
-    $subject = sanitize($_POST['subject']);
-    $priority = sanitize($_POST['priority']);
-    $message = sanitize($_POST['message']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'new_ticket') {
+        $subject = sanitize($_POST['subject']);
+        $priority = sanitize($_POST['priority']);
+        $message = sanitize($_POST['message']);
 
-    $db->beginTransaction();
-    try {
-        $stmt = $db->prepare("INSERT INTO tickets (user_id, subject, priority, status) VALUES (?, ?, ?, 'open')");
-        $stmt->execute([$user['id'], $subject, $priority]);
-        $ticketId = $db->lastInsertId();
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("INSERT INTO tickets (user_id, subject, priority, status) VALUES (?, ?, ?, 'open')");
+            $stmt->execute([$user['id'], $subject, $priority]);
+            $ticketId = $db->lastInsertId();
+
+            $stmt = $db->prepare("INSERT INTO ticket_messages (ticket_id, user_id, message) VALUES (?, ?, ?)");
+            $stmt->execute([$ticketId, $user['id'], $message]);
+
+            $db->commit();
+            $success_msg = "Ticket opened successfully!";
+        } catch (Exception $e) {
+            $db->rollBack();
+            $error_msg = "Failed to open ticket: " . $e->getMessage();
+        }
+    } elseif ($_POST['action'] === 'new_ticket_message') {
+        $ticketId = (int)$_POST['ticket_id'];
+        $message = sanitize($_POST['message']);
 
         $stmt = $db->prepare("INSERT INTO ticket_messages (ticket_id, user_id, message) VALUES (?, ?, ?)");
-        $stmt->execute([$ticketId, $user['id'], $message]);
-
-        $db->commit();
-        $success_msg = "Ticket opened successfully!";
-    } catch (Exception $e) {
-        $db->rollBack();
-        $error_msg = "Failed to open ticket: " . $e->getMessage();
+        if ($stmt->execute([$ticketId, $user['id'], $message])) {
+            $success_msg = "Message sent!";
+        } else {
+            $error_msg = "Failed to send message.";
+        }
     }
 }
 
@@ -35,9 +47,19 @@ $stmt = $db->prepare("SELECT * FROM tickets WHERE user_id = ? ORDER BY created_a
 $stmt->execute([$user['id']]);
 $tickets = $stmt->fetchAll();
 
+// Handle AJAX for ticket messages
+if (isset($_GET['action']) && $_GET['action'] === 'get_messages' && isset($_GET['id'])) {
+    header('Content-Type: application/json');
+    $tId = (int)$_GET['id'];
+    $stmt = $db->prepare("SELECT * FROM ticket_messages WHERE ticket_id = ? ORDER BY created_at ASC");
+    $stmt->execute([$tId]);
+    echo json_encode($stmt->fetchAll());
+    exit;
+}
+
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, selectedTicket: null, messages: [], loadingMessages: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -107,7 +129,10 @@ include '../includes/dashboard-head.php';
                                                 </td>
                                                 <td class="px-6 py-4 text-xs text-slate-500 font-medium"><?php echo date('M d, Y', strtotime($t['created_at'])); ?></td>
                                                 <td class="px-6 py-4">
-                                                    <button class="text-indigo-600 hover:underline text-xs font-bold">View Thread</button>
+                                                    <button
+                                                        @click="selectedTicket = <?php echo htmlspecialchars(json_encode($t)); ?>; loadingMessages = true; fetch('?action=get_messages&id=' + selectedTicket.id).then(r => r.json()).then(data => { messages = data; loadingMessages = false; })"
+                                                        class="text-indigo-600 hover:underline text-xs font-bold"
+                                                    >View Thread</button>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>
@@ -127,6 +152,46 @@ include '../includes/dashboard-head.php';
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Ticket Messages Modal -->
+        <div x-show="selectedTicket" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[80vh]">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h3 class="font-bold text-slate-900" x-text="selectedTicket?.subject"></h3>
+                        <p class="text-xs text-slate-500 mt-1" x-text="'Status: ' + selectedTicket?.status"></p>
+                    </div>
+                    <button @click="selectedTicket = null" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-8 space-y-6 bg-slate-50/30">
+                    <div x-show="loadingMessages" class="flex justify-center py-12">
+                        <i data-lucide="refresh-ccw" class="animate-spin text-indigo-600 w-8 h-8"></i>
+                    </div>
+                    <template x-for="msg in messages" :key="msg.id">
+                        <div :class="msg.is_admin == 1 ? 'flex flex-col items-start' : 'flex flex-col items-end'">
+                            <div :class="msg.is_admin == 1 ? 'bg-white border border-slate-200 text-slate-700' : 'bg-indigo-600 text-white'" class="max-w-[80%] p-4 rounded-2xl shadow-sm">
+                                <p class="text-sm" x-text="msg.message"></p>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-1 font-medium" x-text="new Date(msg.created_at).toLocaleString()"></p>
+                        </div>
+                    </template>
+                </div>
+                <?php if ($user['role'] !== 'admin'): // Merchants can reply too ?>
+                <div class="p-6 border-t border-slate-100 bg-white">
+                    <form method="POST" class="flex gap-2">
+                        <input type="hidden" name="action" value="new_ticket_message">
+                        <input type="hidden" name="ticket_id" :value="selectedTicket?.id">
+                        <input type="text" name="message" required placeholder="Type a reply..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">
+                        <button type="submit" class="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 transition-all">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     <?php include "../includes/merchant-quick-actions.php"; ?>

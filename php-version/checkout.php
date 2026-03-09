@@ -3,6 +3,15 @@
 require_once 'includes/functions.php';
 
 $pk = getConfig('paystack_public_key');
+// Check if user is logged in and in test mode, or if ref implies test
+$isTest = false;
+$user = getAuthUser();
+if ($user && $user['is_test_mode'] == 1) {
+    $isTest = true;
+    $pk = getConfig('paystack_test_public_key');
+    if (!$pk) $pk = getConfig('paystack_public_key'); // Fallback
+}
+
 $amount = (float)($_GET['amount'] ?? 1000);
 $email = $_GET['email'] ?? '';
 $ref = $_GET['ref'] ?? 'PH_'.time();
