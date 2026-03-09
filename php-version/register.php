@@ -59,10 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="max-w-md w-full">
             <div class="mb-10">
                 <a href="index.php" class="inline-flex items-center gap-2 mb-8">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-                        <i class="lucide-credit-card text-white w-6 h-6"></i>
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight text-slate-900">Payhub</span>
+                    <?php $logo = getConfig('site_logo'); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-12 object-contain">
+                    <?php else: ?>
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="credit-card" class="text-white w-6 h-6"></i>
+                        </div>
+                    <?php endif; ?>
+                    <span class="text-2xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
                 </a>
                 <h1 class="text-3xl font-bold text-slate-900">Create your account</h1>
                 <p class="text-slate-500 mt-2">Start accepting payments in minutes.</p>

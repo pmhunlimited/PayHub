@@ -10,6 +10,10 @@ require_once __DIR__ . '/functions.php';
     <title><?php echo $pageTitle ?? 'Payhub - Modern Payments'; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <?php $logo = getConfig('site_logo'); ?>
+    <?php if ($logo): ?>
+        <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>">
+    <?php endif; ?>
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>

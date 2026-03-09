@@ -39,6 +39,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("INSERT INTO staff_users (email, full_name, password_hash, role_id) VALUES (?, ?, ?, ?)");
         $stmt->execute([$email, $full_name, $password, $role_id]);
         $success_msg = "Staff member added successfully.";
+    } elseif ($_POST['action'] === 'edit_staff') {
+        $id = (int)$_POST['staff_id'];
+        $email = sanitize($_POST['email']);
+        $full_name = sanitize($_POST['full_name']);
+        $role_id = (int)$_POST['role_id'];
+
+        if (!empty($_POST['password'])) {
+            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
+            $stmt = $db->prepare("UPDATE staff_users SET email = ?, full_name = ?, password_hash = ?, role_id = ? WHERE id = ?");
+            $stmt->execute([$email, $full_name, $password, $role_id, $id]);
+        } else {
+            $stmt = $db->prepare("UPDATE staff_users SET email = ?, full_name = ?, role_id = ? WHERE id = ?");
+            $stmt->execute([$email, $full_name, $role_id, $id]);
+        }
+        $success_msg = "Staff member updated successfully.";
+    } elseif ($_POST['action'] === 'delete_staff') {
+        $id = (int)$_POST['staff_id'];
+        $stmt = $db->prepare("DELETE FROM staff_users WHERE id = ?");
+        $stmt->execute([$id]);
+        $success_msg = "Staff member deleted.";
     } elseif ($_POST['action'] === 'add_role') {
         $name = sanitize($_POST['role_name']);
         $perms = json_encode($_POST['permissions'] ?? []);
@@ -58,12 +78,24 @@ include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showAdd: false, showAddRole: false, showEditRole: false, editingRole: {id:null, name:'', permissions:[]} }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
+        showAdd: false,
+        showAddRole: false,
+        showEditRole: false,
+        showEditStaff: false,
+        editingRole: {id:null, name:'', permissions:[]},
+        editingStaff: {id:null, full_name:'', email:'', role_id:null}
+    }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
+                </div>
+            <?php endif; ?>
+            <?php if (isset($error_msg)): ?>
+                <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium">
+                    <?php echo $error_msg; ?>
                 </div>
             <?php endif; ?>
 
@@ -74,10 +106,10 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="flex gap-3">
                     <button @click="showAddRole = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
-                        <i data-lucide="shield w-4 h-4"></i> Create Role
+                        <i data-lucide="shield" class="w-4 h-4"></i> Create Role
                     </button>
                     <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                        <i data-lucide="user-plus w-4 h-4"></i> Add Staff
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Add Staff
                     </button>
                 </div>
             </div>
@@ -106,7 +138,18 @@ include '../includes/dashboard-head.php';
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <button class="text-slate-400 hover:text-red-600"><i data-lucide="trash-2 w-4 h-4"></i></button>
+                                        <div class="flex items-center gap-3">
+                                            <button @click="editingStaff = {id:<?php echo $s['id']; ?>, full_name:'<?php echo addslashes($s['full_name']); ?>', email:'<?php echo addslashes($s['email']); ?>', role_id:<?php echo $s['role_id'] ?: 'null'; ?>}; showEditStaff = true;" class="text-slate-400 hover:text-indigo-600" title="Edit Staff">
+                                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <form method="POST" onsubmit="return confirm('Delete this staff member?');" class="inline">
+                                                <input type="hidden" name="action" value="delete_staff">
+                                                <input type="hidden" name="staff_id" value="<?php echo $s['id']; ?>">
+                                                <button type="submit" class="text-slate-400 hover:text-red-600">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -153,7 +196,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Create Staff Role</h3>
                     <button @click="showAddRole = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i data-lucide="x w-5 h-5"></i>
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -227,7 +270,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Add New Staff Member</h3>
                     <button @click="showAdd = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i data-lucide="x w-5 h-5"></i>
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -256,6 +299,47 @@ include '../includes/dashboard-head.php';
                             </select>
                         </div>
                         <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Create Account</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Staff Modal -->
+        <div x-show="showEditStaff" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">Edit Staff Member</h3>
+                    <button @click="showEditStaff = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                        <input type="hidden" name="action" value="edit_staff">
+                        <input type="hidden" name="staff_id" :value="editingStaff.id">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
+                            <input type="text" name="full_name" x-model="editingStaff.full_name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                            <input type="email" name="email" x-model="editingStaff.email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">New Password (leave blank to keep current)</label>
+                            <input type="password" name="password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Assign Role</label>
+                            <select name="role_id" x-model="editingStaff.role_id" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <option value="">Select a role...</option>
+                                <?php foreach ($roles as $r): ?>
+                                    <option value="<?php echo $r['id']; ?>"><?php echo $r['name']; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Update Account</button>
                     </form>
                 </div>
             </div>

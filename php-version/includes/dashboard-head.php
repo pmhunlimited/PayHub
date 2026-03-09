@@ -14,6 +14,10 @@ require_once __DIR__ . '/functions.php';
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css">
+    <?php $logo = getConfig('site_logo'); ?>
+    <?php if ($logo): ?>
+        <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>">
+    <?php endif; ?>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }

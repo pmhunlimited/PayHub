@@ -90,7 +90,17 @@ $merchants = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{
+    mobileMenuOpen: false,
+    showEdit: false,
+    showReset: false,
+    showFees: false,
+    merchantId: null,
+    merchantName: '',
+    merchantEmail: '',
+    feePercentage: '',
+    feeFlat: ''
+}">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
