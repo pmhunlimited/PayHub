@@ -1,6 +1,32 @@
 <?php
 // php-version/api-reference.php
 require_once 'includes/functions.php';
+
+// Handle API requests (e.g., timeline)
+if (isset($_GET['action'])) {
+    if ($_GET['action'] === 'get_timeline' && isset($_GET['id'])) {
+        header('Content-Type: application/json');
+        if (!isLoggedIn()) {
+            echo json_encode(['error' => 'Unauthorized']);
+            exit;
+        }
+        $txId = (int)$_GET['id'];
+        $user = getAuthUser();
+        $db = Database::connect();
+
+        // Ensure the transaction belongs to the user or user is admin
+        if (isAdmin()) {
+            $stmt = $db->prepare("SELECT * FROM transaction_timeline WHERE transaction_id = ? ORDER BY created_at ASC");
+            $stmt->execute([$txId]);
+        } else {
+            $stmt = $db->prepare("SELECT tt.* FROM transaction_timeline tt JOIN transactions t ON tt.transaction_id = t.id WHERE tt.transaction_id = ? AND t.user_id = ? ORDER BY tt.created_at ASC");
+            $stmt->execute([$txId, $user['id']]);
+        }
+        echo json_encode($stmt->fetchAll());
+        exit;
+    }
+}
+
 $pageTitle = 'API Reference - Payhub';
 include 'includes/header.php';
 ?>

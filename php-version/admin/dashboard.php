@@ -57,9 +57,13 @@ foreach ($revenueRaw as $r) {
     $chartData[] = (float)$r['revenue'];
 }
 
+// Fetch Detailed Transactions for Report
+$stmt = $db->query("SELECT t.*, u.business_name FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 50");
+$allTransactions = $stmt->fetchAll();
+
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, selectedTx: null }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -109,7 +113,7 @@ include '../includes/dashboard-head.php';
 
             <div class="grid lg:grid-cols-3 gap-8 mb-8">
                 <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-900 mb-6">System Activity</h3>
+                    <h3 class="font-bold text-slate-900 mb-6">System Activity (Last 7 Days)</h3>
                     <div class="h-[350px]">
                         <canvas id="activityChart"></canvas>
                     </div>
@@ -129,10 +133,167 @@ include '../includes/dashboard-head.php';
                     </div>
                 </div>
             </div>
+
+            <!-- Transaction Report -->
+            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-8">
+                <div class="p-8 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900">Live Transaction Report</h3>
+                        <p class="text-sm text-slate-500">Real-time feed of payments across all merchants</p>
+                    </div>
+                    <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reference</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Merchant</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php foreach ($allTransactions as $tx): ?>
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-8 py-4 font-mono text-xs text-slate-500"><?php echo $tx['reference']; ?></td>
+                                    <td class="px-8 py-4">
+                                        <div class="font-bold text-slate-900"><?php echo $tx['business_name']; ?></div>
+                                    </td>
+                                    <td class="px-8 py-4 text-sm text-slate-600"><?php echo $tx['customer_email']; ?></td>
+                                    <td class="px-8 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($tx['amount']); ?></td>
+                                    <td class="px-8 py-4">
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $tx['status'] === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'; ?>">
+                                            <?php echo $tx['status']; ?>
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-4">
+                                        <button @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx)); ?>" class="text-indigo-600 font-bold text-xs hover:underline">View Details</button>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Details Modal -->
+        <div x-show="selectedTx" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Transaction Details</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-1" x-text="selectedTx?.reference"></p>
+                    </div>
+                    <button @click="selectedTx = null" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <div class="grid grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Merchant</p>
+                            <p class="font-bold text-slate-900" x-text="selectedTx?.business_name"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" :class="selectedTx?.status === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'" x-text="selectedTx?.status"></span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Amount</p>
+                            <p class="text-xl font-bold text-slate-900" x-text="'₦' + parseFloat(selectedTx?.amount).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fees</p>
+                            <p class="text-sm font-bold text-red-500" x-text="'-₦' + parseFloat(selectedTx?.fee_amount).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                        </div>
+                    </div>
+                    <div class="space-y-4 pt-8 border-t border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Customer Email</span>
+                            <span class="text-sm font-bold text-slate-900" x-text="selectedTx?.customer_email"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Customer Name</span>
+                            <span class="text-sm font-bold text-slate-900" x-text="selectedTx?.customer_name || 'N/A'"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Payment Method</span>
+                            <span class="text-sm font-bold text-slate-900 capitalize" x-text="selectedTx?.payment_method?.replace('_', ' ')"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Gateway Reference</span>
+                            <span class="text-sm font-mono text-slate-600" x-text="selectedTx?.gateway_reference || 'N/A'"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Date & Time</span>
+                            <span class="text-sm font-bold text-slate-900" x-text="new Date(selectedTx?.created_at).toLocaleString()"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button @click="selectedTx = null" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors">Close Report</button>
+                </div>
+            </div>
         </div>
     </main>
 <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: <?php echo json_encode($chartLabels); ?>,
+                    datasets: [{
+                        label: 'GTV',
+                        data: <?php echo json_encode($chartData); ?>,
+                        borderColor: '#4f46e5',
+                        borderWidth: 3,
+                        fill: true,
+                        backgroundColor: 'rgba(79, 70, 229, 0.05)',
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#4f46e5',
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#1e293b',
+                            bodyColor: '#4f46e5',
+                            bodyFont: { weight: 'bold' },
+                            padding: 12,
+                            borderColor: '#f1f5f9',
+                            borderWidth: 1,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#f1f5f9', drawBorder: false },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8', font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }

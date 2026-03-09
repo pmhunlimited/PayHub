@@ -6,10 +6,27 @@ $pk = getConfig('paystack_public_key');
 $amount = (float)($_GET['amount'] ?? 1000);
 $email = $_GET['email'] ?? '';
 $ref = $_GET['ref'] ?? 'PH_'.time();
+$isEmbedded = isset($_GET['embed']) && $_GET['embed'] == '1';
 
-include 'includes/header.php';
+if (!$isEmbedded) {
+    include 'includes/header.php';
+} else {
+    // Basic styles for embedded version
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
+    </head>
+    <body class="bg-white">
+    <?php
+}
 ?>
-<div class="pt-32 pb-20 bg-slate-50 min-h-screen flex items-center justify-center p-4">
+<div class="<?php echo $isEmbedded ? '' : 'pt-32 pb-20 bg-slate-50 min-h-screen flex items-center justify-center p-4'; ?>">
     <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
         <div class="p-8 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <div class="flex items-center gap-2">
@@ -64,11 +81,24 @@ function payWithPaystack() {
             alert('Transaction cancelled.');
         },
         callback: function(response){
-            window.location.href = "verify.php?reference=" + response.reference;
+            <?php if ($isEmbedded): ?>
+                window.parent.postMessage({
+                    type: 'payhub_success',
+                    data: response
+                }, '*');
+            <?php else: ?>
+                window.location.href = "verify.php?reference=" + response.reference;
+            <?php endif; ?>
         }
     });
     handler.openIframe();
 }
 </script>
 
-<?php include 'includes/footer.php'; ?>
+<?php
+if (!$isEmbedded) {
+    include 'includes/footer.php';
+} else {
+    ?></body></html><?php
+}
+?>
