@@ -18,14 +18,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if ($user['settlement_bank'] && $user['settlement_account_number']) {
             $db->beginTransaction();
             try {
-                // Deduct balance
-                $stmt = $db->prepare("UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?");
-                $stmt->execute([$amount, $user['id']]);
-                
                 // Create payout record
                 $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
                 $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
                 
+                // Log ledger entry (this also deducts the balance)
+                log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request to " . $user['settlement_bank']);
+
                 $db->commit();
                 $success_msg = "Payout request submitted successfully.";
                 $user = getAuthUser(); // Refresh user data

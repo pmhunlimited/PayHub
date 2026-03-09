@@ -44,8 +44,17 @@ if ($tx) {
                     $stmt->execute([$tx['user_id'], $tx['customer_name'] ?: 'Guest Customer', $tx['customer_email']]);
                 }
 
+                // Handle Invoice Payment
+                if (isset($res['data']['metadata']['invoice_id'])) {
+                    $inv_id = (int)$res['data']['metadata']['invoice_id'];
+                    $db->prepare("UPDATE invoices SET status = 'paid' WHERE id = ?")->execute([$inv_id]);
+                    $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
+                }
+
                 // Log ledger and update user balance
                 log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");
+
+                log_transaction_event($tx['id'], 'verified', "Payment verified via direct lookup.");
 
                 $db->commit();
             } catch (Exception $e) {

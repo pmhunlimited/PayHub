@@ -20,23 +20,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $tx = $stmt->fetch();
 
     if ($tx) {
-        $db->beginTransaction();
-        try {
-            // Update transaction status
-            $stmt = $db->prepare("UPDATE transactions SET status = 'refunded' WHERE id = ?");
-            $stmt->execute([$txId]);
+        // Perform Refund via Paystack API
+        $refund_res = paystack_call('refund', 'POST', [
+            'transaction' => $tx['gateway_reference'] ?: $tx['reference'],
+            'amount' => $tx['amount'] * 100
+        ]);
 
-            // Log ledger entry for refund (debit merchant balance)
-            log_ledger_entry($user['id'], $tx['amount'], 'debit', 'refund', "Refund for transaction {$tx['reference']}");
+        if ($refund_res && $refund_res['status']) {
+            $db->beginTransaction();
+            try {
+                // Update transaction status
+                $stmt = $db->prepare("UPDATE transactions SET status = 'refunded' WHERE id = ?");
+                $stmt->execute([$txId]);
 
-            // Log timeline event
-            log_transaction_event($txId, 'refund_initiated', "Refund of " . formatCurrency($tx['amount']) . " initiated by merchant.");
+                // Log ledger entry for refund (debit merchant balance)
+                log_ledger_entry($user['id'], $tx['amount'], 'debit', 'refund', "Refund for transaction {$tx['reference']}");
 
-            $db->commit();
-            $success_msg = "Refund processed successfully.";
-        } catch (Exception $e) {
-            $db->rollBack();
-            $error_msg = "Refund failed: " . $e->getMessage();
+                // Log timeline event
+                log_transaction_event($txId, 'refund_processed', "Refund of " . formatCurrency($tx['amount']) . " processed via Paystack.");
+
+                $db->commit();
+                $success_msg = "Refund processed successfully!";
+            } catch (Exception $e) {
+                $db->rollBack();
+                $error_msg = "Database Error: " . $e->getMessage();
+            }
+        } else {
+            $error_msg = "Paystack Refund Failed: " . ($refund_res['message'] ?? 'Unknown Error');
         }
     } else {
         $error_msg = "Invalid transaction or already refunded.";

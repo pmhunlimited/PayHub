@@ -21,12 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $last_name = sanitize($_POST['last_name']);
         $phone = sanitize($_POST['phone']);
 
-        // 1. Create/Fetch Customer on Paystack
+        // 1. Create/Fetch Customer on Paystack with metadata to track owner
         $customer_res = paystack_call('customer', 'POST', [
             'email' => $email,
             'first_name' => $first_name,
             'last_name' => $last_name,
-            'phone' => $phone
+            'phone' => $phone,
+            'metadata' => [
+                'merchant_id' => $user['id']
+            ]
         ]);
 
         if ($customer_res && $customer_res['status']) {
@@ -42,6 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 // Store in DB
                 $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$user['id'], $acc['bank']['name'], $acc['account_number'], $acc['account_name'], $email]);
+
+                // Also ensure customer exists locally
+                $stmt = $db->prepare("INSERT IGNORE INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$user['id'], "$first_name $last_name", $email, $phone]);
+
                 $success_msg = "Virtual account generated successfully!";
             } else {
                 $error_msg = "Failed to generate virtual account: " . ($dva_res['message'] ?? 'Unknown error');
@@ -55,10 +63,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $synced = 0;
             foreach ($res['data'] as $acc) {
                 $email = $acc['customer']['email'];
-                // Check if this customer belongs to this merchant
-                $stmt = $db->prepare("SELECT id FROM customers WHERE user_id = ? AND email = ?");
-                $stmt->execute([$user['id'], $email]);
-                if ($stmt->fetch()) {
+                $merchant_id = $acc['customer']['metadata']['merchant_id'] ?? null;
+
+                // Match by metadata or existing local customer
+                $is_mine = false;
+                if ($merchant_id == $user['id']) {
+                    $is_mine = true;
+                } else {
+                    $stmt = $db->prepare("SELECT id FROM customers WHERE user_id = ? AND email = ?");
+                    $stmt->execute([$user['id'], $email]);
+                    if ($stmt->fetch()) $is_mine = true;
+                }
+
+                if ($is_mine) {
                     // Check if already in DB
                     $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
                     $stmt->execute([$acc['account_number']]);
@@ -82,9 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Fetch virtual accounts (only valid ones)
+// We use a more relaxed check for user_id to account for potential business-wide sharing if needed in future
 $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
 $stmt->execute([$user['id']]);
-$accounts = $stmt->fetchAll();
+$accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 
 $pageTitle = 'Virtual Accounts - Payhub';
 include '../includes/dashboard-head.php';
@@ -153,7 +172,7 @@ include '../includes/dashboard-head.php';
                                     echo "Created " . $created;
                                     ?>
                                 </p>
-                                <button onclick="navigator.clipboard.writeText('Bank: <?php echo addslashes($acc['bank_name']); ?>\nAccount: <?php echo $acc['account_number']; ?>\nName: <?php echo addslashes($acc['account_name']); ?>'); alert('Account details copied to clipboard!');" class="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
+                                <button onclick="const text = 'Bank: <?php echo addslashes($acc['bank_name'] ?: 'N/A'); ?>\\nAccount: <?php echo $acc['account_number']; ?>\\nName: <?php echo addslashes($acc['account_name'] ?: $user['business_name']); ?>'; navigator.clipboard.writeText(text); alert('Account details copied to clipboard!');" class="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
                                     <i data-lucide="copy" class="w-3 h-3"></i> Copy Details
                                 </button>
                             </div>

@@ -267,6 +267,16 @@ if ($stage === 2 && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB;
 
+            CREATE TABLE IF NOT EXISTS api_logs (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                endpoint VARCHAR(255),
+                method VARCHAR(10),
+                payload TEXT,
+                response TEXT,
+                status_code INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB;
+
             CREATE TABLE IF NOT EXISTS config (
                 `key` VARCHAR(100) PRIMARY KEY,
                 `value` TEXT,

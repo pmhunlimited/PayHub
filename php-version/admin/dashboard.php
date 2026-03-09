@@ -66,34 +66,55 @@ $allTransactions = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, selectedTx: null }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden"
+      x-data="{
+          mobileMenuOpen: false,
+          selectedTx: null,
+          stats: {
+              total_gtv: '<?php echo formatCurrency($total_gtv); ?>',
+              active_merchants: '<?php echo $active_merchants; ?>',
+              success_rate: '<?php echo $success_rate; ?>%',
+              total_va: '<?php echo $total_va; ?>',
+              pending_kyc: '<?php echo $pending_kyc; ?>'
+          },
+          transactions: <?php echo json_encode($allTransactions); ?>,
+          updateStats() {
+              fetch('ajax-stats.php?action=stats').then(r => r.json()).then(d => this.stats = d);
+              fetch('ajax-stats.php?action=transactions').then(r => r.json()).then(d => this.transactions = d);
+          }
+      }"
+      x-init="setInterval(() => updateStats(), 10000)">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
-            <div class="mb-8">
+            <div class="mb-8 flex justify-between items-center">
                 <h1 class="text-2xl font-bold text-slate-900 mb-2">Platform Overview</h1>
+                <div class="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    Live God-View
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Total GTV</p>
-                    <p class="text-2xl font-bold text-slate-900"><?php echo formatCurrency($total_gtv); ?></p>
+                    <p class="text-2xl font-bold text-slate-900" x-text="stats.total_gtv"></p>
                     <p class="text-[10px] text-emerald-600 font-bold mt-1">+8.4% growth</p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Merchants</p>
-                    <p class="text-2xl font-bold text-slate-900"><?php echo $active_merchants; ?></p>
-                    <p class="text-[10px] text-slate-500 font-medium mt-1">From total <?php echo $active_merchants + 5; ?> accounts</p>
+                    <p class="text-2xl font-bold text-slate-900" x-text="stats.active_merchants"></p>
+                    <p class="text-[10px] text-slate-500 font-medium mt-1" x-text="'Pending KYC: ' + stats.pending_kyc"></p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Success Rate</p>
-                    <p class="text-2xl font-bold text-emerald-600"><?php echo $success_rate; ?>%</p>
+                    <p class="text-2xl font-bold text-emerald-600" x-text="stats.success_rate"></p>
                     <p class="text-[10px] text-slate-500 font-medium mt-1">Across all channels</p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Virtual Accounts</p>
-                    <p class="text-2xl font-bold text-indigo-600"><?php echo $total_va; ?></p>
+                    <p class="text-2xl font-bold text-indigo-600" x-text="stats.total_va"></p>
                     <p class="text-[10px] text-slate-500 font-medium mt-1">Active virtual banks</p>
                 </div>
             </div>
@@ -115,13 +136,55 @@ include '../includes/dashboard-head.php';
             </div>
 
             <div class="grid lg:grid-cols-3 gap-8 mb-8">
-                <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-900 mb-6">System Activity (Last 7 Days)</h3>
-                    <div class="h-[350px]">
-                        <canvas id="activityChart"></canvas>
+                <div class="lg:col-span-2 space-y-8">
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                        <h3 class="font-bold text-slate-900 mb-6">System Activity (Last 7 Days)</h3>
+                        <div class="h-[350px]">
+                            <canvas id="activityChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="flex items-center justify-between mb-8">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-amber-50 rounded-xl text-amber-600">
+                                    <i data-lucide="zap" class="w-5 h-5"></i>
+                                </div>
+                                <h3 class="font-bold text-slate-900">Real-time Transaction Flow</h3>
+                            </div>
+                            <span class="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                Live Feed
+                            </span>
+                        </div>
+                        <div class="space-y-4">
+                            <template x-for="tx in transactions.slice(0, 5)" :key="tx.id">
+                                <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
+                                            :class="tx.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'">
+                                            <span x-text="tx.customer_email[0].toUpperCase()"></span>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-bold text-slate-900" x-text="tx.customer_email"></p>
+                                            <p class="text-[10px] text-slate-500" x-text="'via ' + (tx.payment_method || 'card')"></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col items-center gap-1">
+                                        <i data-lucide="arrow-right" class="text-slate-300 group-hover:text-indigo-500 transition-colors w-4 h-4"></i>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" x-text="tx.status"></span>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-bold text-slate-900" x-text="'₦' + parseFloat(tx.amount).toLocaleString()"></p>
+                                        <p class="text-[10px] text-slate-500" x-text="'to ' + tx.business_name"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                 </div>
-                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm h-fit sticky top-8">
                     <h3 class="font-bold text-slate-900 mb-6">Global Fees</h3>
                     <div class="space-y-4">
                         <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
@@ -161,24 +224,25 @@ include '../includes/dashboard-head.php';
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <?php foreach ($allTransactions as $tx): ?>
+                            <template x-for="tx in transactions" :key="tx.id">
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-8 py-4 font-mono text-xs text-slate-500"><?php echo $tx['reference']; ?></td>
+                                    <td class="px-8 py-4 font-mono text-xs text-slate-500" x-text="tx.reference"></td>
                                     <td class="px-8 py-4">
-                                        <div class="font-bold text-slate-900"><?php echo $tx['business_name']; ?></div>
+                                        <div class="font-bold text-slate-900" x-text="tx.business_name"></div>
                                     </td>
-                                    <td class="px-8 py-4 text-sm text-slate-600"><?php echo $tx['customer_email']; ?></td>
-                                    <td class="px-8 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($tx['amount']); ?></td>
+                                    <td class="px-8 py-4 text-sm text-slate-600" x-text="tx.customer_email"></td>
+                                    <td class="px-8 py-4 text-sm font-bold text-slate-900" x-text="'₦' + parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits:2})"></td>
                                     <td class="px-8 py-4">
-                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $tx['status'] === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'; ?>">
-                                            <?php echo $tx['status']; ?>
+                                        <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                                              :class="tx.status === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'"
+                                              x-text="tx.status">
                                         </span>
                                     </td>
                                     <td class="px-8 py-4">
-                                        <button @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx)); ?>" class="text-indigo-600 font-bold text-xs hover:underline">View Details</button>
+                                        <button @click="selectedTx = tx" class="text-indigo-600 font-bold text-xs hover:underline">View Details</button>
                                     </td>
                                 </tr>
-                            <?php endforeach; ?>
+                            </template>
                         </tbody>
                     </table>
                 </div>

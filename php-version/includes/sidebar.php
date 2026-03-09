@@ -74,7 +74,7 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i data-lucide="webhook" class="w-5 h-5"></i>
                 Webhook Logs
             </a>
-            <a href="<?php echo BASE_URL; ?>admin/api-manager.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-manager.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+            <a href="<?php echo BASE_URL; ?>admin/api-manager.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo ($current_page === 'api-manager.php' || $current_page === 'api-logs.php') ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="key" class="w-5 h-5"></i>
                 API Manager
             </a>
@@ -180,6 +180,18 @@ $role = $_SESSION['role'] ?? 'merchant';
             </a>
         <?php endif; ?>
     </nav>
+
+    <?php if (isset($_SESSION['admin_user_id'])): ?>
+        <div class="p-4 border-t border-indigo-100 bg-indigo-50">
+            <form method="POST" action="<?php echo BASE_URL; ?>admin/merchants.php">
+                <input type="hidden" name="action" value="exit_impersonation">
+                <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-indigo-700 hover:bg-indigo-100 transition-all">
+                    <i data-lucide="shield-off" class="w-5 h-5"></i>
+                    Exit Impersonation
+                </button>
+            </form>
+        </div>
+    <?php endif; ?>
 
     <div class="p-4 border-t border-slate-100">
         <a href="<?php echo BASE_URL; ?>logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all">

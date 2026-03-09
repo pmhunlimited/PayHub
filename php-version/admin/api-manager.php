@@ -27,6 +27,9 @@ $sk = getConfig('paystack_secret_key');
 $tpk = getConfig('paystack_test_public_key');
 $tsk = getConfig('paystack_test_secret_key');
 
+// Fetch API Logs
+$logs = $db->query("SELECT * FROM api_logs ORDER BY created_at DESC LIMIT 50")->fetchAll();
+
 include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
@@ -89,6 +92,65 @@ include '../includes/dashboard-head.php';
                     </div>
                     <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Update Integration</button>
                 </form>
+            </div>
+
+            <div class="mt-12 bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-12">
+                <div class="p-8 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-900">Outgoing Paystack API Logs</h3>
+                        <p class="text-sm text-slate-500">Real-time monitoring of platform communication with Paystack</p>
+                    </div>
+                    <div class="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold">
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                        Live Monitoring
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-slate-50/50">
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Method & Endpoint</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payload</th>
+                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Response</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php foreach ($logs as $l): ?>
+                                <tr class="hover:bg-slate-50/50 transition-colors">
+                                    <td class="px-8 py-4 text-xs text-slate-500 whitespace-nowrap"><?php echo date('H:i:s d M', strtotime($l['created_at'])); ?></td>
+                                    <td class="px-8 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <span class="px-2 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold"><?php echo $l['method']; ?></span>
+                                            <span class="text-xs font-mono text-slate-600"><?php echo $l['endpoint']; ?></span>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-4">
+                                        <span class="px-2 py-1 rounded-full text-[10px] font-bold <?php echo $l['status_code'] < 300 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'; ?>">
+                                            <?php echo $l['status_code']; ?>
+                                        </span>
+                                    </td>
+                                    <td class="px-8 py-4">
+                                        <div class="max-w-[150px] truncate text-[10px] font-mono text-slate-400" title='<?php echo htmlspecialchars($l['payload']); ?>'>
+                                            <?php echo htmlspecialchars($l['payload']); ?>
+                                        </div>
+                                    </td>
+                                    <td class="px-8 py-4">
+                                        <div class="max-w-[200px] truncate text-[10px] font-mono text-slate-400" title='<?php echo htmlspecialchars($l['response']); ?>'>
+                                            <?php echo htmlspecialchars($l['response']); ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php if (empty($logs)): ?>
+                                <tr>
+                                    <td colspan="5" class="px-8 py-12 text-center text-slate-500">No API logs found.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>

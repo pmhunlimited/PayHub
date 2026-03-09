@@ -22,8 +22,8 @@ header("Referrer-Policy: strict-origin-when-cross-origin");
 // Define base path
 define('BASE_PATH', dirname(__DIR__) . '/');
 $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-$host = $_SERVER['HTTP_HOST'];
-$script_name = $_SERVER['SCRIPT_NAME'];
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$script_name = $_SERVER['SCRIPT_NAME'] ?? '/';
 $base_dir = str_replace(basename($script_name), '', $script_name);
 // Ensure we get the root of the php-version directory
 if (strpos($base_dir, '/admin/') !== false) {
@@ -37,6 +37,14 @@ if (file_exists(__DIR__ . '/config.php')) {
     require_once __DIR__ . '/config.php';
 }
 require_once __DIR__ . '/db.php';
+
+// Include Composer Autoloader for PHPMailer
+if (file_exists(BASE_PATH . 'vendor/autoload.php')) {
+    require_once BASE_PATH . 'vendor/autoload.php';
+}
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // Simple Migration Helper
 function check_migrations() {
@@ -87,7 +95,8 @@ function check_migrations() {
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'gateway_reference' => "VARCHAR(100)",
                 'payment_method' => "VARCHAR(50) DEFAULT 'card'",
-                'is_test' => "TINYINT DEFAULT 0"
+                'is_test' => "TINYINT DEFAULT 0",
+                'invoice_id' => "INT DEFAULT NULL"
             ],
             'payouts' => [
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
@@ -103,6 +112,14 @@ function check_migrations() {
                 'meta_title' => "VARCHAR(255)",
                 'meta_description' => "TEXT",
                 'meta_keywords' => "VARCHAR(255)"
+            ],
+            'api_logs' => [
+                'endpoint' => "VARCHAR(255)",
+                'method' => "VARCHAR(10)",
+                'payload' => "TEXT",
+                'response' => "TEXT",
+                'status_code' => "INT",
+                'created_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
             ],
             'virtual_accounts' => [
                 'bank_name' => "VARCHAR(255)",
@@ -306,6 +323,13 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
 
     if ($response === false) return ['status' => false, 'message' => 'CURL error'];
 
+    // Log the API call
+    try {
+        $db = Database::connect();
+        $stmt = $db->prepare("INSERT INTO api_logs (endpoint, method, payload, response, status_code) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$endpoint, $method, json_encode($data), $response, $http_code]);
+    } catch (Exception $e) {}
+
     $result = json_decode($response, true);
     return $result;
 }
@@ -377,33 +401,63 @@ function sendEmail($to, $subject, $body) {
     $site_name = getConfig('site_name', 'Payhub');
     $logo = getConfig('site_logo');
 
-    if (!$smtp_host || !$smtp_user) return false;
-
-    $logo_html = '';
-    if ($logo) {
-        $logo_url = BASE_URL . 'uploads/' . $logo;
-        $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 60px; width: auto; max-width: 200px;'></div>";
+    if (!$smtp_host || !$smtp_user) {
+        // Fallback to native mail if SMTP not fully configured
+        $logo_html = '';
+        if ($logo) {
+            $logo_url = BASE_URL . 'uploads/' . $logo;
+            $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 60px; width: auto; max-width: 200px;'></div>";
+        }
+        $headers = "MIME-Version: 1.0\r\nContent-type:text/html;charset=UTF-8\r\nFrom: $site_name <$smtp_from>\r\n";
+        $full_body = "<div style='padding: 40px;'>$logo_html $body</div>";
+        return mail($to, $subject, $full_body, $headers);
     }
 
-    $headers = "MIME-Version: 1.0" . "\r\n";
-    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= "From: $site_name <$smtp_from>" . "\r\n";
+    $mail = new PHPMailer(true);
 
-    $full_body = "
-    <div style='background-color: #f9fafb; padding: 40px 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
-        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
-            <div style='padding: 32px; background-color: #ffffff; border-bottom: 1px solid #f3f4f6; text-align: center;'>
-                $logo_html
-            </div>
-            <div style='padding: 40px; line-height: 1.6; color: #374151;'>
-                $body
-            </div>
-            <div style='padding: 32px; background-color: #f9fafb; text-align: center; font-size: 12px; color: #9ca3af;'>
-                <p style='margin-bottom: 8px;'>&copy; " . date('Y') . " $site_name. All rights reserved.</p>
-                <p>You are receiving this email because you have an account with $site_name.</p>
-            </div>
-        </div>
-    </div>";
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = $smtp_host;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $smtp_user;
+        $mail->Password   = $smtp_pass;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = $smtp_port;
 
-    return mail($to, $subject, $full_body, $headers);
+        // Recipients
+        $mail->setFrom($smtp_from, $site_name);
+        $mail->addAddress($to);
+
+        // Content
+        $logo_html = '';
+        if ($logo) {
+            $logo_url = BASE_URL . 'uploads/' . $logo;
+            $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 60px; width: auto; max-width: 200px;'></div>";
+        }
+
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = "
+        <div style='background-color: #f9fafb; padding: 40px 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
+            <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
+                <div style='padding: 32px; background-color: #ffffff; border-bottom: 1px solid #f3f4f6; text-align: center;'>
+                    $logo_html
+                </div>
+                <div style='padding: 40px; line-height: 1.6; color: #374151;'>
+                    $body
+                </div>
+                <div style='padding: 32px; background-color: #f9fafb; text-align: center; font-size: 12px; color: #9ca3af;'>
+                    <p style='margin-bottom: 8px;'>&copy; " . date('Y') . " $site_name. All rights reserved.</p>
+                    <p>You are receiving this email because you have an account with $site_name.</p>
+                </div>
+            </div>
+        </div>";
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("PHPMailer Error: " . $mail->ErrorInfo);
+        return false;
+    }
 }

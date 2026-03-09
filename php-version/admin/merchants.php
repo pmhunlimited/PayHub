@@ -45,9 +45,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $success_msg = "Payout review status updated for merchant.";
     } elseif ($_POST['action'] === 'impersonate') {
         $merchantId = (int)$_POST['merchant_id'];
-        $_SESSION['user_id'] = $merchantId;
-        $_SESSION['role'] = 'merchant';
-        redirect('../merchant/dashboard.php');
+        if ($merchantId != $user['id']) {
+            $_SESSION['admin_user_id'] = $user['id']; // Store admin ID for returning
+            $_SESSION['user_id'] = $merchantId;
+            $_SESSION['role'] = 'merchant';
+            redirect('../merchant/dashboard.php');
+        }
+    } elseif ($_POST['action'] === 'exit_impersonation') {
+        if (isset($_SESSION['admin_user_id'])) {
+            $_SESSION['user_id'] = $_SESSION['admin_user_id'];
+            $_SESSION['role'] = 'admin';
+            unset($_SESSION['admin_user_id']);
+            $success_msg = "Exited impersonation mode.";
+        }
     } elseif ($_POST['action'] === 'reset_password') {
         $merchantId = (int)$_POST['merchant_id'];
         $new_pass = password_hash($_POST['password'], PASSWORD_DEFAULT);

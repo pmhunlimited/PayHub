@@ -40,11 +40,35 @@ include 'includes/header.php';
                 <div class="relative">
                     <div class="absolute -inset-4 bg-indigo-100 rounded-[2rem] blur-3xl opacity-30 animate-pulse"></div>
                     <img 
-                        src="https://picsum.photos/seed/dashboard/800/600" 
-                        alt="Dashboard Preview" 
+                        src="assets/payhub-payment-methods.jpg"
+                        alt="Payment Methods"
                         class="relative rounded-2xl shadow-2xl border border-slate-200"
-                        referrerPolicy="no-referrer"
+                        onerror="this.src='https://picsum.photos/seed/payhub/800/600'"
                     >
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Payment Methods Section -->
+    <section class="py-12 bg-white border-y border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap justify-center items-center gap-12 grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-8 h-8 text-slate-900"></i>
+                    <span class="font-bold text-slate-900">MasterCard</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-8 h-8 text-slate-900"></i>
+                    <span class="font-bold text-slate-900">VISA</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="credit-card" class="w-8 h-8 text-slate-900"></i>
+                    <span class="font-bold text-slate-900">Verve</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i data-lucide="building-2" class="w-8 h-8 text-slate-900"></i>
+                    <span class="font-bold text-slate-900">Bank Transfer</span>
                 </div>
             </div>
         </div>
@@ -52,6 +76,24 @@ include 'includes/header.php';
 
     <!-- Features Section -->
     <section id="features" class="py-24 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+            <div class="bg-indigo-600 rounded-[3rem] p-12 lg:p-20 text-white flex flex-col lg:flex-row items-center gap-12 overflow-hidden relative shadow-2xl shadow-indigo-200">
+                <div class="relative z-10 lg:w-1/2">
+                    <h2 class="text-4xl font-bold mb-6">Accepted Payment Methods</h2>
+                    <p class="text-indigo-100 text-lg mb-8">We support a wide range of payment methods to ensure your customers can pay you with ease, no matter where they are.</p>
+                    <ul class="space-y-4">
+                        <li class="flex items-center gap-3"><i data-lucide="check-circle-2" class="text-indigo-300 w-5 h-5"></i> Local & International Cards</li>
+                        <li class="flex items-center gap-3"><i data-lucide="check-circle-2" class="text-indigo-300 w-5 h-5"></i> Direct Bank Transfers</li>
+                        <li class="flex items-center gap-3"><i data-lucide="check-circle-2" class="text-indigo-300 w-5 h-5"></i> USSD & QR Codes</li>
+                    </ul>
+                </div>
+                <div class="lg:w-1/2 relative">
+                    <img src="assets/payment-methods.jpg" alt="Supported Methods" class="rounded-2xl shadow-lg rotate-3 hover:rotate-0 transition-transform duration-500" onerror="this.src='https://picsum.photos/seed/methods/600/400'">
+                </div>
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+            </div>
+        </div>
+
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center max-w-3xl mx-auto mb-20">
                 <h2 class="text-sm font-bold text-indigo-600 uppercase tracking-widest mb-4">Why Payhub?</h2>
