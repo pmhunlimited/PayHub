@@ -46,6 +46,37 @@ foreach ($revenueRaw as $r) {
     ];
 }
 
+// Fetch payment methods distribution
+$stmt = $db->prepare("
+    SELECT
+        payment_method,
+        COUNT(*) as count
+    FROM transactions
+    WHERE user_id = ? AND status = 'success'
+    GROUP BY payment_method
+");
+$stmt->execute([$user['id']]);
+$methodCounts = $stmt->fetchAll();
+$totalMethods = array_sum(array_column($methodCounts, 'count'));
+
+$methodsDist = [
+    'card' => ['label' => 'Card', 'percentage' => 0, 'color' => 'bg-indigo-600'],
+    'bank_transfer' => ['label' => 'Bank Transfer', 'percentage' => 0, 'color' => 'bg-emerald-500'],
+    'ussd' => ['label' => 'USSD', 'percentage' => 0, 'color' => 'bg-amber-500']
+];
+
+if ($totalMethods > 0) {
+    foreach ($methodCounts as $mc) {
+        $m = $mc['payment_method'];
+        if (isset($methodsDist[$m])) {
+            $methodsDist[$m]['percentage'] = round(($mc['count'] / $totalMethods) * 100);
+        }
+    }
+} else {
+    // Default if no data
+    $methodsDist['card']['percentage'] = 100;
+}
+
 // Onboarding Checklist logic
 $onboardingSteps = [
     ['id' => 1, 'label' => 'Verify Email', 'status' => 'completed', 'desc' => 'Confirm your email address'],
@@ -184,33 +215,17 @@ include '../includes/dashboard-head.php';
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <h3 class="font-bold text-slate-900 mb-6">Payment Methods</h3>
                     <div class="space-y-6">
+                        <?php foreach ($methodsDist as $m): ?>
                         <div>
                             <div class="flex justify-between text-sm font-bold mb-2">
-                                <span>Card</span>
-                                <span>65%</span>
+                                <span><?php echo $m['label']; ?></span>
+                                <span><?php echo $m['percentage']; ?>%</span>
                             </div>
                             <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-indigo-600 rounded-full" style="width: 65%"></div>
+                                <div class="h-full <?php echo $m['color']; ?> rounded-full" style="width: <?php echo $m['percentage']; ?>%"></div>
                             </div>
                         </div>
-                        <div>
-                            <div class="flex justify-between text-sm font-bold mb-2">
-                                <span>Bank Transfer</span>
-                                <span>25%</span>
-                            </div>
-                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-500 rounded-full" style="width: 25%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm font-bold mb-2">
-                                <span>USSD</span>
-                                <span>10%</span>
-                            </div>
-                            <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div class="h-full bg-amber-500 rounded-full" style="width: 10%"></div>
-                            </div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>

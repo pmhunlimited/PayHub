@@ -66,7 +66,6 @@ include '../includes/dashboard-head.php';
         <div class="flex-1 overflow-y-auto p-8">
             <div class="mb-8">
                 <h1 class="text-2xl font-bold text-slate-900 mb-2">Platform Overview</h1>
-                <p class="text-slate-500">A "God-view" of the entire Payhub ecosystem</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
