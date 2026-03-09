@@ -60,6 +60,10 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i data-lucide="gavel" class="w-5 h-5"></i>
                 Disputes
             </a>
+            <a href="<?php echo BASE_URL; ?>admin/virtual-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'virtual-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+                Virtual Accounts
+            </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">System</div>
             <a href="<?php echo BASE_URL; ?>admin/health.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'health.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">

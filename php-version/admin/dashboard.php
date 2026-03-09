@@ -19,6 +19,9 @@ $active_merchants = $stmt->fetch()['count'] ?? 0;
 $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE is_kyc_verified = 2");
 $pending_kyc = $stmt->fetch()['count'] ?? 0;
 
+$stmt = $db->query("SELECT COUNT(*) as count FROM virtual_accounts");
+$total_va = $stmt->fetch()['count'] ?? 0;
+
 // Fetch Paystack Balance
 $paystack_balance = 0;
 $paystack_res = paystack_call('balance');
@@ -89,9 +92,9 @@ include '../includes/dashboard-head.php';
                     <p class="text-[10px] text-slate-500 font-medium mt-1">Across all channels</p>
                 </div>
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pending KYC</p>
-                    <p class="text-2xl font-bold text-amber-600"><?php echo $pending_kyc; ?></p>
-                    <p class="text-[10px] text-amber-500 font-bold mt-1">Needs attention</p>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Virtual Accounts</p>
+                    <p class="text-2xl font-bold text-indigo-600"><?php echo $total_va; ?></p>
+                    <p class="text-[10px] text-slate-500 font-medium mt-1">Active virtual banks</p>
                 </div>
             </div>
 

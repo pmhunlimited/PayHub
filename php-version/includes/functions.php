@@ -105,7 +105,11 @@ function check_migrations() {
                 'meta_keywords' => "VARCHAR(255)"
             ],
             'virtual_accounts' => [
-                'customer_email' => "VARCHAR(255)"
+                'bank_name' => "VARCHAR(255)",
+                'account_number' => "VARCHAR(50)",
+                'account_name' => "VARCHAR(255)",
+                'customer_email' => "VARCHAR(255)",
+                'created_at' => "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
             ],
             'invoices' => [
                 'reference' => "VARCHAR(100)",

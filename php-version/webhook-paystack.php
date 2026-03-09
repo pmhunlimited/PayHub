@@ -27,6 +27,24 @@ if ($event['event'] === 'charge.success') {
     $stmt->execute([$ref]);
     $tx = $stmt->fetch();
 
+    // If no transaction found, check if it's a payment to a dedicated virtual account
+    if (!$tx && isset($data['dedicated_combined_account'])) {
+        $acc_number = $data['dedicated_combined_account']['account_number'];
+        $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ?");
+        $stmt->execute([$acc_number]);
+        $va = $stmt->fetch();
+
+        if ($va) {
+            // Create a pending transaction for this VA payment
+            $stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, status, customer_email, payment_method) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer')");
+            $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email']]);
+
+            $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
+            $stmt->execute([$ref]);
+            $tx = $stmt->fetch();
+        }
+    }
+
     if ($tx && $tx['status'] === 'pending') {
         $db->beginTransaction();
         try {

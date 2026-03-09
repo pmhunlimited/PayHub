@@ -22,25 +22,27 @@ function payhub_config() {
 }
 
 function payhub_link($params) {
-    $baseUrl = "'.BASE_URL.'";
-    $code = "<script src=\"$baseUrl/inline.js\"></script>
-    <form onsubmit=\"payWithPayhub(); return false;\">
+    // Note: This module is intended for production. Replace BASE_URL with your actual domain if needed.
+    $baseUrl = "https://payhub.com";
+
+    $code = '<script src="' . $baseUrl . '/inline.js"></script>
+    <form onsubmit="payWithPayhub(); return false;">
         <script>
             function payWithPayhub() {
                 var handler = PayhubPop.setup({
-                    key: "'.$params['publicKey'].'",
-                    email: "'.$params['clientdetails']['email'].'",
-                    amount: '.($params['amount'] * 100).',
-                    currency: "'.$params['currency'].'",
-                    ref: "'.$params['invoiceid'].'_'.time().'",
+                    key: "' . $params['publicKey'] . '",
+                    email: "' . $params['clientdetails']['email'] . '",
+                    amount: ' . ($params['amount'] * 100) . ',
+                    currency: "' . $params['currency'] . '",
+                    ref: "' . $params['invoiceid'] . '_' . time() . '",
                     callback: function(response) {
-                        window.location.href = "'.$params['systemurl'].'/modules/gateways/callback/payhub.php?invoiceid='.$params['invoiceid'].'&ref=" + response.reference;
+                        window.location.href = "' . $params['systemurl'] . '/modules/gateways/callback/payhub.php?invoiceid=' . $params['invoiceid'] . '&ref=" + response.reference;
                     }
                 });
                 handler.openIframe();
             }
         </script>
-        <input type="submit" value="'.$params['langpaynow'].'" class="btn btn-primary" />
+        <input type="submit" value="' . $params['langpaynow'] . '" class="btn btn-primary" />
     </form>';
 
     return $code;
