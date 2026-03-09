@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -40,7 +40,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm max-w-2xl">
                 <div class="flex items-center gap-3 mb-8">
                     <div class="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
-                        <i class="lucide-mail w-6 h-6"></i>
+                        <i data-lucide="mail w-6 h-6"></i>
                     </div>
                     <div>
                         <h2 class="text-xl font-bold">SMTP Configuration</h2>
@@ -79,7 +79,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

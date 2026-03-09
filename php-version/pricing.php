@@ -37,8 +37,8 @@ include 'includes/header.php';
                             <span>Fee capped at <?php echo formatCurrency($fee_cap); ?></span>
                         </li>
                         <li class="flex gap-3 text-slate-600">
-                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
-                            <span>₦100 fee waived for transactions under ₦2500</span>
+                            <i data-lucide="check" class="text-emerald-500 w-5 h-5"></i>
+                            <span><?php echo formatCurrency($fee_flat); ?> fee waived for transactions under ₦2500</span>
                         </li>
                         <li class="flex gap-3 text-slate-600">
                             <i class="lucide-check text-emerald-500 w-5 h-5"></i>

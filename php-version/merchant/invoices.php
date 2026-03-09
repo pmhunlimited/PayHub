@@ -26,7 +26,7 @@ include '../includes/dashboard-head.php';
                         <p class="text-slate-500">Create and manage professional invoices for your customers</p>
                     </div>
                     <button class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                        <i class="lucide-plus w-5 h-5"></i> Create Invoice
+                        <i data-lucide="plus w-5 h-5"></i> Create Invoice
                     </button>
                 </div>
 
@@ -34,8 +34,8 @@ include '../includes/dashboard-head.php';
                     <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <h3 class="font-bold text-slate-900">All Invoices</h3>
                         <div class="flex gap-2">
-                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i class="lucide-filter w-5 h-5"></i></button>
-                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i class="lucide-download w-5 h-5"></i></button>
+                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="filter w-5 h-5"></i></button>
+                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="download w-5 h-5"></i></button>
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -64,7 +64,7 @@ include '../includes/dashboard-head.php';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i class="lucide-more-horizontal w-5 h-5"></i></button>
+                                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="more-horizontal w-5 h-5"></i></button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -72,7 +72,7 @@ include '../includes/dashboard-head.php';
                                     <tr>
                                         <td colspan="5" class="px-6 py-20 text-center">
                                             <div class="flex flex-col items-center gap-2 opacity-30">
-                                                <i class="lucide-file-text w-12 h-12"></i>
+                                                <i data-lucide="file-text w-12 h-12"></i>
                                                 <p class="font-bold">No invoices generated yet</p>
                                             </div>
                                         </td>
@@ -86,7 +86,12 @@ include '../includes/dashboard-head.php';
         </div>
     <?php include "../includes/merchant-quick-actions.php"; ?>
 </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

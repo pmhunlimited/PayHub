@@ -46,21 +46,6 @@ foreach ($revenueRaw as $r) {
     ];
 }
 
-// Fetch Payment Methods breakdown
-$stmt = $db->prepare("
-    SELECT payment_method, COUNT(*) as count
-    FROM transactions
-    WHERE user_id = ? AND status = 'success'
-    GROUP BY payment_method
-");
-$stmt->execute([$user['id']]);
-$methodsRaw = $stmt->fetchAll();
-$total_success = array_sum(array_column($methodsRaw, 'count'));
-$methodBreakdown = [];
-foreach ($methodsRaw as $m) {
-    $methodBreakdown[$m['payment_method']] = $total_success > 0 ? round(($m['count'] / $total_success) * 100) : 0;
-}
-
 // Handle Payout Request
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
     $amount = (float)$_POST['amount'];
@@ -115,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     <?php include '../includes/sidebar.php'; ?>
 
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
 
         <!-- Scrollable Content -->
@@ -132,47 +117,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             <?php endif; ?>
 
             <?php if ($tab === 'overview'): ?>
-                <!-- Onboarding Checklist -->
-                <?php if (!$user['is_kyc_verified'] || !$user['settlement_bank']): ?>
-                <div class="mb-8 bg-white rounded-3xl border border-slate-200 overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 bg-slate-50/50">
-                        <h3 class="font-bold text-slate-900 flex items-center gap-2">
-                            <i class="lucide-check-circle-2 text-indigo-600 w-5 h-5"></i>
-                            Onboarding Checklist
-                        </h3>
-                    </div>
-                    <div class="p-6 grid md:grid-cols-3 gap-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs <?php echo $user['is_kyc_verified'] ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'; ?>">
-                                <?php echo $user['is_kyc_verified'] ? '✓' : '1'; ?>
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold <?php echo $user['is_kyc_verified'] ? 'text-slate-400 line-through' : 'text-slate-900'; ?>">Verify Compliance</p>
-                                <a href="compliance.php" class="text-[10px] font-bold text-indigo-600 uppercase">Submit Docs</a>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs <?php echo $user['settlement_bank'] ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'; ?>">
-                                <?php echo $user['settlement_bank'] ? '✓' : '2'; ?>
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold <?php echo $user['settlement_bank'] ? 'text-slate-400 line-through' : 'text-slate-900'; ?>">Settlement Bank</p>
-                                <a href="settings.php" class="text-[10px] font-bold text-indigo-600 uppercase">Set Account</a>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs bg-slate-100 text-slate-400">
-                                3
-                            </div>
-                            <div>
-                                <p class="text-sm font-bold text-slate-900">First Payment</p>
-                                <a href="api-keys.php" class="text-[10px] font-bold text-indigo-600 uppercase">Get API Keys</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 class="text-2xl font-bold text-slate-900 mb-2">Welcome back, <?php echo $user['business_name']; ?></h1>
@@ -180,11 +124,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     </div>
                     <div class="flex items-center gap-3">
                         <a href="?tab=payouts" class="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm">
-                            <i class="lucide-arrow-down-left text-amber-500 w-4.5 h-4.5"></i>
+                            <i data-lucide="arrow-down-left text-amber-500 w-4.5 h-4.5"></i>
                             New Payout
                         </a>
-                        <a href="invoices.php" class="flex items-center gap-2 bg-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                            <i class="lucide-plus w-4.5 h-4.5"></i>
+                        <a href="#" class="flex items-center gap-2 bg-indigo-600 px-4 py-2.5 rounded-xl text-sm font-bold text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                            <i data-lucide="plus w-4.5 h-4.5"></i>
                             Create Invoice
                         </a>
                     </div>
@@ -195,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                                <i class="lucide-wallet w-5 h-5"></i>
+                                <i data-lucide="wallet w-5 h-5"></i>
                             </div>
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Balance</span>
                         </div>
@@ -205,7 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                                <i class="lucide-bar-chart-3 w-5 h-5"></i>
+                                <i data-lucide="bar-chart-3 w-5 h-5"></i>
                             </div>
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Volume</span>
                         </div>
@@ -215,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                                <i class="lucide-arrow-up-right w-5 h-5"></i>
+                                <i data-lucide="arrow-up-right w-5 h-5"></i>
                             </div>
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Transactions</span>
                         </div>
@@ -225,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-purple-600">
-                                <i class="lucide-shield-check w-5 h-5"></i>
+                                <i data-lucide="shield-check w-5 h-5"></i>
                             </div>
                             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Success Rate</span>
                         </div>
@@ -245,25 +189,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                     <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-900 mb-6">Payment Methods</h3>
                         <div class="space-y-6">
-                            <?php
-                            $available_methods = [
-                                'card' => ['label' => 'Card', 'color' => 'bg-indigo-600'],
-                                'bank_transfer' => ['label' => 'Bank Transfer', 'color' => 'bg-emerald-500'],
-                                'ussd' => ['label' => 'USSD', 'color' => 'bg-amber-500']
-                            ];
-                            foreach($available_methods as $key => $meta):
-                                $pct = $methodBreakdown[$key] ?? 0;
-                            ?>
-                                <div>
-                                    <div class="flex justify-between text-sm font-bold mb-2">
-                                        <span><?php echo $meta['label']; ?></span>
-                                        <span><?php echo $pct; ?>%</span>
-                                    </div>
-                                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                        <div class="h-full <?php echo $meta['color']; ?> rounded-full" style="width: <?php echo $pct; ?>%"></div>
-                                    </div>
+                            <div>
+                                <div class="flex justify-between text-sm font-bold mb-2">
+                                    <span>Card</span>
+                                    <span>65%</span>
                                 </div>
-                            <?php endforeach; ?>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-indigo-600 rounded-full" style="width: 65%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm font-bold mb-2">
+                                    <span>Bank Transfer</span>
+                                    <span>25%</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-emerald-500 rounded-full" style="width: 25%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm font-bold mb-2">
+                                    <span>USSD</span>
+                                    <span>10%</span>
+                                </div>
+                                <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full bg-amber-500 rounded-full" style="width: 10%"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -306,165 +258,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         </table>
                     </div>
                 </div>
-
-                <script>
-                    document.addEventListener('DOMContentLoaded', function() {
-                        const ctx = document.getElementById('revenueChart').getContext('2d');
-                        const data = <?php echo json_encode($revenueData); ?>;
-                        
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: data.map(d => d.name),
-                                datasets: [{
-                                    label: 'Revenue',
-                                    data: data.map(d => d.revenue),
-                                    borderColor: '#4f46e5',
-                                    borderWidth: 3,
-                                    fill: true,
-                                    backgroundColor: 'rgba(79, 70, 229, 0.05)',
-                                    tension: 0.4,
-                                    pointRadius: 0,
-                                    pointHoverRadius: 6,
-                                    pointHoverBackgroundColor: '#4f46e5',
-                                    pointHoverBorderColor: '#fff',
-                                    pointHoverBorderWidth: 2
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: { display: false },
-                                    tooltip: {
-                                        backgroundColor: '#fff',
-                                        titleColor: '#1e293b',
-                                        bodyColor: '#4f46e5',
-                                        bodyFont: { weight: 'bold' },
-                                        padding: 12,
-                                        borderColor: '#f1f5f9',
-                                        borderWidth: 1,
-                                        displayColors: false
-                                    }
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        grid: { color: '#f1f5f9', drawBorder: false },
-                                        ticks: { color: '#94a3b8', font: { size: 11 } }
-                                    },
-                                    x: {
-                                        grid: { display: false },
-                                        ticks: { color: '#94a3b8', font: { size: 11 } }
-                                    }
-                                }
-                            }
-                        });
-                    });
-                </script>
-
-            <?php elseif ($tab === 'payouts'): ?>
-                <div class="grid lg:grid-cols-3 gap-8">
-                    <div class="lg:col-span-1 space-y-6">
-                        <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-                            <h3 class="font-bold text-slate-900 mb-4">Withdraw Funds</h3>
-                            <div class="mb-6 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                                <p class="text-xs text-indigo-600 uppercase font-bold mb-1">Available Balance</p>
-                                <p class="text-2xl font-bold text-indigo-700"><?php echo formatCurrency($user['wallet_balance']); ?></p>
-                            </div>
-                            
-                            <div class="mb-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <p class="text-[10px] text-slate-400 uppercase font-bold mb-2 tracking-widest">Settlement Destination</p>
-                                <?php if ($user['settlement_bank']): ?>
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-indigo-600">
-                                            <i class="lucide-wallet w-5 h-5"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-slate-900"><?php echo $user['settlement_bank']; ?></p>
-                                            <p class="text-xs text-slate-500 font-mono"><?php echo $user['settlement_account_number']; ?></p>
-                                        </div>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="text-center py-2">
-                                        <p class="text-xs text-amber-600 font-bold mb-2">No bank account set</p>
-                                        <a href="?tab=settings" class="text-[10px] bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold hover:bg-amber-200 transition-colors">Set Up Now</a>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-
-                            <form method="POST" class="space-y-4">
-                                <input type="hidden" name="action" value="request_payout">
-                                <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1">Amount to Withdraw</label>
-                                    <div class="relative">
-                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold">₦</span>
-                                        <input 
-                                            type="number" 
-                                            name="amount"
-                                            required
-                                            class="w-full pl-8 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" 
-                                            placeholder="0.00" 
-                                        >
-                                    </div>
-                                </div>
-                                <button 
-                                    type="submit" 
-                                    <?php echo !$user['settlement_bank'] ? 'disabled' : ''; ?>
-                                    class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
-                                >
-                                    Confirm Withdrawal
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-slate-100 font-bold">Payout History</div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left">
-                                <thead class="bg-slate-50">
-                                    <tr>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Amount</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                        <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-slate-100">
-                                    <?php
-                                    $stmt = $db->prepare("SELECT * FROM payouts WHERE user_id = ? ORDER BY request_date DESC");
-                                    $stmt->execute([$user['id']]);
-                                    $payouts = $stmt->fetchAll();
-                                    foreach ($payouts as $p):
-                                    ?>
-                                        <tr>
-                                            <td class="px-6 py-4 font-bold"><?php echo formatCurrency($p['amount']); ?></td>
-                                            <td class="px-6 py-4">
-                                                <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $p['status'] === 'processed' ? 'bg-emerald-100 text-emerald-700' : ($p['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'); ?>">
-                                                    <?php echo $p['status']; ?>
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-4 text-sm text-slate-500"><?php echo date('M d, Y', strtotime($p['request_date'])); ?></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php if (empty($payouts)): ?>
-                                        <tr>
-                                            <td colspan="3" class="px-6 py-12 text-center text-slate-500">No payout history yet.</td>
-                                        </tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <?php include '../includes/merchant-quick-actions.php'; ?>
-    </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
 </body>

@@ -25,7 +25,7 @@ include 'includes/header.php';
                     </p>
                     <div class="flex flex-col sm:flex-row gap-4">
                         <a href="register.php" class="bg-indigo-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 flex items-center justify-center gap-2">
-                            Get Started Now <i class="lucide-arrow-right w-5 h-5"></i>
+                            Get Started Now <i data-lucide="arrow-right w-5 h-5"></i>
                         </a>
                         <a href="support.php" class="bg-slate-50 text-slate-900 px-8 py-4 rounded-full text-lg font-semibold hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
                             Contact Sales
@@ -62,21 +62,21 @@ include 'includes/header.php';
             <div class="grid md:grid-cols-3 gap-8">
                 <div class="bg-white p-10 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group">
                     <div class="mb-6 p-4 bg-indigo-50 rounded-2xl w-fit group-hover:scale-110 transition-transform">
-                        <i class="lucide-zap w-8 h-8 text-indigo-600"></i>
+                        <i data-lucide="zap w-8 h-8 text-indigo-600"></i>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-4">Fast Integration</h3>
                     <p class="text-slate-600 leading-relaxed">Get up and running in minutes with our well-documented APIs and SDKs.</p>
                 </div>
                 <div class="bg-white p-10 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group">
                     <div class="mb-6 p-4 bg-indigo-50 rounded-2xl w-fit group-hover:scale-110 transition-transform">
-                        <i class="lucide-shield w-8 h-8 text-indigo-600"></i>
+                        <i data-lucide="shield w-8 h-8 text-indigo-600"></i>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-4">Secure Payments</h3>
                     <p class="text-slate-600 leading-relaxed">PCI-DSS Level 1 compliant infrastructure with advanced fraud detection.</p>
                 </div>
                 <div class="bg-white p-10 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group">
                     <div class="mb-6 p-4 bg-indigo-50 rounded-2xl w-fit group-hover:scale-110 transition-transform">
-                        <i class="lucide-bar-chart-3 w-8 h-8 text-indigo-600"></i>
+                        <i data-lucide="bar-chart-3 w-8 h-8 text-indigo-600"></i>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 mb-4">Deep Insights</h3>
                     <p class="text-slate-600 leading-relaxed">Understand your customers with real-time analytics and custom reports.</p>

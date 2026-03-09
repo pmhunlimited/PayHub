@@ -36,7 +36,7 @@ $pending = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReview: false, merchant: {} }">
         <?php include '../includes/topbar.php'; ?>
@@ -97,7 +97,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">KYC Document Review</h3>
                     <button @click="showReview = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i class="lucide-x w-5 h-5"></i>
+                        <i data-lucide="x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8 max-h-[70vh] overflow-y-auto">
@@ -132,25 +132,25 @@ include '../includes/dashboard-head.php';
                             <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <template x-if="merchant.id_path">
                                     <a :href="'../uploads/' + merchant.id_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i class="lucide-credit-card text-indigo-600"></i>
+                                        <i data-lucide="credit-card text-indigo-600"></i>
                                         <span class="text-[10px] font-bold text-slate-700">Gov't ID</span>
                                     </a>
                                 </template>
                                 <template x-if="merchant.utility_bill_path">
                                     <a :href="'../uploads/' + merchant.utility_bill_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i class="lucide-file-text text-indigo-600"></i>
+                                        <i data-lucide="file-text text-indigo-600"></i>
                                         <span class="text-[10px] font-bold text-slate-700">Utility Bill</span>
                                     </a>
                                 </template>
                                 <template x-if="merchant.liveliness_path">
                                     <a :href="'../uploads/' + merchant.liveliness_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i class="lucide-user text-indigo-600"></i>
+                                        <i data-lucide="user text-indigo-600"></i>
                                         <span class="text-[10px] font-bold text-slate-700">Liveliness</span>
                                     </a>
                                 </template>
                                 <template x-if="merchant.cac_cert_path">
                                     <a :href="'../uploads/' + merchant.cac_cert_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i class="lucide-award text-indigo-600"></i>
+                                        <i data-lucide="award text-indigo-600"></i>
                                         <span class="text-[10px] font-bold text-slate-700">CAC Cert</span>
                                     </a>
                                 </template>
@@ -174,8 +174,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

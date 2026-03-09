@@ -22,8 +22,9 @@ function payhub_config() {
 }
 
 function payhub_link($params) {
-    $code = '<script src="https://js.payhub.com/v1/inline.js"></script>
-    <form onsubmit="payWithPayhub(); return false;">
+    $baseUrl = "'.BASE_URL.'";
+    $code = "<script src=\"$baseUrl/inline.js\"></script>
+    <form onsubmit=\"payWithPayhub(); return false;\">
         <script>
             function payWithPayhub() {
                 var handler = PayhubPop.setup({

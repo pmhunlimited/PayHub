@@ -82,15 +82,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 $tab = $_GET['tab'] ?? 'active';
 if ($tab === 'deleted') {
-    $stmt = $db->query("SELECT * FROM users WHERE role = 'merchant' AND is_deleted = 1 ORDER BY created_at DESC");
+    $stmt = $db->query("SELECT m.*, p.business_name as parent_name FROM users m LEFT JOIN users p ON m.parent_id = p.id WHERE m.role = 'merchant' AND m.is_deleted = 1 ORDER BY m.created_at DESC");
 } else {
-    $stmt = $db->query("SELECT * FROM users WHERE role = 'merchant' AND is_deleted = 0 ORDER BY created_at DESC");
+    $stmt = $db->query("SELECT m.*, p.business_name as parent_name FROM users m LEFT JOIN users p ON m.parent_id = p.id WHERE m.role = 'merchant' AND m.is_deleted = 0 ORDER BY m.created_at DESC");
 }
 $merchants = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, showFees: false, showEdit: false, showReset: false, merchantId: null, feePercentage: null, feeFlat: null, merchantName: '', merchantEmail: '' }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -122,6 +122,7 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50 border-b border-slate-100">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Name</th>
+                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
@@ -136,6 +137,16 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="font-bold text-slate-900"><?php echo $m['business_name']; ?></div>
                                         <div class="text-xs text-slate-500"><?php echo $m['email']; ?></div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <?php if ($m['parent_id']): ?>
+                                            <div class="flex flex-col">
+                                                <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-purple-100 text-purple-700 w-fit">Sub-account</span>
+                                                <span class="text-[9px] text-slate-400 mt-1">Main: <?php echo $m['parent_name']; ?></span>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Main Account</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 text-sm font-medium text-slate-500">
                                         <?php echo date('M d, Y', strtotime($m['created_at'])); ?>
@@ -166,7 +177,7 @@ include '../includes/dashboard-head.php';
                                         <?php else: ?>
                                             <span class="text-slate-400 italic">Global Default</span>
                                         <?php endif; ?>
-                                        <button @click="showFees = true; merchantId = <?php echo $m['id']; ?>; feePercentage = '<?php echo $m['fee_percentage']; ?>'; feeFlat = '<?php echo $m['fee_flat']; ?>'; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="ml-2 text-slate-300 hover:text-indigo-600"><i class="lucide-percent w-3 h-3"></i></button>
+                                        <button @click="showFees = true; merchantId = <?php echo $m['id']; ?>; feePercentage = '<?php echo $m['fee_percentage']; ?>'; feeFlat = '<?php echo $m['fee_flat']; ?>'; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="ml-2 text-slate-300 hover:text-indigo-600"><i data-lucide="percent w-3 h-3"></i></button>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
@@ -229,7 +240,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reset Password</h3>
                     <button @click="showReset = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i class="lucide-x w-5 h-5"></i>
+                        <i data-lucide="x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -250,7 +261,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Merchant</h3>
                     <button @click="showEdit = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i class="lucide-x w-5 h-5"></i>
+                        <i data-lucide="x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -277,7 +288,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Custom Fees</h3>
                     <button @click="showFees = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i class="lucide-x w-5 h-5"></i>
+                        <i data-lucide="x w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -305,11 +316,11 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
 </body>

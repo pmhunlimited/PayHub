@@ -41,7 +41,7 @@ $tickets = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReply: false, ticketId: null, ticketSubject: '' }">
         <?php include '../includes/topbar.php'; ?>
@@ -110,7 +110,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reply to Ticket</h3>
-                    <button @click="showReply = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                    <button @click="showReply = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
                 </div>
                 <div class="p-8">
                     <p class="text-xs font-bold text-slate-400 uppercase mb-2">Subject</p>
@@ -125,7 +125,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

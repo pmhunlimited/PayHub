@@ -57,6 +57,7 @@ function check_migrations() {
                 'settlement_currency' => "ENUM('NGN', 'USD') DEFAULT 'NGN'",
                 'id_type' => "VARCHAR(100)",
                 'id_path' => "VARCHAR(255)",
+                'id_card_path' => "VARCHAR(255)",
                 'bvn' => "VARCHAR(20)",
                 'residential_address' => "TEXT",
                 'rc_number' => "VARCHAR(100)",
@@ -94,6 +95,12 @@ function check_migrations() {
             'tickets' => [
                 'guest_email' => "VARCHAR(255)",
                 'is_registered' => "TINYINT DEFAULT 1"
+            ],
+            'blog_posts' => [
+                'featured_image' => "VARCHAR(255)",
+                'meta_title' => "VARCHAR(255)",
+                'meta_description' => "TEXT",
+                'meta_keywords' => "VARCHAR(255)"
             ]
         ];
 

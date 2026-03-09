@@ -5,8 +5,8 @@ $user = getAuthUser();
 ?>
 <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
     <div class="flex items-center gap-4">
-        <button @click="mobileMenuOpen = true" class="md:hidden text-slate-500 hover:text-slate-900 transition-colors">
-            <i class="lucide-menu w-6 h-6"></i>
+        <button @click="mobileMenuOpen = true" class="md:hidden flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-100">
+            <i data-lucide="menu" class="w-6 h-6"></i>
         </button>
         <?php if ($user['role'] !== 'admin'): ?>
             <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
@@ -18,7 +18,7 @@ $user = getAuthUser();
 
     <div class="flex items-center gap-6">
         <button class="text-slate-400 hover:text-slate-600 transition-colors relative">
-            <i class="lucide-bell w-6 h-6"></i>
+            <i data-lucide="bell" class="w-6 h-6"></i>
             <span class="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button>
         <div class="flex items-center gap-3 pl-6 border-l border-slate-100" x-data="{ open: false }">
@@ -27,7 +27,7 @@ $user = getAuthUser();
                     <button @click="open = !open" class="flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
                         <?php echo $user['role'] === 'admin' ? 'System Administrator' : $user['business_name']; ?>
                         <?php if ($user['role'] === 'merchant'): ?>
-                            <i class="lucide-chevron-down w-3 h-3"></i>
+                            <i data-lucide="chevron-down" class="w-3 h-3"></i>
                         <?php endif; ?>
                     </button>
                     <p class="text-[10px] text-slate-500 font-medium"><?php echo $user['email']; ?></p>

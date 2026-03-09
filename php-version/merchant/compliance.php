@@ -194,13 +194,13 @@ include '../includes/dashboard-head.php';
                                     <div class="grid md:grid-cols-2 gap-6">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="id_card" required class="absolute inset-0 opacity-0 cursor-pointer">
-                                            <i class="lucide-credit-card text-slate-400 mb-2"></i>
+                                            <i data-lucide="credit-card text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">Government ID</p>
                                             <p class="text-[9px] text-slate-400 mt-1">Upload front and back in one image/PDF</p>
                                         </div>
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="utility_bill" required class="absolute inset-0 opacity-0 cursor-pointer">
-                                            <i class="lucide-file-text text-slate-400 mb-2"></i>
+                                            <i data-lucide="file-text text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">Utility Bill</p>
                                             <p class="text-[9px] text-slate-400 mt-1">Proof of address (last 3 months)</p>
                                         </div>
@@ -208,12 +208,12 @@ include '../includes/dashboard-head.php';
                                     <div class="grid md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="cac_cert" :required="businessType !== 'Starter'" class="absolute inset-0 opacity-0 cursor-pointer">
-                                            <i class="lucide-award text-slate-400 mb-2"></i>
+                                            <i data-lucide="award text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">CAC Certificate</p>
                                         </div>
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="cac_form" :required="businessType !== 'Starter'" class="absolute inset-0 opacity-0 cursor-pointer">
-                                            <i class="lucide-clipboard-list text-slate-400 mb-2"></i>
+                                            <i data-lucide="clipboard-list text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">Form CAC 1.1</p>
                                         </div>
                                     </div>
@@ -226,7 +226,7 @@ include '../includes/dashboard-head.php';
                                             <video x-ref="video" autoplay playsinline class="w-full h-full object-cover" x-show="showCamera"></video>
                                             <img :src="snapshot" class="w-full h-full object-cover" x-show="snapshot && !showCamera">
                                             <div class="absolute inset-0 flex items-center justify-center" x-show="!showCamera && !snapshot">
-                                                <i class="lucide-camera text-slate-300 w-12 h-12"></i>
+                                                <i data-lucide="camera text-slate-300 w-12 h-12"></i>
                                             </div>
                                         </div>
                                         <div class="flex gap-3">
@@ -260,7 +260,12 @@ include '../includes/dashboard-head.php';
         </div>
     <?php include "../includes/merchant-quick-actions.php"; ?>
 </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

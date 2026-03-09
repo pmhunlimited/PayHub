@@ -27,7 +27,7 @@ $cron_jobs = [
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -43,7 +43,7 @@ include '../includes/dashboard-head.php';
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-indigo-50 rounded-xl text-indigo-600">
-                                    <i class="lucide-clock w-5 h-5"></i>
+                                    <i data-lucide="clock w-5 h-5"></i>
                                 </div>
                                 <h3 class="font-bold text-slate-900"><?php echo $job['name']; ?></h3>
                             </div>
@@ -55,7 +55,7 @@ include '../includes/dashboard-head.php';
                         <div class="p-4 bg-slate-900 rounded-2xl relative group">
                             <code class="text-indigo-400 text-xs break-all"><?php echo $job['command']; ?></code>
                             <button onclick="navigator.clipboard.writeText('<?php echo addslashes($job['command']); ?>'); alert('Copied!');" class="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
-                                <i class="lucide-copy w-4 h-4"></i>
+                                <i data-lucide="copy w-4 h-4"></i>
                             </button>
                         </div>
                     </div>
@@ -63,7 +63,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -18,6 +18,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("INSERT INTO email_templates (name, subject, body) VALUES (?, ?, ?)");
         $stmt->execute([$name, $subject, $body]);
         $success_msg = "Email template saved.";
+    } elseif ($_POST['action'] === 'edit_template') {
+        $id = (int)$_POST['template_id'];
+        $name = sanitize($_POST['name']);
+        $subject = sanitize($_POST['subject']);
+        $body = $_POST['body'];
+        $stmt = $db->prepare("UPDATE email_templates SET name = ?, subject = ?, body = ? WHERE id = ?");
+        $stmt->execute([$name, $subject, $body, $id]);
+        $success_msg = "Email template updated.";
+    } elseif ($_POST['action'] === 'delete_template') {
+        $id = (int)$_POST['template_id'];
+        $stmt = $db->prepare("DELETE FROM email_templates WHERE id = ?");
+        $stmt->execute([$id]);
+        $success_msg = "Template deleted.";
+    } elseif ($_POST['action'] === 'delete_contact') {
+        $id = (int)$_POST['contact_id'];
+        $stmt = $db->prepare("DELETE FROM marketing_contacts WHERE id = ?");
+        $stmt->execute([$id]);
+        $success_msg = "Contact deleted.";
+    } elseif ($_POST['action'] === 'delete_group') {
+        $id = (int)$_POST['group_id'];
+        $stmt = $db->prepare("DELETE FROM marketing_groups WHERE id = ?");
+        $stmt->execute([$id]);
+        $success_msg = "Group deleted.";
     } elseif ($_POST['action'] === 'add_contact') {
         $email = sanitize($_POST['email']);
         $name = sanitize($_POST['full_name']);
@@ -75,9 +98,9 @@ $contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DES
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showTpl: false, showContact: false, showSend: false, showGroup: false }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showTpl: false, showContact: false, showSend: false, showGroup: false, showEditTpl: false, editingTpl: {id:null, name:'', subject:'', body:''} }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -90,8 +113,8 @@ include '../includes/dashboard-head.php';
                     <p class="text-slate-500">Design templates and manage campaigns for merchants and external leads</p>
                 </div>
                 <div class="flex gap-3">
-                    <button @click="showGroup = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm"><i class="lucide-users w-4 h-4"></i> Create Group</button>
-                    <button @click="showSend = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100"><i class="lucide-send w-4 h-4"></i> Send Campaign</button>
+                    <button @click="showGroup = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm"><i data-lucide="users w-4 h-4"></i> Create Group</button>
+                    <button @click="showSend = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100"><i data-lucide="send w-4 h-4"></i> Send Campaign</button>
                 </div>
             </div>
 
@@ -108,8 +131,12 @@ include '../includes/dashboard-head.php';
                                     <p class="font-bold text-slate-900 text-sm mb-1"><?php echo $t['name']; ?></p>
                                     <p class="text-xs text-slate-500 mb-4"><?php echo $t['subject']; ?></p>
                                     <div class="flex gap-2">
-                                        <button class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
-                                        <button class="text-[10px] font-bold text-slate-400">Preview</button>
+                                        <button @click="editingTpl = <?php echo htmlspecialchars(json_encode($t)); ?>; showEditTpl = true;" class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
+                                        <form method="POST" onsubmit="return confirm('Delete template?');" class="inline">
+                                            <input type="hidden" name="action" value="delete_template">
+                                            <input type="hidden" name="template_id" value="<?php echo $t['id']; ?>">
+                                            <button type="submit" class="text-[10px] font-bold text-red-400">Delete</button>
+                                        </form>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -126,9 +153,16 @@ include '../includes/dashboard-head.php';
                             <?php
                             $groups = $db->query("SELECT g.*, (SELECT COUNT(*) FROM marketing_contacts WHERE group_id = g.id) as contact_count FROM marketing_groups g ORDER BY created_at DESC")->fetchAll();
                             foreach ($groups as $g): ?>
-                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                    <p class="font-bold text-slate-900 text-sm"><?php echo $g['name']; ?></p>
-                                    <p class="text-[10px] text-slate-400 font-medium"><?php echo $g['contact_count']; ?> contacts</p>
+                                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center group">
+                                    <div>
+                                        <p class="font-bold text-slate-900 text-sm"><?php echo $g['name']; ?></p>
+                                        <p class="text-[10px] text-slate-400 font-medium"><?php echo $g['contact_count']; ?> contacts</p>
+                                    </div>
+                                    <form method="POST" onsubmit="return confirm('Delete group?');" class="opacity-0 group-hover:opacity-100 transition-all">
+                                        <input type="hidden" name="action" value="delete_group">
+                                        <input type="hidden" name="group_id" value="<?php echo $g['id']; ?>">
+                                        <button type="submit" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                    </form>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -146,7 +180,11 @@ include '../includes/dashboard-head.php';
                                         <p class="text-xs font-bold text-slate-900 truncate"><?php echo $c['full_name']; ?></p>
                                         <p class="text-[10px] text-slate-400 truncate"><?php echo $c['email']; ?></p>
                                     </div>
-                                    <button class="text-slate-300 hover:text-red-500"><i class="lucide-trash-2 w-3 h-3"></i></button>
+                                    <form method="POST" onsubmit="return confirm('Delete contact?');" class="inline">
+                                        <input type="hidden" name="action" value="delete_contact">
+                                        <input type="hidden" name="contact_id" value="<?php echo $c['id']; ?>">
+                                        <button type="submit" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                    </form>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -156,11 +194,30 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Modals -->
+        <div x-show="showEditTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                    <h3 class="font-bold text-slate-900">Edit Template</h3>
+                    <button @click="showEditTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                        <input type="hidden" name="action" value="edit_template">
+                        <input type="hidden" name="template_id" :value="editingTpl.id">
+                        <input type="text" name="name" x-model="editingTpl.name" required placeholder="Internal Template Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
+                        <input type="text" name="subject" x-model="editingTpl.subject" required placeholder="Email Subject Line" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <textarea name="body" x-model="editingTpl.body" required rows="10" placeholder="HTML or Plain Text Message Body" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Update Template</button>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div x-show="showTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Design Template</h3>
-                    <button @click="showTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                    <button @click="showTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -179,7 +236,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">New Campaign Group</h3>
-                    <button @click="showGroup = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                    <button @click="showGroup = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -203,7 +260,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Add Contact</h3>
-                    <button @click="showContact = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                    <button @click="showContact = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -229,7 +286,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Send Campaign</h3>
-                    <button @click="showSend = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i class="lucide-x w-5 h-5"></i></button>
+                    <button @click="showSend = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -261,8 +318,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

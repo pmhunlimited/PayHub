@@ -25,7 +25,7 @@ $sk = getConfig('paystack_secret_key');
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -44,7 +44,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm max-w-2xl">
                 <div class="flex items-center gap-3 mb-8">
                     <div class="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
-                        <i class="lucide-key w-6 h-6"></i>
+                        <i data-lucide="key w-6 h-6"></i>
                     </div>
                     <div>
                         <h2 class="text-xl font-bold">Gateway Configuration</h2>
@@ -63,7 +63,7 @@ include '../includes/dashboard-head.php';
                         <input type="password" name="paystack_secret_key" value="<?php echo $sk; ?>" placeholder="sk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
                     </div>
                     <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex items-start gap-3">
-                        <i class="lucide-shield-alert text-amber-500 w-5 h-5 shrink-0"></i>
+                        <i data-lucide="shield-alert text-amber-500 w-5 h-5 shrink-0"></i>
                         <p class="text-xs text-amber-700 leading-relaxed">
                             <strong>Security Warning:</strong> These keys are extremely sensitive. They allow full access to your Paystack account funds and data. Never share them or expose them in client-side code.
                         </p>
@@ -73,7 +73,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

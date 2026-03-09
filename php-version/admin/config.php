@@ -56,7 +56,7 @@ $config = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ editingKey: '', editingValue: '' }">
         <?php include '../includes/topbar.php'; ?>
@@ -98,7 +98,7 @@ include '../includes/dashboard-head.php';
                                     <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider"><?php echo $c['key']; ?></p>
                                     <p class="font-mono text-sm text-slate-900 break-all"><?php echo $c['value'] ?: '<span class="text-slate-300 italic">empty</span>'; ?></p>
                                     <button @click="editingKey = '<?php echo $c['key']; ?>'; editingValue = '<?php echo addslashes($c['value']); ?>'" class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-all">
-                                        <i class="lucide-settings w-4 h-4"></i>
+                                        <i data-lucide="settings w-4 h-4"></i>
                                     </button>
                                 </div>
                             <?php endforeach; ?>
@@ -106,7 +106,7 @@ include '../includes/dashboard-head.php';
 
                         <div class="bg-slate-900 p-8 rounded-3xl text-white shadow-xl shadow-indigo-900/20">
                             <h3 class="font-bold mb-6 flex items-center gap-2">
-                                <i class="lucide-settings text-indigo-400 w-5 h-5"></i>
+                                <i data-lucide="settings text-indigo-400 w-5 h-5"></i>
                                 Update Configuration
                             </h3>
                             <form method="POST" class="space-y-6">
@@ -131,7 +131,7 @@ include '../includes/dashboard-head.php';
                 <div class="lg:col-span-1 space-y-8">
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                            <i class="lucide-user text-indigo-600 w-5 h-5"></i>
+                            <i data-lucide="user text-indigo-600 w-5 h-5"></i>
                             Admin Profile
                         </h3>
                         <form method="POST" class="space-y-4">
@@ -154,7 +154,7 @@ include '../includes/dashboard-head.php';
 
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
                         <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                            <i class="lucide-image text-indigo-600 w-5 h-5"></i>
+                            <i data-lucide="image text-indigo-600 w-5 h-5"></i>
                             Site Logo
                         </h3>
                         <form method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -173,7 +173,7 @@ include '../includes/dashboard-head.php';
 
                     <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-8">
                         <h3 class="font-bold text-slate-900 mb-6 flex items-center gap-2">
-                            <i class="lucide-shield-alert text-amber-500 w-5 h-5"></i>
+                            <i data-lucide="shield-alert text-amber-500 w-5 h-5"></i>
                             Configuration Guide
                         </h3>
                         <div class="space-y-4">
@@ -204,8 +204,12 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

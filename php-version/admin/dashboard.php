@@ -95,7 +95,7 @@ include '../includes/dashboard-head.php';
             <div class="mb-8 p-6 bg-slate-900 rounded-[2rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
-                        <i class="lucide-wallet text-indigo-400 w-8 h-8"></i>
+                        <i data-lucide="wallet text-indigo-400 w-8 h-8"></i>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold">Paystack Gateway Balance</h3>
@@ -132,36 +132,11 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        lucide.createIcons();
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('activityChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: <?php echo json_encode($chartLabels); ?>,
-                    datasets: [{
-                        label: 'Volume',
-                        data: <?php echo json_encode($chartData); ?>,
-                        borderColor: '#4f46e5',
-                        borderWidth: 3,
-                        fill: true,
-                        backgroundColor: 'rgba(79, 70, 229, 0.05)',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { color: '#f1f5f9' } },
-                        x: { grid: { display: false } }
-                    }
-                }
-            });
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
 </body>

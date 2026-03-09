@@ -5,6 +5,17 @@ $user = getAuthUser();
 $current_page = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? 'merchant';
 ?>
+<!-- Mobile Overlay -->
+<div x-show="mobileMenuOpen"
+     x-transition:enter="transition-opacity ease-linear duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition-opacity ease-linear duration-300"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0"
+     @click="mobileMenuOpen = false"
+     class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" x-cloak></div>
+
 <aside
     :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
@@ -16,13 +27,13 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-10 object-contain">
             <?php else: ?>
                 <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                    <i class="lucide-credit-card text-white w-6 h-6"></i>
+                    <i data-lucide="credit-card" class="text-white w-6 h-6"></i>
                 </div>
             <?php endif; ?>
             <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
         <button @click="mobileMenuOpen = false" class="md:hidden text-slate-500 hover:text-slate-900">
-            <i class="lucide-x w-6 h-6"></i>
+            <i data-lucide="x" class="w-6 h-6"></i>
         </button>
     </div>
     
@@ -30,137 +41,137 @@ $role = $_SESSION['role'] ?? 'merchant';
         <?php if ($role === 'admin'): ?>
             <div class="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Operations</div>
             <a href="<?php echo BASE_URL; ?>admin/index.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'index.php' && strpos($_SERVER['REQUEST_URI'], '/admin/') !== false ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-layout-dashboard w-5 h-5"></i>
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                 Overview
             </a>
             <a href="<?php echo BASE_URL; ?>admin/merchants.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'merchants.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-users w-5 h-5"></i>
+                <i data-lucide="users" class="w-5 h-5"></i>
                 Merchants
             </a>
             <a href="<?php echo BASE_URL; ?>admin/compliance.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'compliance.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-shield-check w-5 h-5"></i>
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
                 Compliance
             </a>
             <a href="<?php echo BASE_URL; ?>admin/settlements.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'settlements.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-credit-card w-5 h-5"></i>
+                <i data-lucide="credit-card" class="w-5 h-5"></i>
                 Settlements
             </a>
             <a href="<?php echo BASE_URL; ?>admin/disputes.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'disputes.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-gavel w-5 h-5"></i>
+                <i data-lucide="gavel" class="w-5 h-5"></i>
                 Disputes
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">System</div>
             <a href="<?php echo BASE_URL; ?>admin/health.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'health.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-activity w-5 h-5"></i>
+                <i data-lucide="activity" class="w-5 h-5"></i>
                 System Health
             </a>
             <a href="<?php echo BASE_URL; ?>admin/webhooks.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'webhooks.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-webhook w-5 h-5"></i>
+                <i data-lucide="webhook" class="w-5 h-5"></i>
                 Webhook Logs
             </a>
             <a href="<?php echo BASE_URL; ?>admin/api-manager.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-manager.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-key w-5 h-5"></i>
+                <i data-lucide="key" class="w-5 h-5"></i>
                 API Manager
             </a>
             <a href="<?php echo BASE_URL; ?>admin/cron-manager.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'cron-manager.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-clock w-5 h-5"></i>
+                <i data-lucide="clock" class="w-5 h-5"></i>
                 Cron Manager
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Content & Support</div>
             <a href="<?php echo BASE_URL; ?>admin/tickets.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'tickets.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-ticket w-5 h-5"></i>
+                <i data-lucide="ticket" class="w-5 h-5"></i>
                 Tickets
             </a>
             <a href="<?php echo BASE_URL; ?>admin/blog.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'blog.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-file-text w-5 h-5"></i>
+                <i data-lucide="file-text" class="w-5 h-5"></i>
                 Blog Manager
             </a>
             <a href="<?php echo BASE_URL; ?>admin/email-marketing.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'email-marketing.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-mail w-5 h-5"></i>
+                <i data-lucide="mail" class="w-5 h-5"></i>
                 Email Marketing
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Configuration</div>
             <a href="<?php echo BASE_URL; ?>admin/staff.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'staff.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-users w-5 h-5"></i>
+                <i data-lucide="users" class="w-5 h-5"></i>
                 Staff Management
             </a>
             <a href="<?php echo BASE_URL; ?>admin/email-settings.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'email-settings.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-bell w-5 h-5"></i>
+                <i data-lucide="bell" class="w-5 h-5"></i>
                 Email Settings
             </a>
             <a href="<?php echo BASE_URL; ?>admin/config.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'config.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-settings w-5 h-5"></i>
+                <i data-lucide="settings" class="w-5 h-5"></i>
                 Platform Config
             </a>
         <?php else: ?>
             <div class="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Main</div>
             <a href="<?php echo BASE_URL; ?>merchant/dashboard.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'dashboard.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-layout-dashboard w-5 h-5"></i>
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
                 Dashboard
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/compliance.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'compliance.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-shield-alert w-5 h-5"></i>
+                <i data-lucide="shield-alert" class="w-5 h-5"></i>
                 Compliance
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collections</div>
             <a href="<?php echo BASE_URL; ?>merchant/transactions.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'transactions.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-arrow-up-right w-5 h-5"></i>
+                <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
                 Transactions
             </a>
             <?php if ($user['business_type'] !== 'Starter' && $user['is_kyc_verified'] == 1): ?>
             <a href="<?php echo BASE_URL; ?>merchant/virtual-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'virtual-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-wallet w-5 h-5"></i>
+                <i data-lucide="wallet" class="w-5 h-5"></i>
                 Virtual Accounts
             </a>
             <?php endif; ?>
             <a href="<?php echo BASE_URL; ?>merchant/invoices.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'invoices.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-file-text w-5 h-5"></i>
+                <i data-lucide="file-text" class="w-5 h-5"></i>
                 Invoices
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/subscriptions.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'subscriptions.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-refresh-ccw w-5 h-5"></i>
+                <i data-lucide="refresh-ccw" class="w-5 h-5"></i>
                 Subscriptions
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Finance</div>
             <a href="<?php echo BASE_URL; ?>merchant/payouts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'payouts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-arrow-down-left w-5 h-5"></i>
+                <i data-lucide="arrow-down-left" class="w-5 h-5"></i>
                 Payouts
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/ledger.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'ledger.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-activity w-5 h-5"></i>
+                <i data-lucide="activity" class="w-5 h-5"></i>
                 Balance Ledger
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/disputes.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'disputes.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-shield-check w-5 h-5"></i>
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
                 Disputes
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Management</div>
             <a href="<?php echo BASE_URL; ?>merchant/customers.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'customers.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-users w-5 h-5"></i>
+                <i data-lucide="users" class="w-5 h-5"></i>
                 Customers
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/tickets.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'tickets.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-ticket w-5 h-5"></i>
+                <i data-lucide="ticket" class="w-5 h-5"></i>
                 Support
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/sub-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'sub-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-layers w-5 h-5"></i>
+                <i data-lucide="layers" class="w-5 h-5"></i>
                 Sub-accounts
             </a>
 
             <div class="pt-4 pb-2 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Developer</div>
             <a href="<?php echo BASE_URL; ?>merchant/api-keys.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-keys.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-code w-5 h-5"></i>
+                <i data-lucide="code" class="w-5 h-5"></i>
                 API Keys
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/settings.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'settings.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i class="lucide-settings w-5 h-5"></i>
+                <i data-lucide="settings" class="w-5 h-5"></i>
                 Settings
             </a>
         <?php endif; ?>
@@ -168,7 +179,7 @@ $role = $_SESSION['role'] ?? 'merchant';
 
     <div class="p-4 border-t border-slate-100">
         <a href="<?php echo BASE_URL; ?>logout.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-all">
-            <i class="lucide-log-out w-5 h-5"></i>
+            <i data-lucide="log-out" class="w-5 h-5"></i>
             Logout
         </a>
     </div>

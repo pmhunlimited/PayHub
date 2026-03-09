@@ -54,7 +54,7 @@ include 'includes/header.php';
             <p class="text-slate-600 mb-8 leading-relaxed">Collect payments without redirecting your customers. Our inline checkout provides a seamless experience for your users.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
                 <p class="text-slate-500 mb-4">// Add the Payhub Inline Script</p>
-                <pre>&lt;script src="https://js.payhub.com/v1/inline.js"&gt;&lt;/script&gt;
+                <pre>&lt;script src="<?php echo BASE_URL; ?>inline.js"&gt;&lt;/script&gt;
 
 &lt;script&gt;
   const paymentForm = document.getElementById('paymentForm');
@@ -91,7 +91,7 @@ include 'includes/header.php';
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Start a transaction from your server to get a checkout URL.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
-                <pre>curl https://api.payhub.com/transaction/initialize \
+                <pre>curl <?php echo BASE_URL; ?>api/transaction/initialize \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d email="customer@email.com" \
 -d amount=500000</pre>
@@ -105,7 +105,7 @@ include 'includes/header.php';
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Confirm the status of a transaction using its reference.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
-                <pre>curl https://api.payhub.com/transaction/verify/:reference \
+                <pre>curl <?php echo BASE_URL; ?>api/transaction/verify/:reference \
 -H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
             </div>
         </section>

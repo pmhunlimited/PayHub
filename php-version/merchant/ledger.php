@@ -35,7 +35,7 @@ include '../includes/dashboard-head.php';
                     <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                         <h2 class="font-bold text-slate-900">Wallet Activities</h2>
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <i class="lucide-activity w-4 h-4"></i> Real-time
+                            <i data-lucide="activity w-4 h-4"></i> Real-time
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -79,7 +79,7 @@ include '../includes/dashboard-head.php';
                                     <tr>
                                         <td colspan="5" class="px-6 py-20 text-center">
                                             <div class="flex flex-col items-center gap-2 opacity-30">
-                                                <i class="lucide-file-text w-12 h-12"></i>
+                                                <i data-lucide="file-text w-12 h-12"></i>
                                                 <p class="font-bold">No transactions logged yet</p>
                                             </div>
                                         </td>
@@ -93,7 +93,12 @@ include '../includes/dashboard-head.php';
         </div>
     <?php include "../includes/merchant-quick-actions.php"; ?>
 </main>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>lucide.createIcons();</script>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>
