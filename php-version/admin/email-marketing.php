@@ -113,8 +113,8 @@ include '../includes/dashboard-head.php';
                     <p class="text-slate-500">Design templates and manage campaigns for merchants and external leads</p>
                 </div>
                 <div class="flex gap-3">
-                    <button @click="showGroup = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm"><i data-lucide="users w-4 h-4"></i> Create Group</button>
-                    <button @click="showSend = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100"><i data-lucide="send w-4 h-4"></i> Send Campaign</button>
+                    <button @click="showGroup = true" class="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-sm"><i data-lucide="users" class="w-4 h-4"></i> Create Group</button>
+                    <button @click="showSend = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-100"><i data-lucide="send" class="w-4 h-4"></i> Send Campaign</button>
                 </div>
             </div>
 
@@ -198,7 +198,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Edit Template</h3>
-                    <button @click="showEditTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    <button @click="showEditTpl = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -217,7 +219,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Design Template</h3>
-                    <button @click="showTpl = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
+                    <button @click="showTpl = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -236,7 +240,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">New Campaign Group</h3>
-                    <button @click="showGroup = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
+                    <button @click="showGroup = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -260,7 +266,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Add Contact</h3>
-                    <button @click="showContact = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
+                    <button @click="showContact = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
@@ -286,7 +294,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h3 class="font-bold text-slate-900">Send Campaign</h3>
-                    <button @click="showSend = false" class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
+                    <button @click="showSend = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">

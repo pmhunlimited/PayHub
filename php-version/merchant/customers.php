@@ -29,7 +29,7 @@ include '../includes/dashboard-head.php';
                     <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <h3 class="font-bold text-slate-900">All Customers</h3>
                         <div class="relative w-64">
-                            <i data-lucide="search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
                             <input type="text" placeholder="Search customers..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                     </div>
@@ -60,7 +60,7 @@ include '../includes/dashboard-head.php';
                                         <td class="px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
                                         <td class="px-6 py-4">
-                                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="more-horizontal w-5 h-5"></i></button>
+                                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -68,7 +68,7 @@ include '../includes/dashboard-head.php';
                                     <tr>
                                         <td colspan="4" class="px-6 py-20 text-center">
                                             <div class="flex flex-col items-center gap-2 opacity-30">
-                                                <i data-lucide="users w-12 h-12"></i>
+                                                <i data-lucide="users" class="w-12 h-12"></i>
                                                 <p class="font-bold">No customers found</p>
                                             </div>
                                         </td>

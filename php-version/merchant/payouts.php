@@ -81,7 +81,7 @@ include '../includes/dashboard-head.php';
                             <?php if ($user['settlement_bank']): ?>
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-indigo-600 shadow-sm">
-                                        <i data-lucide="wallet w-6 h-6"></i>
+                                        <i data-lucide="wallet" class="w-6 h-6"></i>
                                     </div>
                                     <div>
                                         <p class="text-sm font-bold text-slate-900"><?php echo $user['settlement_bank']; ?></p>
@@ -127,7 +127,7 @@ include '../includes/dashboard-head.php';
                     <div class="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <h3 class="text-xl font-bold text-slate-900">Payout History</h3>
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            <i data-lucide="activity w-4 h-4"></i>
+                            <i data-lucide="activity" class="w-4 h-4"></i>
                             Real-time
                         </div>
                     </div>

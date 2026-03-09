@@ -40,7 +40,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm max-w-2xl">
                 <div class="flex items-center gap-3 mb-8">
                     <div class="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
-                        <i data-lucide="mail w-6 h-6"></i>
+                        <i data-lucide="mail" class="w-6 h-6"></i>
                     </div>
                     <div>
                         <h2 class="text-xl font-bold">SMTP Configuration</h2>

@@ -66,7 +66,7 @@ include '../includes/dashboard-head.php';
                                 <?php else: ?>
                                     <div class="p-6 bg-amber-50 rounded-2xl border border-amber-100 mb-8">
                                         <div class="flex gap-3">
-                                            <i data-lucide="lock text-amber-600"></i>
+                                            <i data-lucide="lock" class="text-amber-600"></i>
                                             <div>
                                                 <p class="text-sm font-bold text-amber-900">Live API access is restricted</p>
                                                 <p class="text-xs text-amber-700 mt-1">Complete your compliance review to unlock live payments. You can use Test Keys for integration testing.</p>
@@ -113,7 +113,7 @@ include '../includes/dashboard-head.php';
 
                     <div class="lg:col-span-1 space-y-6">
                         <div class="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
-                            <i data-lucide="book-open mb-4 opacity-80" size="32"></i>
+                            <i data-lucide="book-open" size="32" class="mb-4 opacity-80"></i>
                             <h3 class="font-bold mb-2">Integration Guide</h3>
                             <p class="text-sm text-indigo-100 mb-6">Read our documentation to learn how to accept payments using these keys.</p>
                             <a href="../docs.php" class="inline-block bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all">View Docs</a>

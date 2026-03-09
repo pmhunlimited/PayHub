@@ -195,7 +195,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Create Staff Role</h3>
-                    <button @click="showAddRole = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showAddRole = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -232,7 +232,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Staff Role</h3>
-                    <button @click="showEditRole = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showEditRole = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -269,7 +269,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Add New Staff Member</h3>
-                    <button @click="showAdd = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showAdd = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -309,7 +309,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Staff Member</h3>
-                    <button @click="showEditStaff = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showEditStaff = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>

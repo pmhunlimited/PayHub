@@ -68,7 +68,7 @@ include '../includes/dashboard-head.php';
                                             <input type="hidden" name="action" value="retry">
                                             <input type="hidden" name="log_id" value="<?php echo $l['id']; ?>">
                                             <button type="submit" class="text-indigo-600 hover:text-indigo-800" title="Retry Delivery">
-                                                <i data-lucide="refresh-ccw w-4 h-4"></i>
+                                                <i data-lucide="refresh-ccw" class="w-4 h-4"></i>
                                             </button>
                                         </form>
                                     </td>

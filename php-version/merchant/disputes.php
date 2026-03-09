@@ -51,7 +51,7 @@ include '../includes/dashboard-head.php';
                                         </td>
                                         <td class="px-6 py-4">
                                             <button class="text-indigo-600 hover:text-indigo-800 font-bold text-xs flex items-center gap-1">
-                                                <i data-lucide="upload w-3 h-3"></i> Add Evidence
+                                                <i data-lucide="upload" class="w-3 h-3"></i> Add Evidence
                                             </button>
                                         </td>
                                     </tr>
@@ -60,7 +60,7 @@ include '../includes/dashboard-head.php';
                                     <tr>
                                         <td colspan="5" class="px-6 py-20 text-center">
                                             <div class="flex flex-col items-center gap-2 opacity-30">
-                                                <i data-lucide="shield-alert w-12 h-12"></i>
+                                                <i data-lucide="shield-alert" class="w-12 h-12"></i>
                                                 <p class="font-bold">No active disputes</p>
                                             </div>
                                         </td>

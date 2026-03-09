@@ -58,7 +58,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <?php if ($user['parent_id'] === null): ?>
                 <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                    <i data-lucide="plus w-5 h-5"></i> Create Sub-account
+                    <i data-lucide="plus" class="w-5 h-5"></i> Create Sub-account
                 </button>
                 <?php endif; ?>
             </div>
@@ -68,7 +68,7 @@ include '../includes/dashboard-head.php';
                     <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm hover:border-indigo-600 transition-all group">
                         <div class="flex justify-between items-start mb-6">
                             <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                                <i data-lucide="building w-6 h-6"></i>
+                                <i data-lucide="building" class="w-6 h-6"></i>
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 <?php if ($acc['parent_id'] === null): ?>
@@ -92,7 +92,7 @@ include '../includes/dashboard-head.php';
                     <!-- Should not happen if data is consistent, but for safety -->
                 <?php elseif (empty($otherAccounts)): ?>
                     <div class="md:col-span-2 lg:col-span-3 text-center py-20 bg-white rounded-[2rem] border border-dashed border-slate-300">
-                        <i data-lucide="layers w-12 h-12 text-slate-200 mx-auto mb-4"></i>
+                        <i data-lucide="layers" class="w-12 h-12 text-slate-200 mx-auto mb-4"></i>
                         <p class="text-slate-500 font-medium">You haven't created any sub-accounts yet.</p>
                     </div>
                 <?php endif; ?>
@@ -104,7 +104,9 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">New Sub-account</h3>
-                    <button @click="showAdd = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"><i data-lucide="x w-5 h-5"></i></button>
+                    <button @click="showAdd = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">

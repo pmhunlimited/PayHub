@@ -32,9 +32,9 @@ $role = $_SESSION['role'] ?? 'merchant';
             <?php endif; ?>
             <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
-        <button @click="mobileMenuOpen = false" class="md:hidden text-slate-500 hover:text-slate-900">
-            <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
+        <button @click="mobileMenuOpen = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
     </div>
     
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">

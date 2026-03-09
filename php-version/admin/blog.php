@@ -67,7 +67,7 @@ include '../includes/dashboard-head.php';
                     <p class="text-slate-500">Publish updates, guides, and news directly to the platform's blog</p>
                 </div>
                 <button @click="showCreate = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                    <i data-lucide="plus w-4 h-4"></i> Create Post
+                    <i data-lucide="plus" class="w-4 h-4"></i> Create Post
                 </button>
             </div>
 
@@ -119,7 +119,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
                     <h3 class="font-bold text-slate-900">Create New Blog Post</h3>
-                    <button @click="showCreate = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showCreate = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -172,7 +172,7 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
                     <h3 class="font-bold text-slate-900">Edit Blog Post</h3>
-                    <button @click="showEdit = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
+                    <button @click="showEdit = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>

@@ -187,7 +187,7 @@ include '../includes/dashboard-head.php';
                                         <?php else: ?>
                                             <span class="text-slate-400 italic">Global Default</span>
                                         <?php endif; ?>
-                                        <button @click="showFees = true; merchantId = <?php echo $m['id']; ?>; feePercentage = '<?php echo $m['fee_percentage']; ?>'; feeFlat = '<?php echo $m['fee_flat']; ?>'; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="ml-2 text-slate-300 hover:text-indigo-600"><i data-lucide="percent w-3 h-3"></i></button>
+                                        <button @click="showFees = true; merchantId = <?php echo $m['id']; ?>; feePercentage = '<?php echo $m['fee_percentage']; ?>'; feeFlat = '<?php echo $m['fee_flat']; ?>'; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="ml-2 text-slate-300 hover:text-indigo-600"><i data-lucide="percent" class="w-3 h-3"></i></button>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
@@ -249,8 +249,8 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reset Password</h3>
-                    <button @click="showReset = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i data-lucide="x w-5 h-5"></i>
+                    <button @click="showReset = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -270,8 +270,8 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Merchant</h3>
-                    <button @click="showEdit = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i data-lucide="x w-5 h-5"></i>
+                    <button @click="showEdit = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">
@@ -297,8 +297,8 @@ include '../includes/dashboard-head.php';
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Custom Fees</h3>
-                    <button @click="showFees = false" class="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors">
-                        <i data-lucide="x w-5 h-5"></i>
+                    <button @click="showFees = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
                 <div class="p-8">

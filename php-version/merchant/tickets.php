@@ -52,7 +52,7 @@ include '../includes/dashboard-head.php';
                     <div class="lg:col-span-1 space-y-6">
                         <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm h-fit">
                             <h3 class="font-bold text-lg text-slate-900 mb-6 flex items-center gap-2">
-                                <i data-lucide="plus-circle text-indigo-600"></i> New Ticket
+                                <i data-lucide="plus-circle" class="text-indigo-600"></i> New Ticket
                             </h3>
                             <form method="POST" class="space-y-6">
                                 <input type="hidden" name="action" value="new_ticket">
@@ -78,7 +78,7 @@ include '../includes/dashboard-head.php';
                         </div>
 
                         <div class="bg-indigo-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-200">
-                            <i data-lucide="help-circle mb-4 opacity-80" size="32"></i>
+                            <i data-lucide="help-circle" size="32" class="mb-4 opacity-80"></i>
                             <h3 class="font-bold mb-2">Knowledge Base</h3>
                             <p class="text-sm text-indigo-100 mb-6">Find quick answers to common questions in our detailed documentation.</p>
                             <a href="../docs.php" class="inline-block bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl text-sm font-bold transition-all">Browse FAQs</a>
@@ -115,7 +115,7 @@ include '../includes/dashboard-head.php';
                                             <tr>
                                                 <td colspan="4" class="px-6 py-20 text-center">
                                                     <div class="flex flex-col items-center gap-2 opacity-30">
-                                                        <i data-lucide="ticket w-12 h-12"></i>
+                                                        <i data-lucide="ticket" class="w-12 h-12"></i>
                                                         <p class="font-bold">No support tickets found</p>
                                                     </div>
                                                 </td>

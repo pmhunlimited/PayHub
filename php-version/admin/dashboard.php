@@ -94,7 +94,7 @@ include '../includes/dashboard-head.php';
             <div class="mb-8 p-6 bg-slate-900 rounded-[2rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
                 <div class="flex items-center gap-4">
                     <div class="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
-                        <i data-lucide="wallet text-indigo-400 w-8 h-8"></i>
+                        <i data-lucide="wallet" class="text-indigo-400 w-8 h-8"></i>
                     </div>
                     <div>
                         <h3 class="text-lg font-bold">Paystack Gateway Balance</h3>
