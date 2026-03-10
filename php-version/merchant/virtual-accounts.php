@@ -17,19 +17,30 @@ $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'generate_account') {
         $email = sanitize($_POST['email']);
-        $first_name = sanitize($_POST['first_name']);
-        $last_name = sanitize($_POST['last_name']);
-        $phone = sanitize($_POST['phone']);
+        $first_name = sanitize($_POST['first_name'] ?? '');
+        $last_name = sanitize($_POST['last_name'] ?? '');
+        $phone = sanitize($_POST['phone'] ?? '');
 
-        // 1. Create/Fetch Customer on Paystack with metadata to track owner
+        // If existing customer selected, fetch details from DB
+        if (empty($first_name)) {
+            $stmt = $db->prepare("SELECT * FROM customers WHERE email = ? AND user_id = ?");
+            $stmt->execute([$email, $user['id']]);
+            $cust = $stmt->fetch();
+            if ($cust) {
+                $names = explode(' ', $cust['full_name']);
+                $first_name = $names[0];
+                $last_name = $names[1] ?? '';
+                $phone = $cust['phone'];
+            }
+        }
+
+        // 1. Create/Fetch Customer on Paystack
         $customer_res = paystack_call('customer', 'POST', [
             'email' => $email,
             'first_name' => $first_name,
             'last_name' => $last_name,
             'phone' => $phone,
-            'metadata' => [
-                'merchant_id' => $user['id']
-            ]
+            'metadata' => ['merchant_id' => $user['id']]
         ]);
 
         if ($customer_res && $customer_res['status']) {
@@ -42,25 +53,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             if ($dva_res && $dva_res['status']) {
                 $acc = $dva_res['data'];
-                // Standardize keys
-                $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? 'Virtual Bank'));
-                $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ''));
-                $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']));
+                // Extremely robust key mapping
+                $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? ($acc['bank_name'] ?? 'Virtual Bank')));
+                $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ($acc['account'] ?? '')));
+                $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? ($acc['account_name'] ?? $user['business_name'])));
 
-                // Store in DB
-                $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$user['id'], $bank, $number, $name, $email]);
+                if (!empty($number)) {
+                    // Check if already in DB for this customer
+                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE user_id = ? AND customer_email = ?");
+                    $stmt->execute([$user['id'], $email]);
+                    $existingAcc = $stmt->fetch();
 
-                // Also ensure customer exists locally
-                $stmt = $db->prepare("INSERT IGNORE INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?)");
-                $stmt->execute([$user['id'], "$first_name $last_name", $email, $phone]);
+                    if ($existingAcc) {
+                        $stmt = $db->prepare("UPDATE virtual_accounts SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?");
+                        $stmt->execute([$bank, $number, $name, $existingAcc['id']]);
+                    } else {
+                        $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
+                        $stmt->execute([$user['id'], $bank, $number, $name, $email]);
+                    }
 
-                $success_msg = "Virtual account generated successfully!";
+                    if (!empty($first_name)) {
+                        $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
+                        $stmt->execute([$user['id'], trim("$first_name $last_name"), $email, $phone]);
+                    }
+                    $success_msg = "Virtual account generated: $bank - $number";
+                } else {
+                    $error_msg = "Account created but number not yet assigned by Paystack. Please try Syncing in a moment.";
+                }
             } else {
-                $error_msg = "Failed to generate virtual account: " . ($dva_res['message'] ?? 'Unknown error');
+                $error_msg = "Paystack: " . ($dva_res['message'] ?? 'Account generation failed');
             }
         } else {
-            $error_msg = "Failed to create customer: " . ($customer_res['message'] ?? 'Unknown error');
+            $error_msg = "Paystack: " . ($customer_res['message'] ?? 'Customer creation failed');
         }
     } elseif ($_POST['action'] === 'sync_accounts') {
         $res = paystack_call('dedicated_account', 'GET');
@@ -81,21 +105,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 if ($is_mine) {
-                    // Standardize keys
-                    $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? 'Virtual Bank'));
-                    $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ''));
-                    $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']));
+                    // Standardize keys with maximum resilience
+                    $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? ($acc['bank_name'] ?? 'Virtual Bank')));
+                    $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ($acc['account'] ?? '')));
+                    $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? ($acc['account_name'] ?? $user['business_name'])));
 
-                    if (empty($number)) continue;
+                    if (empty($number)) $number = '0000000000'; // Placeholder for pending
 
                     // Check if already in DB
-                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
-                    $stmt->execute([$number]);
-                    if (!$stmt->fetch()) {
+                    $stmt = $db->prepare("SELECT id, account_number FROM virtual_accounts WHERE (account_number = ? AND account_number != '0000000000') OR (customer_email = ? AND user_id = ?)");
+                    $stmt->execute([$number, $email, $user['id']]);
+                    $existing = $stmt->fetch();
+
+                    if (!$existing) {
                         $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
                         $stmt->execute([$user['id'], $bank, $number, $name, $email]);
                         $synced++;
+                    } else {
+                        // Update if number was placeholder but now we have it
+                        if ($existing['account_number'] === '0000000000' && $number !== '0000000000') {
+                             $stmt = $db->prepare("UPDATE virtual_accounts SET account_number = ?, bank_name = ? WHERE id = ?");
+                             $stmt->execute([$number, $bank, $existing['id']]);
+                             $synced++;
+                        }
                     }
+
+                    // Also ensure customer exists locally
+                    $stmt = $db->prepare("INSERT IGNORE INTO customers (user_id, full_name, email) VALUES (?, ?, ?)");
+                    $stmt->execute([$user['id'], trim($acc['customer']['first_name'] . ' ' . $acc['customer']['last_name']), $email]);
                 }
             }
             $success_msg = "Synced $synced accounts from Paystack.";
@@ -111,11 +148,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Fetch virtual accounts (only valid ones)
-// We use a more relaxed check for user_id to account for potential business-wide sharing if needed in future
 $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
 $stmt->execute([$user['id']]);
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Fetch customers for selection
+$stmt = $db->prepare("SELECT id, full_name, email FROM customers WHERE user_id = ? ORDER BY full_name ASC");
+$stmt->execute([$user['id']]);
+$customers = $stmt->fetchAll();
 
 $pageTitle = 'Virtual Accounts - Payhub';
 include '../includes/dashboard-head.php';
@@ -174,7 +214,13 @@ include '../includes/dashboard-head.php';
                                 </div>
                             </div>
                             <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-widest"><?php echo htmlspecialchars($bankName); ?></p>
-                            <h3 class="text-2xl font-mono font-bold text-slate-900 mb-1"><?php echo htmlspecialchars($accNum); ?></h3>
+                            <h3 class="text-2xl font-mono font-bold text-slate-900 mb-1">
+                                <?php if($accNum === '0000000000'): ?>
+                                    <span class="text-amber-500 italic text-lg">Awaiting Number...</span>
+                                <?php else: ?>
+                                    <?php echo htmlspecialchars($accNum); ?>
+                                <?php endif; ?>
+                            </h3>
                             <p class="text-sm text-slate-500 font-medium"><?php echo htmlspecialchars($accName); ?></p>
                             <?php if (!empty($acc['customer_email']) || !empty($acc['Customer_email'])): ?>
                                 <p class="text-[10px] text-slate-400 mt-2">Customer: <span class="font-bold"><?php echo htmlspecialchars($acc['customer_email'] ?? $acc['Customer_email']); ?></span></p>
@@ -210,7 +256,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Generate Account Modal -->
-        <div x-show="showGenerate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showGenerate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" x-data="{ mode: 'existing' }">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Generate Virtual Account</h3>
@@ -219,27 +265,45 @@ include '../includes/dashboard-head.php';
                     </button>
                 </div>
                 <div class="p-8">
-                    <p class="text-sm text-slate-500 mb-6">Enter customer details to generate a dedicated bank account for payments.</p>
+                    <div class="flex p-1 bg-slate-100 rounded-xl mb-6">
+                        <button @click="mode = 'existing'" :class="mode === 'existing' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all">Existing Customer</button>
+                        <button @click="mode = 'new'" :class="mode === 'new' ? 'bg-white shadow-sm text-indigo-600' : 'text-slate-500'" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all">New Customer</button>
+                    </div>
+
                     <form method="POST" class="space-y-4">
                         <input type="hidden" name="action" value="generate_account">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Email</label>
-                            <input type="email" name="email" required placeholder="customer@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+
+                        <div x-show="mode === 'existing'">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Customer</label>
+                            <select name="email" :required="mode === 'existing'" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <option value="">-- Choose Customer --</option>
+                                <?php foreach ($customers as $c): ?>
+                                    <option value="<?php echo $c['email']; ?>"><?php echo htmlspecialchars($c['full_name'] . ' (' . $c['email'] . ')'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+
+                        <div x-show="mode === 'new'" class="space-y-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">First Name</label>
-                                <input type="text" name="first_name" required placeholder="John" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Email</label>
+                                <input type="email" name="email" :required="mode === 'new'" placeholder="customer@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">First Name</label>
+                                    <input type="text" name="first_name" :required="mode === 'new'" placeholder="John" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Last Name</label>
+                                    <input type="text" name="last_name" :required="mode === 'new'" placeholder="Doe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                </div>
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Last Name</label>
-                                <input type="text" name="last_name" required placeholder="Doe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phone Number</label>
+                                <input type="tel" name="phone" :required="mode === 'new'" placeholder="08012345678" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phone Number</label>
-                            <input type="tel" name="phone" required placeholder="08012345678" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        </div>
+
                         <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 mt-4">Generate Account</button>
                     </form>
                 </div>

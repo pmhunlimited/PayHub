@@ -8,21 +8,85 @@ $user = getAuthUser();
 $pageTitle = 'Customer Directory - Payhub';
 
 $db = Database::connect();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'add_customer') {
+        $email = sanitize($_POST['email']);
+        $name = sanitize($_POST['full_name']);
+        $phone = sanitize($_POST['phone']);
+
+        try {
+            // Optional: Also create on Paystack immediately
+            $paystack_res = paystack_call('customer', 'POST', [
+                'email' => $email,
+                'first_name' => explode(' ', $name)[0],
+                'last_name' => explode(' ', $name)[1] ?? '',
+                'phone' => $phone,
+                'metadata' => ['merchant_id' => $user['id']]
+            ]);
+
+            $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
+            $stmt->execute([$user['id'], $name, $email, $phone]);
+            $success_msg = "Customer added successfully!";
+        } catch (Exception $e) {
+            $error_msg = "Error: " . $e->getMessage();
+        }
+    } elseif ($_POST['action'] === 'sync_customers') {
+        $res = paystack_call('customer', 'GET');
+        if ($res && $res['status']) {
+            $synced = 0;
+            foreach ($res['data'] as $c) {
+                $merchant_id = $c['metadata']['merchant_id'] ?? null;
+                if ($merchant_id == $user['id']) {
+                    $name = trim(($c['first_name'] ?? '') . ' ' . ($c['last_name'] ?? ''));
+                    if (empty($name)) $name = 'Paystack Customer';
+                    $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
+                    $stmt->execute([$user['id'], $name, $c['email'], $c['phone'] ?? '']);
+                    $synced++;
+                }
+            }
+            $success_msg = "Synced $synced customers from Paystack.";
+        } else {
+            $error_msg = "Failed to sync: " . ($res['message'] ?? 'Unknown error');
+        }
+    }
+}
+
 $stmt = $db->prepare("SELECT * FROM customers WHERE user_id = ? ORDER BY created_at DESC");
 $stmt->execute([$user['id']]);
 $customers = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, showAdd: false }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <div class="max-w-6xl mx-auto">
-                <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Customers</h1>
-                    <p class="text-slate-500">A centralized database of everyone who has paid you</p>
+                <?php if (isset($success_msg)): ?>
+                    <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
+                <?php endif; ?>
+                <?php if (isset($error_msg)): ?>
+                    <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium"><?php echo $error_msg; ?></div>
+                <?php endif; ?>
+
+                <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Customers</h1>
+                        <p class="text-slate-500">A centralized database of everyone who has paid you</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <form method="POST" class="inline">
+                            <input type="hidden" name="action" value="sync_customers">
+                            <button type="submit" class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Sync from Paystack
+                            </button>
+                        </form>
+                        <button @click="showAdd = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                            <i data-lucide="plus" class="w-5 h-5"></i> Add Customer
+                        </button>
+                    </div>
                 </div>
 
                 <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
@@ -80,6 +144,36 @@ include '../includes/dashboard-head.php';
                 </div>
             </div>
         </div>
+    <!-- Add Customer Modal -->
+    <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 class="font-bold text-slate-900">Add New Customer</h3>
+                <button @click="showAdd = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-8">
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="add_customer">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
+                        <input type="text" name="full_name" required placeholder="John Doe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                        <input type="email" name="email" required placeholder="john@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phone Number</label>
+                        <input type="tel" name="phone" required placeholder="08012345678" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                    </div>
+                    <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 mt-4">Save Customer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <?php include "../includes/merchant-quick-actions.php"; ?>
 </main>
 <script>
