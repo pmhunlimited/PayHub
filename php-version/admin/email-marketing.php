@@ -11,6 +11,10 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
+
     if ($_POST['action'] === 'save_template') {
         $name = sanitize($_POST['name']);
         $subject = sanitize($_POST['subject']);
@@ -133,6 +137,7 @@ include '../includes/dashboard-head.php';
                                     <div class="flex gap-2">
                                         <button @click="editingTpl = <?php echo htmlspecialchars(json_encode($t)); ?>; showEditTpl = true;" class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
                                         <form method="POST" onsubmit="return confirm('Delete template?');" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete_template">
                                             <input type="hidden" name="template_id" value="<?php echo $t['id']; ?>">
                                             <button type="submit" class="text-[10px] font-bold text-red-400">Delete</button>
@@ -159,6 +164,7 @@ include '../includes/dashboard-head.php';
                                         <p class="text-[10px] text-slate-400 font-medium"><?php echo $g['contact_count']; ?> contacts</p>
                                     </div>
                                     <form method="POST" onsubmit="return confirm('Delete group?');" class="opacity-0 group-hover:opacity-100 transition-all">
+                                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                         <input type="hidden" name="action" value="delete_group">
                                         <input type="hidden" name="group_id" value="<?php echo $g['id']; ?>">
                                         <button type="submit" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
@@ -181,6 +187,7 @@ include '../includes/dashboard-head.php';
                                         <p class="text-[10px] text-slate-400 truncate"><?php echo $c['email']; ?></p>
                                     </div>
                                     <form method="POST" onsubmit="return confirm('Delete contact?');" class="inline">
+                                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                         <input type="hidden" name="action" value="delete_contact">
                                         <input type="hidden" name="contact_id" value="<?php echo $c['id']; ?>">
                                         <button type="submit" class="text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>

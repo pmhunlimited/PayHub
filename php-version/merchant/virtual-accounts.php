@@ -116,6 +116,35 @@ $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND accou
 $stmt->execute([$user['id']]);
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// Auto-Sync if empty or on a periodic basis (e.g., once per session or if older than 1 hour)
+if (empty($accounts) && !isset($_SESSION['last_va_sync'])) {
+    // Hidden sync on first visit if empty
+    $_SESSION['last_va_sync'] = time();
+    $res = paystack_call('dedicated_account', 'GET');
+    if ($res && $res['status']) {
+        foreach ($res['data'] as $acc) {
+            $email = $acc['customer']['email'];
+            $merchant_id = $acc['customer']['metadata']['merchant_id'] ?? null;
+            if ($merchant_id == $user['id']) {
+                $bank = $acc['bank']['name'] ?? 'Virtual Bank';
+                $number = $acc['account_number'] ?? '';
+                $name = $acc['account_name'] ?? $user['business_name'];
+                if (!empty($number)) {
+                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
+                    $stmt->execute([$number]);
+                    if (!$stmt->fetch()) {
+                        $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
+                        $stmt->execute([$user['id'], $bank, $number, $name, $email]);
+                    }
+                }
+            }
+        }
+        // Refresh accounts after sync
+        $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
+        $stmt->execute([$user['id']]);
+        $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+}
 
 $pageTitle = 'Virtual Accounts - Payhub';
 include '../includes/dashboard-head.php';
@@ -153,54 +182,69 @@ include '../includes/dashboard-head.php';
                     </div>
                 </div>
 
-                <div class="grid md:grid-cols-2 gap-6">
-                    <?php foreach ($accounts as $acc): ?>
-                        <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm hover:border-indigo-600 transition-all group">
-                            <div class="flex justify-between items-start mb-6">
-                                <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
-                                    <i data-lucide="wallet" class="w-6 h-6"></i>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-bold uppercase tracking-wider">Active</span>
-                                    <form method="POST" class="inline" onsubmit="return confirm('Remove this virtual account record?');">
-                                        <input type="hidden" name="action" value="delete_account">
-                                        <input type="hidden" name="account_id" value="<?php echo $acc['id']; ?>">
-                                        <button type="submit" class="p-1 text-slate-300 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                                    </form>
-                                </div>
-                            </div>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-widest"><?php echo htmlspecialchars($acc['bank_name'] ?: 'Virtual Bank'); ?></p>
-                            <h3 class="text-2xl font-mono font-bold text-slate-900 mb-1"><?php echo htmlspecialchars($acc['account_number'] ?: '0000000000'); ?></h3>
-                            <p class="text-sm text-slate-500 font-medium"><?php echo htmlspecialchars($acc['account_name'] ?: $user['business_name']); ?></p>
-                            <?php if (!empty($acc['customer_email'])): ?>
-                                <p class="text-[10px] text-slate-400 mt-2">Customer: <span class="font-bold"><?php echo htmlspecialchars($acc['customer_email']); ?></span></p>
-                            <?php endif; ?>
+                <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="bg-slate-50/50">
+                                    <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bank</th>
+                                    <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Account Details</th>
+                                    <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                                    <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Created</th>
+                                    <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php foreach ($accounts as $acc): ?>
+                                    <tr class="group hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-8 py-6 text-sm font-bold text-slate-900"><?php echo htmlspecialchars($acc['bank_name'] ?: 'Virtual Bank'); ?></td>
+                                        <td class="px-8 py-6">
+                                            <div class="text-lg font-mono font-bold text-indigo-600 leading-none mb-1"><?php echo htmlspecialchars($acc['account_number'] ?: '0000000000'); ?></div>
+                                            <div class="text-[10px] text-slate-500 font-medium uppercase tracking-wider"><?php echo htmlspecialchars($acc['account_name'] ?: $user['business_name']); ?></div>
+                                        </td>
+                                        <td class="px-8 py-6">
+                                            <div class="text-sm text-slate-600"><?php echo htmlspecialchars($acc['customer_email'] ?: 'N/A'); ?></div>
+                                        </td>
+                                        <td class="px-8 py-6">
+                                            <div class="text-xs text-slate-400 font-bold uppercase">
+                                                <?php
+                                                $time = !empty($acc['created_at']) ? strtotime($acc['created_at']) : false;
+                                                echo ($time && $time > 0) ? date('M d, Y', $time) : 'Recently';
+                                                ?>
+                                            </div>
+                                        </td>
+                                        <td class="px-8 py-6 text-right">
+                                            <div class="flex items-center justify-end gap-3">
+                                                <button onclick="const text = 'Bank: <?php echo addslashes($acc['bank_name'] ?: 'N/A'); ?>\\nAccount: <?php echo $acc['account_number'] ?: 'N/A'; ?>\\nName: <?php echo addslashes($acc['account_name'] ?: $user['business_name']); ?>'; navigator.clipboard.writeText(text); alert('Account details copied to clipboard!');" class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Copy Details">
+                                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                                </button>
+                                                <form method="POST" class="inline" onsubmit="return confirm('Remove this virtual account record?');">
+                                                    <input type="hidden" name="action" value="delete_account">
+                                                    <input type="hidden" name="account_id" value="<?php echo $acc['id']; ?>">
+                                                    <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Record">
+                                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
 
-                            <div class="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
-                                <p class="text-[10px] text-slate-400 font-bold uppercase">
-                                    <?php
-                                    $time = !empty($acc['created_at']) ? strtotime($acc['created_at']) : false;
-                                    $created = ($time && $time > 0) ? date('M d, Y', $time) : 'Recently';
-                                    echo "Created " . $created;
-                                    ?>
-                                </p>
-                                <button onclick="const text = 'Bank: <?php echo addslashes($acc['bank_name'] ?: 'N/A'); ?>\\nAccount: <?php echo $acc['account_number'] ?: 'N/A'; ?>\\nName: <?php echo addslashes($acc['account_name'] ?: $user['business_name']); ?>'; navigator.clipboard.writeText(text); alert('Account details copied to clipboard!');" class="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
-                                    <i data-lucide="copy" class="w-3 h-3"></i> Copy Details
-                                </button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-
-                    <?php if (empty($accounts)): ?>
-                        <div class="md:col-span-2 bg-white p-16 rounded-[2rem] border border-dashed border-slate-300 text-center">
-                            <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <i data-lucide="wallet" class="text-slate-300 w-10 h-10"></i>
-                            </div>
-                            <h3 class="text-xl font-bold text-slate-900 mb-2">No Virtual Accounts Yet</h3>
-                            <p class="text-slate-500 mb-8 max-w-sm mx-auto">Generate a dedicated account to start receiving payments via bank transfers directly into your Payhub wallet.</p>
-                            <button @click="showGenerate = true" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Generate Your First Account</button>
-                        </div>
-                    <?php endif; ?>
+                                <?php if (empty($accounts)): ?>
+                                    <tr>
+                                        <td colspan="5" class="px-8 py-20 text-center">
+                                            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <i data-lucide="wallet" class="text-slate-300 w-8 h-8"></i>
+                                            </div>
+                                            <h3 class="text-lg font-bold text-slate-900 mb-1">No Virtual Accounts</h3>
+                                            <p class="text-sm text-slate-500 mb-6">Start by generating your first dedicated bank account.</p>
+                                            <button @click="showGenerate = true" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Generate Account</button>
+                                        </td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
