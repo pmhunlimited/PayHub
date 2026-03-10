@@ -55,7 +55,7 @@ function ensure_critical_tables() {
         $essential_tables = [
             'config' => "CREATE TABLE IF NOT EXISTS config (`key` VARCHAR(100) PRIMARY KEY, `value` TEXT, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'api_logs' => "CREATE TABLE IF NOT EXISTS api_logs (id INT AUTO_INCREMENT PRIMARY KEY, endpoint VARCHAR(255), method VARCHAR(10), payload TEXT, response TEXT, status_code INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
-            'users' => "CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(255) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, business_name VARCHAR(255), role ENUM('admin', 'merchant') DEFAULT 'merchant', wallet_balance DECIMAL(15, 2) DEFAULT 0.00, is_kyc_verified TINYINT DEFAULT 0, is_suspended TINYINT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'users' => "CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(255) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, full_name VARCHAR(255), business_name VARCHAR(255), public_key VARCHAR(255), secret_key VARCHAR(255), test_public_key VARCHAR(255), test_secret_key VARCHAR(255), role ENUM('admin', 'merchant') DEFAULT 'merchant', wallet_balance DECIMAL(15, 2) DEFAULT 0.00, is_kyc_verified TINYINT DEFAULT 0, is_suspended TINYINT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'virtual_accounts' => "CREATE TABLE IF NOT EXISTS virtual_accounts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, bank_name VARCHAR(255), account_number VARCHAR(50), account_name VARCHAR(255), customer_email VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'transactions' => "CREATE TABLE IF NOT EXISTS transactions (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, reference VARCHAR(100) UNIQUE, amount DECIMAL(15,2), status VARCHAR(20) DEFAULT 'pending', customer_email VARCHAR(255), payment_method VARCHAR(50) DEFAULT 'card', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'ledger' => "CREATE TABLE IF NOT EXISTS ledger (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, amount DECIMAL(15, 2), type ENUM('credit', 'debit'), category VARCHAR(50), description TEXT, balance_after DECIMAL(15, 2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
@@ -69,6 +69,11 @@ function ensure_critical_tables() {
         // Ensure critical columns exist in users (for dashboard and admin list)
         $cols = [
             'users' => [
+                'full_name' => "VARCHAR(255) NULL",
+                'public_key' => "VARCHAR(255) NULL",
+                'secret_key' => "VARCHAR(255) NULL",
+                'test_public_key' => "VARCHAR(255) NULL",
+                'test_secret_key' => "VARCHAR(255) NULL",
                 'is_deleted' => "TINYINT DEFAULT 0",
                 'parent_id' => "INT DEFAULT NULL",
                 'fee_percentage' => "DECIMAL(5, 2) DEFAULT NULL",
@@ -104,11 +109,14 @@ function ensure_critical_tables() {
         foreach ($cols as $table => $columns) {
             foreach ($columns as $col => $def) {
                 try {
-                    $cCheck = $db->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
-                    if (!$cCheck->fetch()) {
+                    $stmt = $db->prepare("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ? AND TABLE_SCHEMA = DATABASE()");
+                    $stmt->execute([$table, $col]);
+                    if (!$stmt->fetch()) {
                         $db->exec("ALTER TABLE `$table` ADD COLUMN `$col` $def");
                     }
-                } catch (\Throwable $e) {}
+                } catch (\Throwable $e) {
+                    error_log("Migration Error for $table.$col: " . $e->getMessage());
+                }
             }
         }
 
