@@ -28,7 +28,12 @@ $tpk = getConfig('paystack_test_public_key');
 $tsk = getConfig('paystack_test_secret_key');
 
 // Fetch API Logs
-$logs = $db->query("SELECT * FROM api_logs ORDER BY created_at DESC LIMIT 50")->fetchAll();
+$logs = [];
+try {
+    $logs = $db->query("SELECT * FROM api_logs ORDER BY created_at DESC LIMIT 50")->fetchAll();
+} catch (\Throwable $e) {
+    error_log("API Manager Log Fetch Error: " . $e->getMessage());
+}
 
 include '../includes/dashboard-head.php';
 ?>

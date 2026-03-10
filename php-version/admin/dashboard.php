@@ -10,17 +10,28 @@ $pageTitle = 'Platform Overview - Admin Hub';
 $db = Database::connect();
 
 // Fetch Admin Stats
-$stmt = $db->query("SELECT SUM(amount) as total FROM transactions WHERE status = 'success'");
-$total_gtv = $stmt->fetch()['total'] ?? 0;
+$total_gtv = 0; $active_merchants = 0; $pending_kyc = 0; $total_va = 0; $total_tx = 0; $success_tx = 0;
 
-$stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'merchant' AND is_suspended = 0");
-$active_merchants = $stmt->fetch()['count'] ?? 0;
+try {
+    $stmt = $db->query("SELECT SUM(amount) as total FROM transactions WHERE status = 'success'");
+    $total_gtv = $stmt->fetch()['total'] ?? 0;
 
-$stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE is_kyc_verified = 2");
-$pending_kyc = $stmt->fetch()['count'] ?? 0;
+    $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE role = 'merchant' AND is_suspended = 0");
+    $active_merchants = $stmt->fetch()['count'] ?? 0;
 
-$stmt = $db->query("SELECT COUNT(*) as count FROM virtual_accounts");
-$total_va = $stmt->fetch()['count'] ?? 0;
+    $stmt = $db->query("SELECT COUNT(*) as count FROM users WHERE is_kyc_verified = 2");
+    $pending_kyc = $stmt->fetch()['count'] ?? 0;
+
+    $stmt = $db->query("SELECT COUNT(*) as count FROM virtual_accounts");
+    $total_va = $stmt->fetch()['count'] ?? 0;
+
+    $stmt = $db->query("SELECT COUNT(*) as count FROM transactions");
+    $total_tx = $stmt->fetch()['count'] ?? 0;
+    $stmt = $db->query("SELECT COUNT(*) as count FROM transactions WHERE status = 'success'");
+    $success_tx = $stmt->fetch()['count'] ?? 0;
+} catch (\Throwable $e) {
+    error_log("Dashboard Stats Error: " . $e->getMessage());
+}
 
 // Fetch Paystack Balance
 $paystack_balance = 0;
@@ -34,24 +45,23 @@ if ($paystack_res && $paystack_res['status']) {
 }
 
 // Calculate success rate
-$stmt = $db->query("SELECT COUNT(*) as count FROM transactions");
-$total_tx = $stmt->fetch()['count'] ?? 0;
-$stmt = $db->query("SELECT COUNT(*) as count FROM transactions WHERE status = 'success'");
-$success_tx = $stmt->fetch()['count'] ?? 0;
 $success_rate = $total_tx > 0 ? number_format(($success_tx / $total_tx) * 100, 1) : '100';
 
 // Fetch Platform Volume for chart (last 7 days)
-$stmt = $db->query("
-    SELECT
-        DATE(created_at) as date,
-        SUM(amount) as revenue
-    FROM transactions
-    WHERE status = 'success'
-    GROUP BY DATE(created_at)
-    ORDER BY date DESC
-    LIMIT 7
-");
-$revenueRaw = array_reverse($stmt->fetchAll());
+$revenueRaw = [];
+try {
+    $stmt = $db->query("
+        SELECT
+            DATE(created_at) as date,
+            SUM(amount) as revenue
+        FROM transactions
+        WHERE status = 'success'
+        GROUP BY DATE(created_at)
+        ORDER BY date DESC
+        LIMIT 7
+    ");
+    $revenueRaw = array_reverse($stmt->fetchAll());
+} catch (\Throwable $e) {}
 $chartLabels = [];
 $chartData = [];
 $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -61,8 +71,11 @@ foreach ($revenueRaw as $r) {
 }
 
 // Fetch Detailed Transactions for Report
-$stmt = $db->query("SELECT t.*, u.business_name FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 50");
-$allTransactions = $stmt->fetchAll();
+$allTransactions = [];
+try {
+    $stmt = $db->query("SELECT t.*, u.business_name FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 50");
+    $allTransactions = $stmt->fetchAll();
+} catch (\Throwable $e) {}
 
 include '../includes/dashboard-head.php';
 ?>

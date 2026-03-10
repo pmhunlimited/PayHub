@@ -42,9 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             if ($dva_res && $dva_res['status']) {
                 $acc = $dva_res['data'];
+                // Standardize keys
+                $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? 'Virtual Bank'));
+                $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ''));
+                $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']));
+
                 // Store in DB
                 $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
-                $stmt->execute([$user['id'], $acc['bank']['name'], $acc['account_number'], $acc['account_name'], $email]);
+                $stmt->execute([$user['id'], $bank, $number, $name, $email]);
 
                 // Also ensure customer exists locally
                 $stmt = $db->prepare("INSERT IGNORE INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?)");
@@ -76,12 +81,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 if ($is_mine) {
+                    // Standardize keys
+                    $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? 'Virtual Bank'));
+                    $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ''));
+                    $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']));
+
+                    if (empty($number)) continue;
+
                     // Check if already in DB
                     $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
-                    $stmt->execute([$acc['account_number']]);
+                    $stmt->execute([$number]);
                     if (!$stmt->fetch()) {
                         $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
-                        $stmt->execute([$user['id'], $acc['bank']['name'], $acc['account_number'], $acc['account_name'], $email]);
+                        $stmt->execute([$user['id'], $bank, $number, $name, $email]);
                         $synced++;
                     }
                 }
@@ -157,11 +169,11 @@ include '../includes/dashboard-head.php';
                                     </form>
                                 </div>
                             </div>
-                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-widest"><?php echo !empty($acc['bank_name']) ? $acc['bank_name'] : 'Virtual Bank'; ?></p>
-                            <h3 class="text-2xl font-mono font-bold text-slate-900 mb-1"><?php echo !empty($acc['account_number']) ? $acc['account_number'] : '0000000000'; ?></h3>
-                            <p class="text-sm text-slate-500 font-medium"><?php echo !empty($acc['account_name']) ? $acc['account_name'] : $user['business_name']; ?></p>
-                            <?php if (!empty($acc['customer_email'])): ?>
-                                <p class="text-[10px] text-slate-400 mt-2">Customer: <span class="font-bold"><?php echo $acc['customer_email']; ?></span></p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-widest"><?php echo htmlspecialchars($acc['bank_name'] ?? ($acc['Bank_name'] ?? ($acc['Bank'] ?? 'Virtual Bank'))); ?></p>
+                            <h3 class="text-2xl font-mono font-bold text-slate-900 mb-1"><?php echo htmlspecialchars(($acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? '0000000000'))) ?: '0000000000'); ?></h3>
+                            <p class="text-sm text-slate-500 font-medium"><?php echo htmlspecialchars(($acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']))) ?: $user['business_name']); ?></p>
+                            <?php if (!empty($acc['customer_email']) || !empty($acc['Customer_email'])): ?>
+                                <p class="text-[10px] text-slate-400 mt-2">Customer: <span class="font-bold"><?php echo htmlspecialchars(($acc['customer_email'] ?? $acc['Customer_email']) ?: 'N/A'); ?></span></p>
                             <?php endif; ?>
 
                             <div class="mt-8 pt-6 border-t border-slate-50 flex items-center justify-between">
@@ -172,7 +184,7 @@ include '../includes/dashboard-head.php';
                                     echo "Created " . $created;
                                     ?>
                                 </p>
-                                <button onclick="const text = 'Bank: <?php echo addslashes($acc['bank_name'] ?: 'N/A'); ?>\\nAccount: <?php echo $acc['account_number']; ?>\\nName: <?php echo addslashes($acc['account_name'] ?: $user['business_name']); ?>'; navigator.clipboard.writeText(text); alert('Account details copied to clipboard!');" class="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
+                                <button onclick="const text = 'Bank: <?php echo addslashes($acc['bank_name'] ?? ($acc['Bank_name'] ?? ($acc['Bank'] ?? 'N/A'))); ?>\\nAccount: <?php echo $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? 'N/A')); ?>\\nName: <?php echo addslashes($acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']))); ?>'; navigator.clipboard.writeText(text); alert('Account details copied to clipboard!');" class="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
                                     <i data-lucide="copy" class="w-3 h-3"></i> Copy Details
                                 </button>
                             </div>

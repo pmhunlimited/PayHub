@@ -13,6 +13,121 @@ function run_migrations() {
 
         // 1. Create essential missing tables first
         $essential_tables = [
+            'config' => "CREATE TABLE IF NOT EXISTS config (
+                `key` VARCHAR(100) PRIMARY KEY,
+                `value` TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'users' => "CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                business_name VARCHAR(255),
+                role ENUM('admin', 'merchant') DEFAULT 'merchant',
+                wallet_balance DECIMAL(15, 2) DEFAULT 0.00,
+                is_kyc_verified TINYINT DEFAULT 0,
+                is_suspended TINYINT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'transactions' => "CREATE TABLE IF NOT EXISTS transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                reference VARCHAR(100) UNIQUE,
+                amount DECIMAL(15, 2),
+                status VARCHAR(20) DEFAULT 'pending',
+                customer_email VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'payouts' => "CREATE TABLE IF NOT EXISTS payouts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                amount DECIMAL(15, 2),
+                bank_name VARCHAR(255),
+                account_number VARCHAR(50),
+                status VARCHAR(20) DEFAULT 'pending',
+                request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'ledger' => "CREATE TABLE IF NOT EXISTS ledger (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                amount DECIMAL(15, 2),
+                type ENUM('credit', 'debit'),
+                category VARCHAR(50),
+                description TEXT,
+                balance_after DECIMAL(15, 2),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'disputes' => "CREATE TABLE IF NOT EXISTS disputes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                transaction_id INT,
+                reason TEXT,
+                status ENUM('open', 'won', 'lost') DEFAULT 'open',
+                evidence_path VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'customers' => "CREATE TABLE IF NOT EXISTS customers (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                full_name VARCHAR(255),
+                email VARCHAR(255),
+                phone VARCHAR(50),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY `merchant_customer` (`user_id`, `email`)
+            ) ENGINE=InnoDB",
+            'tickets' => "CREATE TABLE IF NOT EXISTS tickets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                subject VARCHAR(255),
+                priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
+                status ENUM('open', 'closed') DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'ticket_replies' => "CREATE TABLE IF NOT EXISTS ticket_replies (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                ticket_id INT,
+                user_id INT,
+                message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'blog_posts' => "CREATE TABLE IF NOT EXISTS blog_posts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                author_id INT,
+                title VARCHAR(255),
+                slug VARCHAR(255) UNIQUE,
+                content TEXT,
+                excerpt TEXT,
+                status ENUM('draft', 'published') DEFAULT 'published',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'invoices' => "CREATE TABLE IF NOT EXISTS invoices (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                customer_email VARCHAR(255),
+                amount DECIMAL(15, 2),
+                status ENUM('unpaid', 'paid', 'cancelled') DEFAULT 'unpaid',
+                due_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'subscriptions' => "CREATE TABLE IF NOT EXISTS subscriptions (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                customer_email VARCHAR(255),
+                amount DECIMAL(15, 2),
+                interval_type ENUM('daily', 'weekly', 'monthly', 'annually'),
+                status ENUM('active', 'cancelled') DEFAULT 'active',
+                next_payment_date DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
+            'virtual_accounts' => "CREATE TABLE IF NOT EXISTS virtual_accounts (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT,
+                bank_name VARCHAR(255),
+                account_number VARCHAR(50),
+                account_name VARCHAR(255),
+                customer_email VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB",
             'api_logs' => "CREATE TABLE IF NOT EXISTS api_logs (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 endpoint VARCHAR(255),
