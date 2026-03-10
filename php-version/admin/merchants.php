@@ -37,9 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $merchantId = (int)$_POST['merchant_id'];
         $biz_name = sanitize($_POST['business_name']);
         $email = sanitize($_POST['email']);
-        $stmt = $db->prepare("UPDATE users SET business_name = ?, email = ? WHERE id = ?");
-        $stmt->execute([$biz_name, $email, $merchantId]);
-        $success_msg = "Merchant details updated.";
+        $percent = $_POST['fee_percentage'] === '' ? null : (float)$_POST['fee_percentage'];
+        $flat = $_POST['fee_flat'] === '' ? null : (float)$_POST['fee_flat'];
+        $stmt = $db->prepare("UPDATE users SET business_name = ?, email = ?, fee_percentage = ?, fee_flat = ? WHERE id = ?");
+        $stmt->execute([$biz_name, $email, $percent, $flat, $merchantId]);
+        $success_msg = "Merchant details and custom fees updated.";
     } elseif ($_POST['action'] === 'toggle_payout_review') {
         $merchantId = (int)$_POST['merchant_id'];
         $status = (int)$_POST['status'];
@@ -205,7 +207,7 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <?php if ($tab === 'active'): ?>
-                                                <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit Details">
+                                                <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'; feePercentage = '<?php echo $m['fee_percentage']; ?>'; feeFlat = '<?php echo $m['fee_flat']; ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit Details">
                                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                                 </button>
                                                 <button @click="showReset = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Reset Password">
@@ -300,6 +302,16 @@ include '../includes/dashboard-head.php';
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
                             <input type="email" name="email" x-model="merchantEmail" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Fee Percentage (%)</label>
+                                <input type="number" step="0.01" name="fee_percentage" x-model="feePercentage" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. 1.5">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Flat Fee (NGN)</label>
+                                <input type="number" name="fee_flat" x-model="feeFlat" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. 100">
+                            </div>
                         </div>
                         <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Update Merchant</button>
                     </form>

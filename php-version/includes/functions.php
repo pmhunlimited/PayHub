@@ -109,6 +109,9 @@ function ensure_critical_tables() {
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'currency' => "VARCHAR(10) DEFAULT 'NGN'",
                 'gateway_reference' => "VARCHAR(255)"
+            ],
+            'marketing_contacts' => [
+                'group_id' => "INT"
             ]
         ];
         foreach ($cols as $table => $columns) {

@@ -106,8 +106,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 // Fetch Data for Display
 $templates = $db->query("SELECT * FROM email_templates ORDER BY created_at DESC")->fetchAll();
-$contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DESC LIMIT 50")->fetchAll();
-$groups = $db->query("SELECT g.*, (SELECT COUNT(*) FROM marketing_contacts WHERE group_id = g.id) as contact_count FROM marketing_groups g ORDER BY created_at DESC")->fetchAll();
+
+// Fix: Robust check for group_id column to avoid fatal errors during migration shift
+$contacts = [];
+$groups = [];
+try {
+    $contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DESC LIMIT 50")->fetchAll();
+    $groups = $db->query("SELECT g.*, (SELECT COUNT(*) FROM marketing_contacts WHERE group_id = g.id) as contact_count FROM marketing_groups g ORDER BY created_at DESC")->fetchAll();
+} catch (Exception $e) {
+    // Silently handle missing columns until auto-migration completes on next reload
+    error_log("Email Marketing Fetch Error: " . $e->getMessage());
+}
 
 include '../includes/dashboard-head.php';
 ?>
