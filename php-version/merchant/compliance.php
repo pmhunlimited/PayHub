@@ -13,6 +13,8 @@ $error_msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_compliance') {
     $business_type = sanitize($_POST['business_type']);
     $registration_number = sanitize($_POST['registration_number'] ?? '');
+    $bn_number = sanitize($_POST['bn_number'] ?? '');
+    $tin = sanitize($_POST['tin'] ?? '');
     $id_type = sanitize($_POST['id_type']);
     $id_expiry = sanitize($_POST['id_expiry_date'] ?? '');
     $bvn = sanitize($_POST['bvn'] ?? '');
@@ -24,7 +26,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     
     // File Uploads
     $uploads = [];
-    $files_to_handle = ['utility_bill', 'cac_cert', 'cac_form', 'id_card'];
+    $files_to_handle = [
+        'utility_bill', 'cac_cert', 'cac_form', 'id_card',
+        'memart', 'bn_cert', 'bn_form', 'ngo_form',
+        'ngo_constitution', 'gov_auth_letter', 'gov_gazette', 'business_address_proof'
+    ];
     foreach ($files_to_handle as $field) {
         if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
             $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
@@ -52,6 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $sql = "UPDATE users SET
             business_type = ?,
             registration_number = ?,
+            bn_number = ?,
+            tin = ?,
             id_type = ?,
             id_expiry_date = ?,
             bvn = ?,
@@ -59,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             country = ?,
             is_kyc_verified = 2";
 
-        $params = [$business_type, $registration_number, $id_type, $needs_expiry ? $id_expiry : null, $bvn, $address, $country];
+        $params = [$business_type, $registration_number, $bn_number, $tin, $id_type, $needs_expiry ? $id_expiry : null, $bvn, $address, $country];
 
         foreach ($uploads as $col => $val) {
             $sql .= ", $col = ?";
@@ -179,8 +187,18 @@ include '../includes/dashboard-head.php';
                                             <input type="text" name="bvn" value="<?php echo $user['bvn']; ?>" placeholder="222********" :required="isNigerian" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                         </div>
                                         <div x-show="businessType !== 'Starter'">
-                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Registration Number (RC/BN)</label>
-                                            <input type="text" name="registration_number" value="<?php echo $user['registration_number']; ?>" placeholder="RC123456" :required="businessType !== 'Starter'" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Registration Number (RC)</label>
+                                            <input type="text" name="registration_number" value="<?php echo $user['registration_number']; ?>" placeholder="RC123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BN Number</label>
+                                            <input type="text" name="bn_number" value="<?php echo $user['bn_number']; ?>" placeholder="BN123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">TIN (Tax ID)</label>
+                                            <input type="text" name="tin" value="<?php echo $user['tin']; ?>" placeholder="12345678-0001" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                         </div>
                                     </div>
                                     <div>
@@ -205,16 +223,52 @@ include '../includes/dashboard-head.php';
                                             <p class="text-[9px] text-slate-400 mt-1">Proof of address (last 3 months)</p>
                                         </div>
                                     </div>
-                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Registered'">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
-                                            <input type="file" name="cac_cert" :required="businessType !== 'Starter'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <input type="file" name="cac_cert" :required="businessType === 'Registered'" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="award" class="text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">CAC Certificate</p>
                                         </div>
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
-                                            <input type="file" name="cac_form" :required="businessType !== 'Starter'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <input type="file" name="cac_form" :required="businessType === 'Registered'" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="clipboard-list" class="text-slate-400 mb-2"></i>
                                             <p class="text-xs font-bold text-slate-900 uppercase">Form CAC 1.1</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="memart" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="book-open" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">MEMART Docs</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Special'">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="ngo_form" :required="businessType === 'Special'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="file-check" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">NGO Registration</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="ngo_constitution" :required="businessType === 'Special'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="book-open" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">NGO Constitution</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="gov_auth_letter" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="mail" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Auth Letter</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="business_address_proof" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="map-pin" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Address Proof</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="gov_gazette" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="file-text" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Gov't Gazette</p>
                                         </div>
                                     </div>
                                 </div>

@@ -38,7 +38,22 @@ include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReview: false, merchant: {} }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden"
+          x-data="{
+              showReview: false,
+              merchant: {},
+              maskValue(val) {
+                  if (!val) return 'Not provided';
+                  const s = String(val);
+                  if (s.length <= 4) return s;
+                  return '*'.repeat(s.length - 4) + s.slice(-4);
+              },
+              openReview(m) {
+                  this.merchant = m;
+                  this.showReview = true;
+                  this.$nextTick(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+              }
+          }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -81,7 +96,7 @@ include '../includes/dashboard-head.php';
                                         </span>
                                     </td>
                                     <td class="px-6 py-4">
-                                        <button @click="showReview = true; merchant = <?php echo htmlspecialchars(json_encode($m)); ?>" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors">Review Docs</button>
+                                        <button @click="openReview(<?php echo htmlspecialchars(json_encode($m)); ?>)" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors">Review Docs</button>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -93,83 +108,127 @@ include '../includes/dashboard-head.php';
 
         <!-- Review Modal -->
         <div x-show="showReview" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div class="bg-white rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col h-[90vh]">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                    <h3 class="font-bold text-slate-900">KYC Document Review</h3>
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-lg">KYC Document Review</h3>
+                        <p class="text-xs text-slate-500" x-text="merchant.business_name"></p>
+                    </div>
                     <button @click="showReview = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
-                <div class="p-8 max-h-[70vh] overflow-y-auto">
-                    <div class="grid md:grid-cols-2 gap-8">
-                        <div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Business Information</h4>
-                            <div class="space-y-4">
-                                <div>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Business Name</p>
-                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.business_name"></p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Country</p>
-                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.country"></p>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">Business Type</p>
-                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.business_type"></p>
-                                </div>
-                                <div x-show="merchant.bvn">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">BVN/NIN</p>
-                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.bvn"></p>
-                                </div>
-                                <div x-show="merchant.rc_number">
-                                    <p class="text-[10px] font-bold text-slate-400 uppercase">RC Number</p>
-                                    <p class="text-sm font-bold text-slate-900" x-text="merchant.rc_number"></p>
+                <div class="flex-1 overflow-y-auto p-8">
+                    <div class="grid lg:grid-cols-3 gap-12">
+                        <div class="lg:col-span-1 space-y-8">
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Business Information</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Business Type</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.business_type || 'N/A'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Country</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.country || 'Nigeria'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">Registration / RC Number</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.registration_number || merchant.rc_number || 'N/A'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">BN Number</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.bn_number || 'N/A'"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">TIN (Tax ID)</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.tin || 'N/A'"></p>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Identification</h4>
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">ID Type</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.id_type || 'N/A'"></p>
+                                    </div>
+                                    <div x-show="merchant.id_expiry_date">
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">ID Expiry</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="merchant.id_expiry_date"></p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[10px] font-bold text-slate-400 uppercase">BVN/NIN</p>
+                                        <p class="text-sm font-bold text-slate-900" x-text="maskValue(merchant.bvn)"></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Address</h4>
+                                <p class="text-sm font-bold text-slate-900" x-text="merchant.residential_address || 'N/A'"></p>
+                            </div>
                         </div>
-                        <div class="col-span-2 mt-8">
+
+                        <div class="lg:col-span-2 space-y-8">
                             <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Uploaded Documents</h4>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <template x-if="merchant.id_card_path">
-                                    <a :href="'../uploads/' + merchant.id_card_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i data-lucide="credit-card" class="text-indigo-600"></i>
-                                        <span class="text-[10px] font-bold text-slate-700">Gov't ID</span>
-                                    </a>
-                                </template>
-                                <template x-if="merchant.utility_bill_path">
-                                    <a :href="'../uploads/' + merchant.utility_bill_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i data-lucide="file-text" class="text-indigo-600"></i>
-                                        <span class="text-[10px] font-bold text-slate-700">Utility Bill</span>
-                                    </a>
-                                </template>
-                                <template x-if="merchant.liveliness_path">
-                                    <a :href="'../uploads/' + merchant.liveliness_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i data-lucide="user" class="text-indigo-600"></i>
-                                        <span class="text-[10px] font-bold text-slate-700">Liveliness</span>
-                                    </a>
-                                </template>
-                                <template x-if="merchant.cac_cert_path">
-                                    <a :href="'../uploads/' + merchant.cac_cert_path" target="_blank" class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
-                                        <i data-lucide="award" class="text-indigo-600"></i>
-                                        <span class="text-[10px] font-bold text-slate-700">CAC Cert</span>
-                                    </a>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                <template x-for="(doc, key) in {
+                                    id_card_path: {label: 'Gov\'t ID', icon: 'credit-card'},
+                                    utility_bill_path: {label: 'Utility Bill', icon: 'file-text'},
+                                    liveliness_path: {label: 'Liveliness', icon: 'user'},
+                                    cac_cert_path: {label: 'CAC Cert', icon: 'award'},
+                                    cac_form_path: {label: 'CAC Form', icon: 'file-check'},
+                                    memart_path: {label: 'MEMART', icon: 'book-open'},
+                                    bn_cert_path: {label: 'BN Cert', icon: 'award'},
+                                    bn_form_path: {label: 'BN Form', icon: 'file-check'},
+                                    ngo_form_path: {label: 'NGO Form', icon: 'file-check'},
+                                    ngo_constitution_path: {label: 'Constitution', icon: 'book-open'},
+                                    gov_auth_letter_path: {label: 'Auth Letter', icon: 'mail'},
+                                    gov_gazette_path: {label: 'Gazette', icon: 'file-text'},
+                                    business_address_proof_path: {label: 'Address Proof', icon: 'map-pin'}
+                                }" :key="key">
+                                    <template x-if="merchant[key]">
+                                        <div class="space-y-2">
+                                            <a :href="'../uploads/' + merchant[key]" target="_blank" class="block aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm">
+                                                <template x-if="(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
+                                                    <img :src="'../uploads/' + merchant[key]" class="w-full h-full object-cover">
+                                                </template>
+                                                <template x-if="!(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
+                                                    <div class="w-full h-full flex flex-col items-center justify-center gap-2">
+                                                        <i :data-lucide="doc.icon" class="text-slate-400 w-8 h-8"></i>
+                                                        <span class="text-[8px] font-bold text-slate-400 uppercase">View File</span>
+                                                    </div>
+                                                </template>
+                                                <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                                    <i data-lucide="eye" class="text-white w-6 h-6"></i>
+                                                </div>
+                                            </a>
+                                            <p class="text-[10px] font-bold text-slate-500 uppercase text-center" x-text="doc.label"></p>
+                                        </div>
+                                    </template>
                                 </template>
                             </div>
-                        </div>
-                        <div>
-                            <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Actions & Notes</h4>
-                            <form method="POST" id="kycForm">
-                                <input type="hidden" name="action" value="process_kyc">
-                                <input type="hidden" name="merchant_id" :value="merchant.id">
-                                <input type="hidden" name="status" id="kycStatus">
-                                <textarea name="notes" placeholder="Enter rejection reason or approval notes..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none h-32 mb-4"></textarea>
-                                <div class="flex gap-2">
-                                    <button type="button" @click="document.getElementById('kycStatus').value = 1; document.getElementById('kycForm').submit();" class="flex-1 bg-emerald-600 text-white py-3 rounded-xl font-bold">Approve</button>
-                                    <button type="button" @click="document.getElementById('kycStatus').value = 0; document.getElementById('kycForm').submit();" class="flex-1 bg-red-50 text-red-600 border border-red-200 py-3 rounded-xl font-bold">Reject</button>
-                                </div>
-                            </form>
                         </div>
                     </div>
+                </div>
+                <div class="p-8 border-t border-slate-100 bg-slate-50/50">
+                    <form method="POST" id="kycForm">
+                        <input type="hidden" name="action" value="process_kyc">
+                        <input type="hidden" name="merchant_id" :value="merchant.id">
+                        <input type="hidden" name="status" id="kycStatus">
+                        <div class="flex flex-col md:flex-row gap-6 items-end">
+                            <div class="flex-1 w-full">
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2 tracking-widest">Admin Decision Notes</label>
+                                <textarea name="notes" placeholder="Enter rejection reason or approval notes..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none h-20 text-sm"></textarea>
+                            </div>
+                            <div class="flex gap-3 shrink-0">
+                                <button type="button" @click="document.getElementById('kycStatus').value = 0; document.getElementById('kycForm').submit();" class="px-8 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-all text-sm">Reject</button>
+                                <button type="button" @click="document.getElementById('kycStatus').value = 1; document.getElementById('kycForm').submit();" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 text-sm">Approve KYC</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>

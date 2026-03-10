@@ -193,6 +193,7 @@ function run_migrations() {
                 'residential_address' => "TEXT",
                 'rc_number' => "VARCHAR(100)",
                 'tin' => "VARCHAR(100)",
+                'registration_number' => "VARCHAR(100)",
                 'cac_cert_path' => "VARCHAR(255)",
                 'cac_form_path' => "VARCHAR(255)",
                 'memart_path' => "VARCHAR(255)",
