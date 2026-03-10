@@ -82,9 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
                 if ($is_mine) {
                     // Standardize keys
-                    $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? 'Virtual Bank'));
-                    $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ''));
-                    $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? $user['business_name']));
+                    $bank = $acc['bank']['name'] ?? 'Virtual Bank';
+                    $number = $acc['account_number'] ?? '';
+                    $name = $acc['account_name'] ?? $user['business_name'];
 
                     if (empty($number)) continue;
 
@@ -98,7 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                 }
             }
-            $success_msg = "Synced $synced accounts from Paystack.";
+            $success_msg = $synced > 0 ? "Synced $synced new accounts from Paystack." : "Accounts are already up to date.";
         } else {
             $error_msg = "Failed to sync: " . ($res['message'] ?? 'Unknown error');
         }
