@@ -81,24 +81,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
 
                 if ($is_mine) {
-                    // Standardize keys
                     $bank = $acc['bank']['name'] ?? 'Virtual Bank';
                     $number = $acc['account_number'] ?? '';
                     $name = $acc['account_name'] ?? $user['business_name'];
 
-                    if (empty($number)) continue;
+                    if (empty($number) || $number === '0000000000') continue;
 
-                    // Check if already in DB
-                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
+                    // Check if already in DB (maybe unassigned or assigned to someone else)
+                    $stmt = $db->prepare("SELECT id, user_id FROM virtual_accounts WHERE account_number = ?");
                     $stmt->execute([$number]);
-                    if (!$stmt->fetch()) {
+                    $existing = $stmt->fetch();
+
+                    if (!$existing) {
                         $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
                         $stmt->execute([$user['id'], $bank, $number, $name, $email]);
                         $synced++;
+                    } elseif (empty($existing['user_id'])) {
+                        // Claim unassigned account
+                        $stmt = $db->prepare("UPDATE virtual_accounts SET user_id = ? WHERE id = ?");
+                        $stmt->execute([$user['id'], $existing['id']]);
+                        $synced++;
                     }
+
+                    // Also ensure customer exists locally
+                    $stmt = $db->prepare("INSERT IGNORE INTO customers (user_id, full_name, email) VALUES (?, ?, ?)");
+                    $stmt->execute([$user['id'], $name, $email]);
                 }
             }
-            $success_msg = $synced > 0 ? "Synced $synced new accounts from Paystack." : "Accounts are already up to date.";
+            $success_msg = $synced > 0 ? "Synced $synced accounts from Paystack." : "Accounts are already up to date.";
         } else {
             $error_msg = "Failed to sync: " . ($res['message'] ?? 'Unknown error');
         }
@@ -111,14 +121,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // Fetch virtual accounts (only valid ones)
-// We use a more relaxed check for user_id to account for potential business-wide sharing if needed in future
-$stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
-$stmt->execute([$user['id']]);
+// We also fetch accounts that match the merchant's customers' emails to ensure visibility
+$stmt = $db->prepare("
+    SELECT DISTINCT v.*
+    FROM virtual_accounts v
+    LEFT JOIN customers c ON v.customer_email = c.email AND c.user_id = ?
+    WHERE (v.user_id = ? OR c.id IS NOT NULL)
+    AND v.account_number IS NOT NULL AND v.account_number != '' AND v.account_number != '0000000000'
+    ORDER BY v.created_at DESC
+");
+$stmt->execute([$user['id'], $user['id']]);
 $accounts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Auto-Sync if empty or on a periodic basis (e.g., once per session or if older than 1 hour)
 if (empty($accounts) && !isset($_SESSION['last_va_sync'])) {
-    // Hidden sync on first visit if empty
     $_SESSION['last_va_sync'] = time();
     $res = paystack_call('dedicated_account', 'GET');
     if ($res && $res['status']) {
@@ -129,12 +145,16 @@ if (empty($accounts) && !isset($_SESSION['last_va_sync'])) {
                 $bank = $acc['bank']['name'] ?? 'Virtual Bank';
                 $number = $acc['account_number'] ?? '';
                 $name = $acc['account_name'] ?? $user['business_name'];
-                if (!empty($number)) {
-                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE account_number = ?");
+                if (!empty($number) && $number !== '0000000000') {
+                    $stmt = $db->prepare("SELECT id, user_id FROM virtual_accounts WHERE account_number = ?");
                     $stmt->execute([$number]);
-                    if (!$stmt->fetch()) {
+                    $existing = $stmt->fetch();
+                    if (!$existing) {
                         $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
                         $stmt->execute([$user['id'], $bank, $number, $name, $email]);
+                    } elseif (empty($existing['user_id'])) {
+                        $stmt = $db->prepare("UPDATE virtual_accounts SET user_id = ? WHERE id = ?");
+                        $stmt->execute([$user['id'], $existing['id']]);
                     }
                 }
             }
@@ -171,6 +191,7 @@ include '../includes/dashboard-head.php';
                     </div>
                     <div class="flex gap-3">
                         <form method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                             <input type="hidden" name="action" value="sync_accounts">
                             <button type="submit" class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
                                 <i data-lucide="refresh-cw" class="w-5 h-5"></i> Sync
@@ -219,6 +240,7 @@ include '../includes/dashboard-head.php';
                                                     <i data-lucide="copy" class="w-4 h-4"></i>
                                                 </button>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Remove this virtual account record?');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="delete_account">
                                                     <input type="hidden" name="account_id" value="<?php echo $acc['id']; ?>">
                                                     <button type="submit" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Delete Record">
@@ -261,6 +283,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <p class="text-sm text-slate-500 mb-6">Enter customer details to generate a dedicated bank account for payments.</p>
                     <form method="POST" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="generate_account">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Email</label>

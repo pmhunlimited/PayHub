@@ -32,7 +32,7 @@ if (!$merchant) {
  * Headers: Authorization: Bearer <Secret Key>
  */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
+    $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' AND account_number != '0000000000' ORDER BY created_at DESC");
     $stmt->execute([$merchant['id']]);
     $accounts = $stmt->fetchAll();
 

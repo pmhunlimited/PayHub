@@ -12,6 +12,10 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
+
     if ($_POST['action'] === 'add_customer') {
         $email = sanitize($_POST['email']);
         $full_name = sanitize($_POST['full_name']);
@@ -70,10 +74,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             $error_msg = "Failed to fetch customer: " . ($customer_res['message'] ?? 'Unknown error');
         }
+    } elseif ($_POST['action'] === 'sync_va') {
+        $res = paystack_call('dedicated_account', 'GET');
+        if ($res && $res['status']) {
+            $synced = 0;
+            foreach ($res['data'] as $acc) {
+                $email = $acc['customer']['email'];
+                $merchant_id = $acc['customer']['metadata']['merchant_id'] ?? null;
+                if ($merchant_id == $user['id']) {
+                    $bank = $acc['bank']['name'] ?? 'Virtual Bank';
+                    $number = $acc['account_number'] ?? '';
+                    $name = $acc['account_name'] ?? $user['business_name'];
+                    if (!empty($number) && $number !== '0000000000') {
+                        $stmt = $db->prepare("SELECT id, user_id FROM virtual_accounts WHERE account_number = ?");
+                        $stmt->execute([$number]);
+                        $existing = $stmt->fetch();
+                        if (!$existing) {
+                            $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
+                            $stmt->execute([$user['id'], $bank, $number, $name, $email]);
+                            $synced++;
+                        } elseif (empty($existing['user_id'])) {
+                            $stmt = $db->prepare("UPDATE virtual_accounts SET user_id = ? WHERE id = ?");
+                            $stmt->execute([$user['id'], $existing['id']]);
+                            $synced++;
+                        }
+                    }
+                }
+            }
+            $success_msg = "Customer virtual accounts synchronized ($synced new found).";
+        } else {
+            $error_msg = "Failed to sync: " . ($res['message'] ?? 'Unknown error');
+        }
     }
 }
 
-$stmt = $db->prepare("SELECT * FROM customers WHERE user_id = ? ORDER BY created_at DESC");
+$stmt = $db->prepare("
+    SELECT c.*, v.bank_name, v.account_number
+    FROM customers c
+    LEFT JOIN virtual_accounts v ON c.email = v.customer_email
+    WHERE c.user_id = ?
+    ORDER BY c.created_at DESC
+");
 $stmt->execute([$user['id']]);
 $customers = $stmt->fetchAll();
 
@@ -97,9 +138,18 @@ include '../includes/dashboard-head.php';
                         <h1 class="text-3xl font-bold text-slate-900 mb-2">Customers</h1>
                         <p class="text-slate-500">A centralized database of everyone who has paid you</p>
                     </div>
-                    <button @click="showAddCustomer = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                        <i data-lucide="plus" class="w-5 h-5"></i> Add Customer
-                    </button>
+                    <div class="flex gap-3">
+                        <form method="POST" class="inline">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                            <input type="hidden" name="action" value="sync_va">
+                            <button type="submit" class="bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-all shadow-sm">
+                                <i data-lucide="refresh-cw" class="w-5 h-5"></i> Sync
+                            </button>
+                        </form>
+                        <button @click="showAddCustomer = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                            <i data-lucide="plus" class="w-5 h-5"></i> Add Customer
+                        </button>
+                    </div>
                 </div>
 
                 <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
@@ -115,6 +165,7 @@ include '../includes/dashboard-head.php';
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-100">
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Virtual Bank</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date Joined</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
@@ -134,14 +185,23 @@ include '../includes/dashboard-head.php';
                                                 </div>
                                             </div>
                                         </td>
+                                        <td class="px-6 py-4">
+                                            <?php if (!empty($c['account_number'])): ?>
+                                                <div class="text-xs font-mono font-bold text-indigo-600"><?php echo $c['account_number']; ?></div>
+                                                <div class="text-[10px] text-slate-400 uppercase"><?php echo $c['bank_name']; ?></div>
+                                            <?php else: ?>
+                                                <span class="text-[10px] text-slate-300 italic">No VA assigned</span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
                                         <td class="px-6 py-4">
                                             <div class="flex items-center gap-2">
                                                 <form method="POST" class="inline" onsubmit="return confirm('Generate a dedicated virtual account for this customer?');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="generate_va">
-                                                    <input type="hidden" name="email" value="<?php echo $c['email']; ?>">
-                                                    <input type="hidden" name="full_name" value="<?php echo $c['full_name']; ?>">
+                                                    <input type="hidden" name="email" value="<?php echo htmlspecialchars($c['email']); ?>">
+                                                    <input type="hidden" name="full_name" value="<?php echo htmlspecialchars($c['full_name']); ?>">
                                                     <button type="submit" class="p-2 text-slate-400 hover:text-indigo-600 transition-all hover:bg-indigo-50 rounded-lg" title="Generate Virtual Account">
                                                         <i data-lucide="wallet" class="w-4 h-4"></i>
                                                     </button>
@@ -179,6 +239,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="add_customer">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
