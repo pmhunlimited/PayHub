@@ -65,8 +65,10 @@ if ($event['event'] === 'charge.success') {
         }
 
         if ($acc_number) {
-            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ?");
-            $stmt->execute([$acc_number]);
+            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ? OR account_number = ?");
+            // Also try with leading zero if missing, or vice versa if Paystack stripped it
+            $alt_acc = str_pad($acc_number, 10, "0", STR_PAD_LEFT);
+            $stmt->execute([$acc_number, $alt_acc]);
             $va = $stmt->fetch();
 
             if ($va) {
