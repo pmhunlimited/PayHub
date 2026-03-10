@@ -32,9 +32,9 @@ include 'includes/header.php';
                         </a>
                     </div>
                     <div class="mt-12 flex items-center gap-6 grayscale opacity-60">
-                        <img src="https://picsum.photos/seed/brand1/100/40" alt="Partner" class="h-8" referrerPolicy="no-referrer">
-                        <img src="https://picsum.photos/seed/brand2/100/40" alt="Partner" class="h-8" referrerPolicy="no-referrer">
-                        <img src="https://picsum.photos/seed/brand3/100/40" alt="Partner" class="h-8" referrerPolicy="no-referrer">
+                        <img src="assets/master-card.png" alt="Partner" class="h-8" referrerPolicy="no-referrer">
+                        <img src="assets/visa-card.png" alt="Partner" class="h-8" referrerPolicy="no-referrer">
+                        <img src="assets/verve-card.png" alt="Partner" class="h-8" referrerPolicy="no-referrer">
                     </div>
                 </div>
                 <div class="relative">
@@ -43,7 +43,7 @@ include 'includes/header.php';
                         src="assets/payhub-payment-methods.jpg"
                         alt="Payment Methods"
                         class="relative rounded-2xl shadow-2xl border border-slate-200"
-                        onerror="this.src='https://picsum.photos/seed/payhub/800/600'"
+                        onerror="this.src='assets/payhub-payment-methods.jpg'"
                     >
                 </div>
             </div>
@@ -88,7 +88,7 @@ include 'includes/header.php';
                     </ul>
                 </div>
                 <div class="lg:w-1/2 relative">
-                    <img src="assets/payment-methods.jpg" alt="Supported Methods" class="rounded-2xl shadow-lg rotate-3 hover:rotate-0 transition-transform duration-500" onerror="this.src='https://picsum.photos/seed/methods/600/400'">
+                    <img src="assets/payment-methods.jpg" alt="Supported Methods" class="rounded-2xl shadow-lg rotate-3 hover:rotate-0 transition-transform duration-500" onerror="this.src='assets/payment-methods.jpg'">
                 </div>
                 <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
             </div>

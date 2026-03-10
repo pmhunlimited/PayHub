@@ -44,11 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error_msg = "Paystack Error: " . ($customer_res['message'] ?? 'Failed to create customer');
         }
     } elseif ($_POST['action'] === 'generate_va') {
-        $email = sanitize($_POST['email']);
-        $full_name = sanitize($_POST['full_name']);
+        if ($user['business_type'] === 'Starter' || $user['is_kyc_verified'] != 1) {
+            $error_msg = "Your account must be fully verified (Registered/Special) to generate virtual accounts.";
+        } else {
+            $email = sanitize($_POST['email']);
+            $full_name = sanitize($_POST['full_name']);
 
-        // 1. Fetch customer code from Paystack
-        $customer_res = paystack_call("customer/$email", 'GET');
+            // 1. Fetch customer code from Paystack
+            $customer_res = paystack_call("customer/$email", 'GET');
 
         if ($customer_res && $customer_res['status']) {
             $customer_code = $customer_res['data']['customer_code'];
@@ -67,12 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$user['id'], $bank, $number, $name, $email]);
 
-                $success_msg = "Virtual account generated for $full_name!";
+                    $success_msg = "Virtual account generated for $full_name!";
+                } else {
+                    $error_msg = "Failed to generate VA: " . ($dva_res['message'] ?? 'Unknown error');
+                }
             } else {
-                $error_msg = "Failed to generate VA: " . ($dva_res['message'] ?? 'Unknown error');
+                $error_msg = "Failed to fetch customer: " . ($customer_res['message'] ?? 'Unknown error');
             }
-        } else {
-            $error_msg = "Failed to fetch customer: " . ($customer_res['message'] ?? 'Unknown error');
         }
     } elseif ($_POST['action'] === 'sync_va') {
         $res = paystack_call('dedicated_account', 'GET');
@@ -111,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $stmt = $db->prepare("
     SELECT c.*, v.bank_name, v.account_number
     FROM customers c
-    LEFT JOIN virtual_accounts v ON c.email = v.customer_email
+    LEFT JOIN virtual_accounts v ON c.email = v.customer_email AND v.user_id = c.user_id
     WHERE c.user_id = ?
     ORDER BY c.created_at DESC
 ");
