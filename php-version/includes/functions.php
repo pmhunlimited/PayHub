@@ -70,6 +70,7 @@ function ensure_critical_tables() {
         $cols = [
             'users' => [
                 'full_name' => "VARCHAR(255) NULL",
+                'country' => "VARCHAR(100) DEFAULT 'Nigeria'",
                 'public_key' => "VARCHAR(255) NULL",
                 'secret_key' => "VARCHAR(255) NULL",
                 'test_public_key' => "VARCHAR(255) NULL",
@@ -83,6 +84,10 @@ function ensure_critical_tables() {
                 'bn_number' => "VARCHAR(100)",
                 'tin' => "VARCHAR(100)",
                 'business_type' => "VARCHAR(50)",
+                'id_type' => "VARCHAR(50)",
+                'id_expiry_date' => "DATE",
+                'bvn' => "VARCHAR(20)",
+                'residential_address' => "TEXT",
                 'id_card_path' => "VARCHAR(255)",
                 'utility_bill_path' => "VARCHAR(255)",
                 'liveliness_path' => "VARCHAR(255)",

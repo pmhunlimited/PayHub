@@ -9,6 +9,9 @@ $pageTitle = 'Email Marketing - Admin Hub';
 
 $db = Database::connect();
 
+$success_msg = '';
+$error_msg = '';
+
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
@@ -71,44 +74,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $success_msg = "Campaign group created with contacts.";
     } elseif ($_POST['action'] === 'send_bulk') {
         $template_id = (int)$_POST['template_id'];
-        $target = $_POST['target']; // 'merchants' or 'external'
+        $target = $_POST['target']; // 'merchants' or 'group_X'
 
         $stmt = $db->prepare("SELECT subject, body FROM email_templates WHERE id = ?");
         $stmt->execute([$template_id]);
         $tpl = $stmt->fetch();
 
-        $recipients = [];
-        if ($target === 'merchants') {
-            $recipients = $db->query("SELECT email, full_name FROM users WHERE role = 'merchant'")->fetchAll();
-        } elseif (strpos($target, 'group_') === 0) {
-            $groupId = (int)str_replace('group_', '', $target);
-            $stmt = $db->prepare("SELECT email, full_name FROM marketing_contacts WHERE group_id = ?");
-            $stmt->execute([$groupId]);
-            $recipients = $stmt->fetchAll();
-        }
-
-        $sent_count = 0;
-        foreach ($recipients as $r) {
-            if (sendEmail($r['email'], $tpl['subject'], $tpl['body'])) {
-                $sent_count++;
+        if ($tpl) {
+            $recipients = [];
+            if ($target === 'merchants') {
+                $recipients = $db->query("SELECT email, business_name as full_name FROM users WHERE role = 'merchant' AND is_deleted = 0")->fetchAll();
+            } elseif (strpos($target, 'group_') === 0) {
+                $groupId = (int)str_replace('group_', '', $target);
+                $stmt = $db->prepare("SELECT email, full_name FROM marketing_contacts WHERE group_id = ?");
+                $stmt->execute([$groupId]);
+                $recipients = $stmt->fetchAll();
             }
+
+            $sent_count = 0;
+            foreach ($recipients as $r) {
+                if (sendEmail($r['email'], $tpl['subject'], $tpl['body'])) {
+                    $sent_count++;
+                }
+            }
+            $success_msg = "Bulk email sent to $sent_count recipients.";
+        } else {
+            $error_msg = "Template not found.";
         }
-        $success_msg = "Bulk email sent to $sent_count recipients.";
     }
 }
 
+// Fetch Data for Display
 $templates = $db->query("SELECT * FROM email_templates ORDER BY created_at DESC")->fetchAll();
-$contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DESC")->fetchAll();
+$contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DESC LIMIT 50")->fetchAll();
+$groups = $db->query("SELECT g.*, (SELECT COUNT(*) FROM marketing_contacts WHERE group_id = g.id) as contact_count FROM marketing_groups g ORDER BY created_at DESC")->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showTpl: false, showContact: false, showSend: false, showGroup: false, showEditTpl: false, editingTpl: {id:null, name:'', subject:'', body:''} }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
+        showTpl: false,
+        showContact: false,
+        showSend: false,
+        showGroup: false,
+        showEditTpl: false,
+        editingTpl: {id:null, name:'', subject:'', body:''}
+    }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
-            <?php if (isset($success_msg)): ?>
+            <?php if ($success_msg): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
+            <?php endif; ?>
+            <?php if ($error_msg): ?>
+                <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium"><?php echo $error_msg; ?></div>
             <?php endif; ?>
 
             <div class="mb-8 flex justify-between items-center">
@@ -135,7 +154,7 @@ include '../includes/dashboard-head.php';
                                     <p class="font-bold text-slate-900 text-sm mb-1"><?php echo $t['name']; ?></p>
                                     <p class="text-xs text-slate-500 mb-4"><?php echo $t['subject']; ?></p>
                                     <div class="flex gap-2">
-                                        <button @click="editingTpl = <?php echo htmlspecialchars(json_encode($t)); ?>; showEditTpl = true;" class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
+                                        <button @click="editingTpl = <?php echo htmlspecialchars(json_encode($t), ENT_QUOTES, 'UTF-8'); ?>; showEditTpl = true;" class="text-[10px] font-bold text-indigo-600 bg-white border border-slate-200 px-3 py-1 rounded-lg">Edit</button>
                                         <form method="POST" onsubmit="return confirm('Delete template?');" class="inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete_template">
@@ -145,6 +164,9 @@ include '../includes/dashboard-head.php';
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                            <?php if (empty($templates)): ?>
+                                <div class="col-span-2 py-12 text-center text-slate-400 italic">No templates created yet.</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -155,9 +177,7 @@ include '../includes/dashboard-head.php';
                             <h3 class="font-bold text-slate-900">Campaign Groups</h3>
                         </div>
                         <div class="p-6 space-y-4">
-                            <?php
-                            $groups = $db->query("SELECT g.*, (SELECT COUNT(*) FROM marketing_contacts WHERE group_id = g.id) as contact_count FROM marketing_groups g ORDER BY created_at DESC")->fetchAll();
-                            foreach ($groups as $g): ?>
+                            <?php foreach ($groups as $g): ?>
                                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex justify-between items-center group">
                                     <div>
                                         <p class="font-bold text-slate-900 text-sm"><?php echo $g['name']; ?></p>
@@ -171,22 +191,25 @@ include '../includes/dashboard-head.php';
                                     </form>
                                 </div>
                             <?php endforeach; ?>
+                            <?php if (empty($groups)): ?>
+                                <p class="text-center text-xs text-slate-400 py-4 italic">No campaign groups yet.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
 
                     <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                         <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                            <h3 class="font-bold text-slate-900">Recent Contacts</h3>
+                            <h3 class="font-bold text-slate-900">Marketing Contacts</h3>
                             <button @click="showContact = true" class="text-xs font-bold text-indigo-600 hover:underline">+ Add</button>
                         </div>
                         <div class="p-6 space-y-3">
-                            <?php foreach (array_slice($contacts, 0, 10) as $c): ?>
-                                <div class="flex items-center justify-between">
+                            <?php foreach ($contacts as $c): ?>
+                                <div class="flex items-center justify-between group">
                                     <div class="min-w-0">
-                                        <p class="text-xs font-bold text-slate-900 truncate"><?php echo $c['full_name']; ?></p>
+                                        <p class="text-xs font-bold text-slate-900 truncate"><?php echo $c['full_name'] ?: 'No Name'; ?></p>
                                         <p class="text-[10px] text-slate-400 truncate"><?php echo $c['email']; ?></p>
                                     </div>
-                                    <form method="POST" onsubmit="return confirm('Delete contact?');" class="inline">
+                                    <form method="POST" onsubmit="return confirm('Delete contact?');" class="inline opacity-0 group-hover:opacity-100 transition-all">
                                         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                         <input type="hidden" name="action" value="delete_contact">
                                         <input type="hidden" name="contact_id" value="<?php echo $c['id']; ?>">
@@ -194,16 +217,50 @@ include '../includes/dashboard-head.php';
                                     </form>
                                 </div>
                             <?php endforeach; ?>
+                            <?php if (empty($contacts)): ?>
+                                <p class="text-center text-xs text-slate-400 py-4 italic">No contacts added yet.</p>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Modals -->
+        <!-- Design Template Modal -->
+        <div x-show="showTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">New Email Template</h3>
+                    <button @click="showTpl = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                        <input type="hidden" name="action" value="save_template">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Template Name</label>
+                            <input type="text" name="name" required placeholder="e.g. Monthly Newsletter" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Subject</label>
+                            <input type="text" name="subject" required placeholder="Subject line for recipients" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message Body (HTML Supported)</label>
+                            <textarea name="body" required rows="10" placeholder="Hello, we have a new update..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Save Template</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Template Modal -->
         <div x-show="showEditTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Template</h3>
                     <button @click="showEditTpl = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
@@ -214,38 +271,28 @@ include '../includes/dashboard-head.php';
                         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="edit_template">
                         <input type="hidden" name="template_id" :value="editingTpl.id">
-                        <input type="text" name="name" x-model="editingTpl.name" required placeholder="Internal Template Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
-                        <input type="text" name="subject" x-model="editingTpl.subject" required placeholder="Email Subject Line" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        <textarea name="body" x-model="editingTpl.body" required rows="10" placeholder="HTML or Plain Text Message Body" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Template Name</label>
+                            <input type="text" name="name" x-model="editingTpl.name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Subject</label>
+                            <input type="text" name="subject" x-model="editingTpl.subject" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message Body</label>
+                            <textarea name="body" x-model="editingTpl.body" required rows="10" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
+                        </div>
                         <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Update Template</button>
                     </form>
                 </div>
             </div>
         </div>
-        <div x-show="showTpl" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div class="bg-white rounded-[2rem] w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-200">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-900">Design Template</h3>
-                    <button @click="showTpl = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-                <div class="p-8">
-                    <form method="POST" class="space-y-6">
-                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-                        <input type="hidden" name="action" value="save_template">
-                        <input type="text" name="name" required placeholder="Internal Template Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
-                        <input type="text" name="subject" required placeholder="Email Subject Line" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        <textarea name="body" required rows="10" placeholder="HTML or Plain Text Message Body" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-sm"></textarea>
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Save Template</button>
-                    </form>
-                </div>
-            </div>
-        </div>
 
+        <!-- New Group Modal -->
         <div x-show="showGroup" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">New Campaign Group</h3>
                     <button @click="showGroup = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
@@ -260,19 +307,20 @@ include '../includes/dashboard-head.php';
                             <input type="text" name="group_name" required placeholder="e.g. Q1 Newsletter Leads" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-bold">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Emails (Comma or Newline separated)</label>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Bulk Email Import (Comma or Newline separated)</label>
                             <textarea name="emails" rows="6" placeholder="john@example.com, jane@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono text-xs"></textarea>
                         </div>
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Create Group & Import</button>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Create Group & Import</button>
                     </form>
                 </div>
             </div>
         </div>
 
+        <!-- Add Contact Modal -->
         <div x-show="showContact" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-900">Add Contact</h3>
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h3 class="font-bold text-slate-900">Add Marketing Contact</h3>
                     <button @click="showContact = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
@@ -281,8 +329,14 @@ include '../includes/dashboard-head.php';
                     <form method="POST" class="space-y-6">
                         <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="add_contact">
-                        <input type="text" name="full_name" required placeholder="Contact Name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
-                        <input type="email" name="email" required placeholder="Email Address" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
+                            <input type="text" name="full_name" placeholder="John Doe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                            <input type="email" name="email" required placeholder="contact@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Group</label>
                             <select name="group_id" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -291,15 +345,16 @@ include '../includes/dashboard-head.php';
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all">Save Contact</button>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Save Contact</button>
                     </form>
                 </div>
             </div>
         </div>
 
+        <!-- Launch Campaign Modal -->
         <div x-show="showSend" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
-                <div class="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Send Campaign</h3>
                     <button @click="showSend = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
@@ -327,9 +382,9 @@ include '../includes/dashboard-head.php';
                             </select>
                         </div>
                         <div class="p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                            <p class="text-[10px] text-amber-700 font-medium">Emails will be delivered individually to respect recipient privacy.</p>
+                            <p class="text-[10px] text-amber-700 font-medium">Warning: This operation will send individual emails to the entire selected audience. Ensure SMTP settings are verified.</p>
                         </div>
-                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Launch Campaign</button>
+                        <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Launch Bulk Campaign</button>
                     </form>
                 </div>
             </div>
