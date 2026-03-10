@@ -51,7 +51,9 @@ function init_payhub_gateway_class() {
 
         public function payment_scripts() {
             if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) return;
-            wp_enqueue_script( 'payhub_inline', '<?php echo BASE_URL; ?>inline.js', array(), '1.0.0', true );
+            // Note: Replace with your actual production URL
+            $base_url = "https://payhub.com/";
+            wp_enqueue_script( 'payhub_inline', $base_url . 'inline.js', array(), '1.0.0', true );
         }
 
         public function process_payment( $order_id ) {

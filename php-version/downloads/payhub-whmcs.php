@@ -22,8 +22,8 @@ function payhub_config() {
 }
 
 function payhub_link($params) {
-    // Note: This module is intended for production. Replace BASE_URL with your actual domain if needed.
-    $baseUrl = "https://payhub.com";
+    // Determine Base URL dynamically if possible, or use configured system URL
+    $baseUrl = rtrim($params['systemurl'], '/');
 
     $code = '<script src="' . $baseUrl . '/inline.js"></script>
     <form onsubmit="payWithPayhub(); return false;">

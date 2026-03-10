@@ -146,6 +146,7 @@ include '../includes/dashboard-head.php';
                                                 <i data-lucide="edit-2" class="w-4 h-4"></i>
                                             </button>
                                             <form method="POST" onsubmit="return confirm('Delete this staff member?');" class="inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                 <input type="hidden" name="action" value="delete_staff">
                                                 <input type="hidden" name="staff_id" value="<?php echo $s['id']; ?>">
                                                 <button type="submit" class="text-slate-400 hover:text-red-600">
@@ -177,6 +178,7 @@ include '../includes/dashboard-head.php';
                                 <button @click="editingRole = {id:<?php echo $r['id']; ?>, name:'<?php echo addslashes($r['name']); ?>', permissions:<?php echo $r['permissions'] ?: '[]'; ?>}; showEditRole = true;" class="text-slate-400 hover:text-indigo-600">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
+                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <form method="POST" onsubmit="return confirm('Delete this role?');" class="inline">
                                     <input type="hidden" name="action" value="delete_role">
                                     <input type="hidden" name="role_id" value="<?php echo $r['id']; ?>">

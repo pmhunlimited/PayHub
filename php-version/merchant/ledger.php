@@ -75,42 +75,6 @@ include '../includes/dashboard-head.php';
                                         </td>
                                     </tr>
                                 </template>
-                                <?php if (false): ?>
-                                <?php foreach ($ledger as $entry): ?>
-                                    <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="text-sm font-bold text-slate-900"><?php echo date('M d, Y', strtotime($entry['created_at'])); ?></div>
-                                            <div class="text-[10px] text-slate-400 font-medium"><?php echo date('h:i A', strtotime($entry['created_at'])); ?></div>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <p class="text-sm text-slate-600 font-medium"><?php echo $entry['description']; ?></p>
-                                        </td>
-                                        <td class="px-6 py-4">
-                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider
-                                                <?php echo $entry['category'] === 'payout' ? 'bg-amber-50 text-amber-600' : ($entry['category'] === 'refund' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'); ?>">
-                                                <?php echo $entry['category']; ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="text-sm font-bold <?php echo $entry['type'] === 'credit' ? 'text-emerald-600' : 'text-red-600'; ?>">
-                                                <?php echo $entry['type'] === 'credit' ? '+' : '-'; ?> <?php echo formatCurrency($entry['amount']); ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <span class="text-sm font-mono font-bold text-slate-900"><?php echo formatCurrency($entry['balance_after']); ?></span>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                                <?php if (empty($ledger)): ?>
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-20 text-center">
-                                            <div class="flex flex-col items-center gap-2 opacity-30">
-                                                <i data-lucide="file-text" class="w-12 h-12"></i>
-                                                <p class="font-bold">No transactions logged yet</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
                             </tbody>
                         </table>
                     </div>

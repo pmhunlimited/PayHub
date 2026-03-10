@@ -47,6 +47,7 @@ include 'includes/header.php';
                 <div class="space-y-2">
                     <a href="#initialize" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Initialize Transaction</a>
                     <a href="#verify" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Verify Transaction</a>
+                    <a href="#fetch-va" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Fetch Virtual Accounts</a>
                 </div>
             </div>
             <div>
@@ -117,7 +118,7 @@ include 'includes/header.php';
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Start a transaction from your server to get a checkout URL.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
-                <pre>curl <?php echo BASE_URL; ?>api/transaction/initialize \
+                <pre>curl <?php echo BASE_URL; ?>api/transaction/initialize.php \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d email="customer@email.com" \
 -d amount=500000</pre>
@@ -131,7 +132,19 @@ include 'includes/header.php';
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Confirm the status of a transaction using its reference.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
-                <pre>curl <?php echo BASE_URL; ?>api/transaction/verify/:reference \
+                <pre>curl <?php echo BASE_URL; ?>api/transaction/verify.php?reference=:reference \
+-H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
+            </div>
+        </section>
+
+        <section id="fetch-va" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">GET</span>
+                <h2 class="text-2xl font-bold text-slate-900">Fetch Virtual Accounts</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">List all active dedicated virtual accounts assigned to your customers.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <pre>curl <?php echo BASE_URL; ?>api/virtual-accounts.php \
 -H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
             </div>
         </section>
