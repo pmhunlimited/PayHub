@@ -1,5 +1,5 @@
 <?php
-// php-version/payouts.php
+// php-version/merchant/payouts.php
 require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
@@ -13,30 +13,48 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
-    $amount = (float)$_POST['amount'];
-    if ($amount > 0 && $amount <= $user['wallet_balance']) {
-        if ($user['settlement_bank'] && $user['settlement_account_number']) {
-            $db->beginTransaction();
-            try {
-                // Create payout record
-                $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
-                $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
-                
-                // Log ledger entry (this also deducts the balance)
-                log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request to " . $user['settlement_bank']);
-
-                $db->commit();
-                $success_msg = "Payout request submitted successfully.";
-                $user = getAuthUser(); // Refresh user data
-            } catch (Exception $e) {
-                $db->rollBack();
-                $error_msg = "Payout failed: " . $e->getMessage();
-            }
-        } else {
-            $error_msg = "Please set up your settlement bank details in settings first.";
-        }
+    // Check for suspension
+    if ($user['is_suspended']) {
+        $error_msg = "Your account is suspended. Payout requests are disabled.";
     } else {
-        $error_msg = "Invalid amount or insufficient balance.";
+        // Brute-force protection: check for recent payout attempts
+        $stmt = $db->prepare("SELECT COUNT(*) as recent_attempts FROM payouts WHERE user_id = ? AND request_date > DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+        $stmt->execute([$user['id']]);
+        $recent = $stmt->fetch()['recent_attempts'];
+
+        if ($recent >= 5) {
+            // Auto-suspend for suspicious activity
+            $stmt = $db->prepare("UPDATE users SET is_suspended = 1, kyc_notes = CONCAT(IFNULL(kyc_notes,''), '\nAuto-suspended: Too many payout requests (5+) in 1 hour.') WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $error_msg = "Suspicious activity detected. Your account has been suspended for review.";
+            $user['is_suspended'] = 1;
+        } else {
+            $amount = (float)$_POST['amount'];
+            if ($amount > 0 && $amount <= $user['wallet_balance']) {
+                if ($user['settlement_bank'] && $user['settlement_account_number']) {
+                    $db->beginTransaction();
+                    try {
+                        // Create payout record
+                        $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
+                        $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
+
+                        // Log ledger entry (this also deducts the balance)
+                        log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request to " . $user['settlement_bank']);
+
+                        $db->commit();
+                        $success_msg = "Payout request submitted successfully.";
+                        $user = getAuthUser(); // Refresh user data
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $error_msg = "Payout failed: " . $e->getMessage();
+                    }
+                } else {
+                    $error_msg = "Please set up your settlement bank details in settings first.";
+                }
+            } else {
+                $error_msg = "Invalid amount or insufficient balance.";
+            }
+        }
     }
 }
 
@@ -113,7 +131,7 @@ include '../includes/dashboard-head.php';
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo !$user['settlement_bank'] ? 'disabled' : ''; ?>
+                                <?php echo (!$user['settlement_bank'] || $user['is_suspended']) ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
                                 Confirm Withdrawal

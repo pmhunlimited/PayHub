@@ -155,13 +155,14 @@ include 'includes/header.php';
         </section>
 
         <section id="woocommerce" class="mb-20 scroll-mt-24">
-            <div class="p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex flex-col md:flex-row items-center gap-8">
+            <div class="p-8 bg-emerald-50 rounded-[2.5rem] border border-emerald-100 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+                <div class="absolute top-4 right-4 bg-emerald-600 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Beta / Skeleton</div>
                 <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm">
                     <i class="lucide-shopping-cart text-emerald-600 w-10 h-10"></i>
                 </div>
                 <div class="flex-1 text-center md:text-left">
                     <h3 class="text-2xl font-bold text-emerald-900 mb-2">WooCommerce Plugin</h3>
-                    <p class="text-emerald-700 mb-6">Accept payments on your WordPress store in minutes. No coding required.</p>
+                    <p class="text-emerald-700 mb-6">Accept payments on your WordPress store. This is a reference implementation.</p>
                     <a href="downloads/payhub-woocommerce.zip" class="inline-flex items-center gap-2 bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200">
                         <i class="lucide-download w-4 h-4"></i> Download Plugin
                     </a>
@@ -170,13 +171,14 @@ include 'includes/header.php';
         </section>
 
         <section id="whmcs" class="mb-20 scroll-mt-24">
-            <div class="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex flex-col md:flex-row items-center gap-8">
+            <div class="p-8 bg-blue-50 rounded-[2.5rem] border border-blue-100 flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
+                <div class="absolute top-4 right-4 bg-blue-600 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest">Beta / Skeleton</div>
                 <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm">
                     <i class="lucide-server text-blue-600 w-10 h-10"></i>
                 </div>
                 <div class="flex-1 text-center md:text-left">
                     <h3 class="text-2xl font-bold text-blue-900 mb-2">WHMCS Payment Module</h3>
-                    <p class="text-blue-700 mb-6">Automate your hosting business with the Payhub WHMCS gateway module.</p>
+                    <p class="text-blue-700 mb-6">Automate your hosting business. This is a reference implementation.</p>
                     <a href="downloads/payhub-whmcs.zip" class="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
                         <i class="lucide-download w-4 h-4"></i> Download Module
                     </a>
