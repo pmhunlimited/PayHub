@@ -92,7 +92,7 @@ include 'includes/header.php';
 <script>
 function payInvoice() {
     let handler = PaystackPop.setup({
-        key: '<?php echo $inv['is_test_mode'] ? ($inv['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($inv['public_key'] ?: getConfig('paystack_public_key')); ?>',
+        key: '<?php echo $inv['is_test_mode'] == 1 ? ($inv['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($inv['public_key'] ?: getConfig('paystack_public_key')); ?>',
         email: '<?php echo $inv['customer_email']; ?>',
         amount: <?php echo $inv['amount'] * 100; ?>,
         ref: 'INV_<?php echo $inv['reference']; ?>_' + Math.floor(Math.random() * 1000000),

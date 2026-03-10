@@ -17,29 +17,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
     if ($_POST['action'] === 'create_plan') {
         $name = sanitize($_POST['plan_name']);
-    $amount = (float)$_POST['amount'];
-    $interval = sanitize($_POST['interval']);
-    $description = sanitize($_POST['description']);
+        $amount = (float)$_POST['amount'];
+        $interval = sanitize($_POST['interval']);
+        $description = sanitize($_POST['description']);
 
-    // 1. Create Plan on Paystack
-    $paystack_res = paystack_call('plan', 'POST', [
-        'name' => $name,
-        'amount' => $amount * 100,
-        'interval' => $interval,
-        'description' => $description
-    ]);
+        // 1. Create Plan on Paystack
+        $paystack_res = paystack_call('plan', 'POST', [
+            'name' => $name,
+            'amount' => $amount * 100,
+            'interval' => $interval,
+            'description' => $description
+        ]);
 
-    if ($paystack_res && $paystack_res['status']) {
-        $plan_code = $paystack_res['data']['plan_code'];
-        // Store in DB
-        $stmt = $db->prepare("INSERT INTO subscriptions (user_id, plan_name, amount, `interval`, description, plan_code, status) VALUES (?, ?, ?, ?, ?, ?, 'active')");
-        if ($stmt->execute([$user['id'], $name, $amount, $interval, $description, $plan_code])) {
-            $success_msg = "Subscription plan created and synced with Paystack!";
+        if ($paystack_res && $paystack_res['status']) {
+            $plan_code = $paystack_res['data']['plan_code'];
+            // Store in DB
+            $stmt = $db->prepare("INSERT INTO subscriptions (user_id, plan_name, amount, `interval`, description, plan_code, status) VALUES (?, ?, ?, ?, ?, ?, 'active')");
+            if ($stmt->execute([$user['id'], $name, $amount, $interval, $description, $plan_code])) {
+                $success_msg = "Subscription plan created and synced with Paystack!";
+            } else {
+                $error_msg = "Plan created on Paystack but failed to save locally.";
+            }
         } else {
-            $error_msg = "Plan created on Paystack but failed to save locally.";
+            $error_msg = "Failed to create plan on Paystack: " . ($paystack_res['message'] ?? 'Unknown error');
         }
-    } else {
-        $error_msg = "Failed to create plan on Paystack: " . ($paystack_res['message'] ?? 'Unknown error');
     }
 }
 
