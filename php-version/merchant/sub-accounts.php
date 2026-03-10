@@ -85,6 +85,7 @@ include '../includes/dashboard-head.php';
                         <h3 class="font-bold text-xl text-slate-900 mb-1"><?php echo $acc['business_name']; ?></h3>
                         <p class="text-sm text-slate-400 mb-8"><?php echo $acc['email']; ?></p>
                         <form method="POST">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                             <input type="hidden" name="action" value="switch_account">
                             <input type="hidden" name="sub_id" value="<?php echo $acc['id']; ?>">
                             <button type="submit" class="w-full py-3 bg-slate-50 text-slate-600 font-bold rounded-xl hover:bg-indigo-600 hover:text-white transition-all text-sm">Switch to Account</button>

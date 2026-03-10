@@ -188,6 +188,7 @@ include '../includes/dashboard-head.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <form method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                             <input type="hidden" name="action" value="toggle_payout_review">
                                             <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                             <input type="hidden" name="status" value="<?php echo $m['require_payout_review'] ? 0 : 1; ?>">
@@ -214,6 +215,7 @@ include '../includes/dashboard-head.php';
                                                     <i data-lucide="key" class="w-4 h-4"></i>
                                                 </button>
                                                 <form method="POST" class="inline">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="suspend_merchant">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <input type="hidden" name="status" value="<?php echo $m['is_suspended'] ? 0 : 1; ?>">
@@ -245,6 +247,7 @@ include '../includes/dashboard-head.php';
                                                     <button type="submit" class="text-emerald-600 font-bold text-xs hover:underline">Restore</button>
                                                 </form>
                                                 <form method="POST" class="inline" onsubmit="return confirm('PERMANENTLY DELETE this merchant and all associated data? This cannot be undone.');">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="permanent_delete">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <button type="submit" class="text-red-600 font-bold text-xs hover:underline">Delete Permanently</button>
@@ -272,6 +275,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <p class="text-sm text-slate-500 mb-6">Enter new password for <span class="text-slate-900 font-bold" x-text="merchantName"></span></p>
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="reset_password">
                         <input type="hidden" name="merchant_id" :value="merchantId">
                         <input type="password" name="password" required placeholder="New secure password" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none">

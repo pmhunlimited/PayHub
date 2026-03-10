@@ -80,6 +80,7 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4 text-xs text-slate-400"><?php echo (isset($a['created_at']) && $a['created_at']) ? date('M d, Y', strtotime($a['created_at'])) : 'Recently'; ?></td>
                                     <td class="px-6 py-4 text-right">
                                         <form method="POST" class="inline" onsubmit="return confirm('Delete this record?');">
+                                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                             <input type="hidden" name="action" value="delete_account">
                                             <input type="hidden" name="account_id" value="<?php echo $a['id']; ?>">
                                             <button type="submit" class="text-red-400 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>

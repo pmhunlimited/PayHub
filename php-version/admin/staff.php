@@ -180,6 +180,7 @@ include '../includes/dashboard-head.php';
                                 </button>
                                     <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <form method="POST" onsubmit="return confirm('Delete this role?');" class="inline">
+                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                     <input type="hidden" name="action" value="delete_role">
                                     <input type="hidden" name="role_id" value="<?php echo $r['id']; ?>">
                                     <button type="submit" class="text-slate-400 hover:text-red-600">
