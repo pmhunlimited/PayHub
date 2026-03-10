@@ -47,28 +47,22 @@ if ($paystack_res && $paystack_res['status']) {
 // Calculate success rate
 $success_rate = $total_tx > 0 ? number_format(($success_tx / $total_tx) * 100, 1) : '100';
 
-// Fetch Platform Volume for chart (last 7 days)
-$revenueRaw = [];
+// Fetch Platform Activity Report (last 7 days)
+$activityReport = [];
 try {
     $stmt = $db->query("
         SELECT
             DATE(created_at) as date,
-            SUM(amount) as revenue
+            COUNT(*) as total_count,
+            SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) as success_count,
+            SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as revenue
         FROM transactions
-        WHERE status = 'success'
         GROUP BY DATE(created_at)
         ORDER BY date DESC
         LIMIT 7
     ");
-    $revenueRaw = array_reverse($stmt->fetchAll());
+    $activityReport = $stmt->fetchAll();
 } catch (\Throwable $e) {}
-$chartLabels = [];
-$chartData = [];
-$days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-foreach ($revenueRaw as $r) {
-    $chartLabels[] = $days[date('w', strtotime($r['date']))];
-    $chartData[] = (float)$r['revenue'];
-}
 
 // Fetch Detailed Transactions for Report
 $allTransactions = [];
@@ -150,10 +144,29 @@ include '../includes/dashboard-head.php';
 
             <div class="grid lg:grid-cols-3 gap-8 mb-8">
                 <div class="lg:col-span-2 space-y-8">
-                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm">
+                    <div class="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                         <h3 class="font-bold text-slate-900 mb-6">System Activity (Last 7 Days)</h3>
-                        <div class="h-[350px]">
-                            <canvas id="activityChart"></canvas>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead>
+                                    <tr class="bg-slate-50/50">
+                                        <th class="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
+                                        <th class="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Successful</th>
+                                        <th class="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Tx</th>
+                                        <th class="px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Daily GTV</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    <?php foreach ($activityReport as $row): ?>
+                                        <tr class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-4 py-3 text-sm font-medium text-slate-600"><?php echo date('M d, Y', strtotime($row['date'])); ?></td>
+                                            <td class="px-4 py-3 text-sm font-bold text-emerald-600"><?php echo $row['success_count']; ?></td>
+                                            <td class="px-4 py-3 text-sm font-medium text-slate-400"><?php echo $row['total_count']; ?></td>
+                                            <td class="px-4 py-3 text-sm font-bold text-slate-900"><?php echo formatCurrency($row['revenue'] ?? 0); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -214,15 +227,21 @@ include '../includes/dashboard-head.php';
             </div>
 
             <!-- Transaction Report -->
-            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-8">
-                <div class="p-8 border-b border-slate-100 flex items-center justify-between">
+            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden mb-8" x-data="{ search: '' }">
+                <div class="p-8 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h3 class="font-bold text-lg text-slate-900">Live Transaction Report</h3>
                         <p class="text-sm text-slate-500">Real-time feed of payments across all merchants</p>
                     </div>
-                    <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors">
-                        <i data-lucide="download" class="w-5 h-5"></i>
-                    </button>
+                    <div class="flex items-center gap-3">
+                        <div class="relative w-64">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" x-model="search" placeholder="Quick search..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        </div>
+                        <a href="transactions.php" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="View More">
+                            <i data-lucide="external-link" class="w-5 h-5"></i>
+                        </a>
+                    </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
@@ -237,7 +256,7 @@ include '../includes/dashboard-head.php';
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <template x-for="tx in transactions" :key="tx.id">
+                            <template x-for="tx in transactions.filter(t => !search || t.reference.toLowerCase().includes(search.toLowerCase()) || t.customer_email.toLowerCase().includes(search.toLowerCase()) || t.business_name.toLowerCase().includes(search.toLowerCase()))" :key="tx.id">
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-8 py-4 font-mono text-xs text-slate-500" x-text="tx.reference"></td>
                                     <td class="px-8 py-4">
@@ -324,56 +343,6 @@ include '../includes/dashboard-head.php';
     </main>
 <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const ctx = document.getElementById('activityChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: <?php echo json_encode($chartLabels); ?>,
-                    datasets: [{
-                        label: 'GTV',
-                        data: <?php echo json_encode($chartData); ?>,
-                        borderColor: '#4f46e5',
-                        borderWidth: 3,
-                        fill: true,
-                        backgroundColor: 'rgba(79, 70, 229, 0.05)',
-                        tension: 0.4,
-                        pointRadius: 0,
-                        pointHoverRadius: 6,
-                        pointHoverBackgroundColor: '#4f46e5',
-                        pointHoverBorderColor: '#fff',
-                        pointHoverBorderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#fff',
-                            titleColor: '#1e293b',
-                            bodyColor: '#4f46e5',
-                            bodyFont: { weight: 'bold' },
-                            padding: 12,
-                            borderColor: '#f1f5f9',
-                            borderWidth: 1,
-                            displayColors: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { color: '#f1f5f9', drawBorder: false },
-                            ticks: { color: '#94a3b8', font: { size: 11 } }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: '#94a3b8', font: { size: 11 } }
-                        }
-                    }
-                }
-            });
-
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }

@@ -26,7 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     $stmt = $db->prepare("INSERT INTO invoices (user_id, reference, customer_name, customer_email, amount, due_date, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
         if ($stmt->execute([$user['id'], $ref, $customer_name, $customer_email, $amount, $due_date, $description])) {
-            $success_msg = "Invoice created successfully!";
+            $link = BASE_URL . "invoice.php?ref=" . $ref;
+            $body = "<h2>New Invoice from {$user['business_name']}</h2>
+                     <p>You have a new invoice for <strong>".formatCurrency($amount)."</strong>.</p>
+                     <p>Due Date: " . date('M d, Y', strtotime($due_date)) . "</p>
+                     <p><a href='$link' style='display:inline-block; padding:12px 24px; background:#4f46e5; color:white; border-radius:8px; text-decoration:none; font-weight:bold;'>View & Pay Invoice</a></p>";
+            sendEmail($customer_email, "Invoice from {$user['business_name']}", $body);
+            $success_msg = "Invoice created and sent successfully!";
         } else {
             $error_msg = "Failed to create invoice.";
         }
@@ -118,9 +124,12 @@ include '../includes/dashboard-head.php';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right">
+                                            <div class="flex items-center justify-end gap-2">
+                                                <button onclick="const link = '<?php echo BASE_URL . "invoice.php?ref=" . $inv['reference']; ?>'; navigator.clipboard.writeText(link); alert('Invoice link copied!');" class="p-2 text-slate-400 hover:text-indigo-600 transition-all hover:bg-indigo-50 rounded-lg" title="Copy Invoice Link">
+                                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                                </button>
                                             <?php if ($inv['status'] === 'pending'): ?>
-                                                <div class="flex items-center justify-end gap-2">
-                                                    <button @click="editingInv = <?php echo htmlspecialchars(json_encode($inv)); ?>; showEdit = true;" class="p-2 text-slate-400 hover:text-indigo-600 transition-all hover:bg-indigo-50 rounded-lg" title="Edit Invoice">
+                                                    <button @click="editingInv = <?php echo htmlspecialchars(json_encode($inv), ENT_QUOTES, 'UTF-8'); ?>; showEdit = true;" class="p-2 text-slate-400 hover:text-indigo-600 transition-all hover:bg-indigo-50 rounded-lg" title="Edit Invoice">
                                                         <i data-lucide="edit-3" class="w-4 h-4"></i>
                                                     </button>
                                                     <form method="POST" class="inline" onsubmit="return confirm('Delete this invoice?');">

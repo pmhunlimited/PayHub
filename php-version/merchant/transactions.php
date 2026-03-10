@@ -63,7 +63,7 @@ include '../includes/dashboard-head.php';
 <body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
 
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ selectedTx: null, timeline: [], loadingTimeline: false }">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ selectedTx: null, timeline: [], loadingTimeline: false, showDetails: false, showTimeline: false }">
         <?php include '../includes/topbar.php'; ?>
 
         <div class="flex-1 overflow-y-auto p-8">
@@ -122,7 +122,14 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-2">
                                             <button
-                                                @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx)); ?>; loadingTimeline = true; fetch('../api-reference.php?action=get_timeline&id=' + selectedTx.id).then(r => r.json()).then(data => { timeline = data; loadingTimeline = false; })"
+                                                @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx), ENT_QUOTES, 'UTF-8'); ?>; showDetails = true;"
+                                                class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                                title="View Details"
+                                            >
+                                                <i data-lucide="eye" class="w-4 h-4"></i>
+                                            </button>
+                                            <button
+                                                @click="selectedTx = <?php echo htmlspecialchars(json_encode($tx), ENT_QUOTES, 'UTF-8'); ?>; showTimeline = true; loadingTimeline = true; fetch('../api-reference.php?action=get_timeline&id=' + selectedTx.id).then(r => r.json()).then(data => { timeline = data; loadingTimeline = false; })"
                                                 class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                                 title="View Timeline"
                                             >
@@ -152,15 +159,67 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
 
+        <!-- Details Modal -->
+        <div x-show="showDetails" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-3xl border border-slate-200 w-full max-w-lg overflow-hidden shadow-2xl">
+                <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div>
+                        <h3 class="font-bold text-slate-900">Transaction Details</h3>
+                        <p class="text-xs text-slate-500 font-mono mt-1" x-text="selectedTx?.reference"></p>
+                    </div>
+                    <button @click="showDetails = false; selectedTx = null;" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div class="p-8">
+                    <div class="grid grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Customer</p>
+                            <p class="font-bold text-slate-900 truncate" x-text="selectedTx?.customer_email"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" :class="selectedTx?.status === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'" x-text="selectedTx?.status"></span>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Amount</p>
+                            <p class="text-xl font-bold text-slate-900" x-text="'₦' + parseFloat(selectedTx?.amount).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Fees</p>
+                            <p class="text-sm font-bold text-red-500" x-text="'-₦' + parseFloat(selectedTx?.fee_amount).toLocaleString(undefined, {minimumFractionDigits: 2})"></p>
+                        </div>
+                    </div>
+                    <div class="space-y-4 pt-8 border-t border-slate-100">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Method</span>
+                            <span class="text-sm font-bold text-slate-900 capitalize" x-text="selectedTx?.payment_method?.replace('_', ' ')"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Gateway Ref</span>
+                            <span class="text-sm font-mono text-slate-600" x-text="selectedTx?.gateway_reference || 'N/A'"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Date</span>
+                            <span class="text-sm font-bold text-slate-900" x-text="new Date(selectedTx?.created_at).toLocaleString()"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <button @click="showDetails = false; selectedTx = null;" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Timeline Modal -->
-        <div x-show="selectedTx" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showTimeline" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-3xl border border-slate-200 w-full max-w-lg overflow-hidden shadow-2xl">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>
                         <h3 class="font-bold text-slate-900">Transaction Timeline</h3>
                         <p class="text-xs text-slate-500 font-mono mt-1" x-text="selectedTx?.reference"></p>
                     </div>
-                    <button @click="selectedTx = null" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                    <button @click="showTimeline = false; selectedTx = null;" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
@@ -188,7 +247,7 @@ include '../includes/dashboard-head.php';
                     </div>
                 </div>
                 <div class="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-                    <button @click="selectedTx = null" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors">Close</button>
+                    <button @click="showTimeline = false; selectedTx = null;" class="px-6 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 hover:bg-slate-50 transition-colors">Close</button>
                 </div>
             </div>
         </div>
