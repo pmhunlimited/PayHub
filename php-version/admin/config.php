@@ -72,7 +72,26 @@ include '../includes/dashboard-head.php';
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Platform Configuration</h1>
                     <p class="text-slate-500">A powerful key-value store to manage global platform settings</p>
                 </div>
-                <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm">
+            </div>
+
+            <div class="mb-8 p-6 bg-indigo-900 rounded-3xl text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-indigo-300">
+                        <i data-lucide="webhook" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Required Webhook Configuration</h3>
+                        <p class="text-indigo-200 text-xs">Copy this URL to your Paystack Dashboard (Settings -> API Keys & Webhooks)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-black/20 p-3 rounded-xl border border-white/10 w-full md:w-auto">
+                    <code class="text-xs font-mono text-indigo-300 truncate"><?php echo BASE_URL; ?>webhook-paystack.php</code>
+                    <button onclick="navigator.clipboard.writeText('<?php echo BASE_URL; ?>webhook-paystack.php'); alert('Webhook URL copied!');" class="p-2 hover:bg-white/10 rounded-lg transition-colors"><i data-lucide="copy" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+
+            <div class="max-w-7xl">
+                <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm mb-8 w-fit">
                     <div class="flex flex-col">
                         <span class="text-xs font-bold text-slate-900">Global Payout Review</span>
                         <span class="text-[10px] text-slate-500">Force all payouts to be reviewed</span>
@@ -87,7 +106,6 @@ include '../includes/dashboard-head.php';
                         </button>
                     </form>
                 </div>
-            </div>
 
             <div class="grid lg:grid-cols-3 gap-8 max-w-7xl">
                 <div class="lg:col-span-2 space-y-8">

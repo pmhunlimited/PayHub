@@ -58,7 +58,9 @@ function ensure_critical_tables() {
             'users' => "CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, email VARCHAR(255) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, business_name VARCHAR(255), role ENUM('admin', 'merchant') DEFAULT 'merchant', wallet_balance DECIMAL(15, 2) DEFAULT 0.00, is_kyc_verified TINYINT DEFAULT 0, is_suspended TINYINT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'virtual_accounts' => "CREATE TABLE IF NOT EXISTS virtual_accounts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, bank_name VARCHAR(255), account_number VARCHAR(50), account_name VARCHAR(255), customer_email VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'transactions' => "CREATE TABLE IF NOT EXISTS transactions (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, reference VARCHAR(100) UNIQUE, amount DECIMAL(15,2), status VARCHAR(20) DEFAULT 'pending', customer_email VARCHAR(255), payment_method VARCHAR(50) DEFAULT 'card', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
-            'ledger' => "CREATE TABLE IF NOT EXISTS ledger (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, amount DECIMAL(15, 2), type ENUM('credit', 'debit'), category VARCHAR(50), description TEXT, balance_after DECIMAL(15, 2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB"
+            'ledger' => "CREATE TABLE IF NOT EXISTS ledger (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, amount DECIMAL(15, 2), type ENUM('credit', 'debit'), category VARCHAR(50), description TEXT, balance_after DECIMAL(15, 2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'disputes' => "CREATE TABLE IF NOT EXISTS disputes (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, transaction_id INT, reason TEXT, status ENUM('open', 'won', 'lost') DEFAULT 'open', evidence_path VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'customers' => "CREATE TABLE IF NOT EXISTS customers (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, full_name VARCHAR(255), email VARCHAR(255), phone VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY `merchant_customer` (`user_id`, `email`)) ENGINE=InnoDB"
         ];
         foreach ($essential_tables as $sql) { $db->exec($sql); }
 
@@ -92,7 +94,9 @@ function ensure_critical_tables() {
                 'customer_email' => "VARCHAR(255)",
                 'payment_method' => "VARCHAR(50) DEFAULT 'card'",
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
-                'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00"
+                'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'currency' => "VARCHAR(10) DEFAULT 'NGN'",
+                'gateway_reference' => "VARCHAR(100)"
             ]
         ];
         foreach ($cols as $table => $columns) {

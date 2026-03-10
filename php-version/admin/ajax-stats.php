@@ -47,11 +47,16 @@ if ($action === 'stats') {
     $txs = [];
     try {
         $stmt = $db->query("SELECT t.*, u.business_name FROM transactions t JOIN users u ON t.user_id = u.id ORDER BY t.created_at DESC LIMIT 10");
-        $txs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (\Throwable $e) {}
-    foreach ($txs as &$tx) {
-        $tx['amount_formatted'] = formatCurrency($tx['amount']);
-        $tx['created_at_formatted'] = date('H:i:s d M', strtotime($tx['created_at']));
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($results) {
+            foreach ($results as $tx) {
+                $tx['amount_formatted'] = formatCurrency($tx['amount']);
+                $tx['created_at_formatted'] = date('H:i:s d M', strtotime($tx['created_at']));
+                $txs[] = $tx;
+            }
+        }
+    } catch (\Throwable $e) {
+        error_log("AJAX Transactions Error: " . $e->getMessage());
     }
     echo json_encode($txs);
 }

@@ -79,24 +79,7 @@ try {
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden"
-      x-data="{
-          mobileMenuOpen: false,
-          selectedTx: null,
-          stats: {
-              total_gtv: '<?php echo formatCurrency($total_gtv); ?>',
-              active_merchants: '<?php echo $active_merchants; ?>',
-              success_rate: '<?php echo $success_rate; ?>%',
-              total_va: '<?php echo $total_va; ?>',
-              pending_kyc: '<?php echo $pending_kyc; ?>'
-          },
-          transactions: <?php echo json_encode($allTransactions); ?>,
-          updateStats() {
-              fetch('ajax-stats.php?action=stats').then(r => r.json()).then(d => this.stats = d);
-              fetch('ajax-stats.php?action=transactions').then(r => r.json()).then(d => this.transactions = d);
-          }
-      }"
-      x-init="setInterval(() => updateStats(), 10000)">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="adminDashboardView">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -132,19 +115,40 @@ include '../includes/dashboard-head.php';
                 </div>
             </div>
 
-            <div class="mb-8 p-6 bg-slate-900 rounded-[2rem] text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
-                <div class="flex items-center gap-4">
-                    <div class="w-14 h-14 bg-indigo-500/20 rounded-2xl flex items-center justify-center">
-                        <i data-lucide="wallet" class="text-indigo-400 w-8 h-8"></i>
+            <div class="mb-8 grid md:grid-cols-2 gap-6">
+                <div class="p-6 bg-slate-900 rounded-[2rem] text-white flex items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-indigo-500/20 rounded-2xl flex items-center justify-center text-indigo-400">
+                            <i data-lucide="wallet" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold">Gateway Balance</h3>
+                            <p class="text-indigo-300 text-[10px] uppercase font-bold tracking-wider">Paystack NGN</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-lg font-bold">Paystack Gateway Balance</h3>
-                        <p class="text-indigo-300 text-sm">Platform-wide funds available for settlements</p>
+                    <div class="text-right">
+                        <p class="text-2xl font-bold text-white"><?php echo formatCurrency($paystack_balance); ?></p>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase mt-1">Settlement Pool</p>
                     </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-3xl font-bold text-white"><?php echo formatCurrency($paystack_balance); ?></p>
-                    <p class="text-[10px] text-indigo-400 font-bold uppercase tracking-widest mt-1">Real-time Balance</p>
+
+                <div class="p-6 bg-indigo-900 rounded-[2rem] text-white flex items-center justify-between gap-6 shadow-xl shadow-indigo-900/10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-indigo-300">
+                            <i data-lucide="webhook" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold">Webhook Status</h3>
+                            <p class="text-indigo-200 text-[10px] uppercase font-bold tracking-wider">Listening for events</p>
+                        </div>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <div class="flex items-center gap-2 bg-black/20 px-2 py-1 rounded text-[9px] font-mono border border-white/10">
+                            <span class="truncate max-w-[120px]"><?php echo BASE_URL; ?>webhook-paystack.php</span>
+                            <button onclick="navigator.clipboard.writeText('<?php echo BASE_URL; ?>webhook-paystack.php'); alert('URL Copied');"><i data-lucide="copy" class="w-3 h-3"></i></button>
+                        </div>
+                        <p class="text-[9px] text-indigo-400 font-bold uppercase">Required Config</p>
+                    </div>
                 </div>
             </div>
 
@@ -171,7 +175,7 @@ include '../includes/dashboard-head.php';
                             </span>
                         </div>
                         <div class="space-y-4">
-                            <template x-for="tx in transactions.slice(0, 5)" :key="tx.id">
+                            <template x-for="tx in (transactions || []).slice(0, 5)" :key="tx.id">
                                 <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-md transition-all duration-300">
                                     <div class="flex items-center gap-4">
                                         <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs"
@@ -237,7 +241,7 @@ include '../includes/dashboard-head.php';
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            <template x-for="tx in transactions" :key="tx.id">
+                            <template x-for="tx in (transactions || [])" :key="tx.id">
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-8 py-4 font-mono text-xs text-slate-500" x-text="tx.reference"></td>
                                     <td class="px-8 py-4">
@@ -323,6 +327,34 @@ include '../includes/dashboard-head.php';
         </div>
     </main>
 <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('adminDashboardView', () => ({
+                mobileMenuOpen: false,
+                selectedTx: null,
+                stats: {
+                    total_gtv: '<?php echo addslashes(formatCurrency($total_gtv)); ?>',
+                    active_merchants: '<?php echo (int)$active_merchants; ?>',
+                    success_rate: '<?php echo addslashes($success_rate); ?>%',
+                    total_va: '<?php echo (int)$total_va; ?>',
+                    pending_kyc: '<?php echo (int)$pending_kyc; ?>'
+                },
+                transactions: <?php echo json_encode($allTransactions ?: []); ?>,
+                updateStats() {
+                    fetch('ajax-stats.php?action=stats')
+                        .then(r => r.json())
+                        .then(d => { if(d && !d.error) this.stats = d; })
+                        .catch(e => console.error('Stats update failed', e));
+                    fetch('ajax-stats.php?action=transactions')
+                        .then(r => r.json())
+                        .then(d => { if(d && !d.error) this.transactions = d; })
+                        .catch(e => console.error('Transactions update failed', e));
+                },
+                init() {
+                    setInterval(() => this.updateStats(), 10000);
+                }
+            }));
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             const ctx = document.getElementById('activityChart').getContext('2d');
             new Chart(ctx, {

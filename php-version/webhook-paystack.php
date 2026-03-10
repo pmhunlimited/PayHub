@@ -60,8 +60,11 @@ if ($event['event'] === 'charge.success') {
         } elseif (isset($data['customer']['dedicated_account'])) {
             $acc_number = $data['customer']['dedicated_account'];
         } elseif (isset($data['authorization']['receiver_bank_account_number'])) {
-            // Some transfer events use this field
             $acc_number = $data['authorization']['receiver_bank_account_number'];
+        } elseif (isset($data['receiver_bank_account_number'])) {
+            $acc_number = $data['receiver_bank_account_number'];
+        } elseif (isset($data['authorization']['account_number'])) {
+            $acc_number = $data['authorization']['account_number'];
         }
 
         if ($acc_number) {

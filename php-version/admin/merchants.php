@@ -112,7 +112,22 @@ include '../includes/dashboard-head.php';
     feeFlat: ''
 }">
     <?php include '../includes/sidebar.php'; ?>
-    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
+        impersonate(id) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '';
+            const action = document.createElement('input');
+            action.type = 'hidden'; action.name = 'action'; action.value = 'impersonate';
+            const merchantId = document.createElement('input');
+            merchantId.type = 'hidden'; merchantId.name = 'merchant_id'; merchantId.value = id;
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden'; csrf.name = 'csrf_token'; csrf.value = '<?php echo csrf_token(); ?>';
+            form.appendChild(action); form.appendChild(merchantId); form.appendChild(csrf);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
             <?php if (isset($success_msg)): ?>
@@ -216,14 +231,9 @@ include '../includes/dashboard-head.php';
                                                         <i data-lucide="<?php echo $m['is_suspended'] ? 'play' : 'pause'; ?>" class="w-4 h-4"></i>
                                                     </button>
                                                 </form>
-                                                <form method="POST" class="inline">
-                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
-                                                    <input type="hidden" name="action" value="impersonate">
-                                                    <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
-                                                    <button type="submit" class="p-2 bg-slate-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-all" title="Login as Merchant">
-                                                        <i data-lucide="log-in" class="w-4 h-4"></i>
-                                                    </button>
-                                                </form>
+                                                <button @click="impersonate(<?php echo $m['id']; ?>)" class="p-2 bg-slate-50 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-all" title="Login as Merchant">
+                                                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                                                </button>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Move this merchant to deleted list?');">
                                                     <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="soft_delete">
