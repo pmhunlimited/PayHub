@@ -90,7 +90,7 @@ include '../includes/dashboard-head.php';
               total_va: '<?php echo $total_va; ?>',
               pending_kyc: '<?php echo $pending_kyc; ?>'
           },
-          transactions: <?php echo json_encode($allTransactions); ?>,
+          transactions: <?php echo htmlspecialchars(json_encode($allTransactions), ENT_QUOTES, 'UTF-8'); ?>,
           updateStats() {
               fetch('ajax-stats.php?action=stats').then(r => r.json()).then(d => this.stats = d);
               fetch('ajax-stats.php?action=transactions').then(r => r.json()).then(d => this.transactions = d);

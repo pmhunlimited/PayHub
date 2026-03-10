@@ -92,7 +92,9 @@ function ensure_critical_tables() {
                 'customer_email' => "VARCHAR(255)",
                 'payment_method' => "VARCHAR(50) DEFAULT 'card'",
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
-                'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00"
+                'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'currency' => "VARCHAR(10) DEFAULT 'NGN'",
+                'gateway_reference' => "VARCHAR(255)"
             ]
         ];
         foreach ($cols as $table => $columns) {
@@ -354,8 +356,18 @@ function sendEmail($to, $subject, $body) {
         $mail->SMTPAuth   = true;
         $mail->Username   = $smtp_user;
         $mail->Password   = $smtp_pass;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+
+        // Auto-select encryption based on port
+        if ($smtp_port == 465) {
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
+        } else {
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        }
         $mail->Port       = $smtp_port;
+
+        // Improve connection robustness
+        $mail->SMTPKeepAlive = true;
+        $mail->Timeout = 30;
 
         // Recipients
         $mail->setFrom($smtp_from, $site_name);
