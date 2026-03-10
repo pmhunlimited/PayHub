@@ -10,7 +10,7 @@ if (!isLoggedIn() || !isAdmin()) {
 
 $db = Database::connect();
 
-$action = $_GET['action'] ?? 'stats';
+$action = sanitize($_GET['action'] ?? 'stats');
 
 if ($action === 'stats') {
     $total_gtv = 0; $active_merchants = 0; $pending_kyc = 0; $total_va = 0; $total_tx = 0; $success_tx = 0;

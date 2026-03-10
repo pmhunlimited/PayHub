@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'update_status') {
         $ticketId = (int)$_POST['ticket_id'];
         $status = sanitize($_POST['status']);
@@ -91,6 +94,7 @@ include '../includes/dashboard-head.php';
                                         <div class="flex gap-2">
                                             <button @click="showReply = true; ticketId = <?php echo $t['id']; ?>; ticketSubject = '<?php echo addslashes($t['subject']); ?>'" class="text-indigo-600 hover:underline text-xs font-bold">Reply</button>
                                             <form method="POST" class="inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                 <input type="hidden" name="action" value="update_status">
                                                 <input type="hidden" name="ticket_id" value="<?php echo $t['id']; ?>">
                                                 <button type="submit" name="status" value="resolved" class="text-emerald-600 hover:underline text-xs font-bold">Resolve</button>
@@ -118,6 +122,7 @@ include '../includes/dashboard-head.php';
                     <p class="text-xs font-bold text-slate-400 uppercase mb-2">Subject</p>
                     <p class="text-sm font-bold text-slate-900 mb-6" x-text="ticketSubject"></p>
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="reply_ticket">
                         <input type="hidden" name="ticket_id" :value="ticketId">
                         <textarea name="message" required rows="6" placeholder="Type your response here..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none"></textarea>

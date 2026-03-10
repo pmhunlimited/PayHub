@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'adjudicate') {
         $disputeId = (int)$_POST['dispute_id'];
         $status = sanitize($_POST['status']);
@@ -72,11 +75,13 @@ include '../includes/dashboard-head.php';
                                         <?php if ($d['status'] === 'open'): ?>
                                             <div class="flex gap-2">
                                                 <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="adjudicate">
                                                     <input type="hidden" name="dispute_id" value="<?php echo $d['id']; ?>">
                                                     <button type="submit" name="status" value="won" class="text-emerald-600 hover:underline text-xs font-bold">Mark Won</button>
                                                 </form>
                                                 <form method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="adjudicate">
                                                     <input type="hidden" name="dispute_id" value="<?php echo $d['id']; ?>">
                                                     <button type="submit" name="status" value="lost" class="text-red-600 hover:underline text-xs font-bold">Mark Lost</button>

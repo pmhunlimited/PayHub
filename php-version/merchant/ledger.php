@@ -14,7 +14,7 @@ $ledger = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false, search: '' }">
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
@@ -32,10 +32,11 @@ include '../includes/dashboard-head.php';
                 </div>
 
                 <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <div class="p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
                         <h2 class="font-bold text-slate-900">Wallet Activities</h2>
-                        <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
-                            <i data-lucide="activity" class="w-4 h-4"></i> Real-time
+                        <div class="relative w-full md:w-64">
+                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"></i>
+                            <input type="text" x-model="search" placeholder="Quick search..." class="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                     </div>
                     <div class="overflow-x-auto">
@@ -50,6 +51,31 @@ include '../includes/dashboard-head.php';
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
+                                <template x-for="entry in <?php echo htmlspecialchars(json_encode($ledger), ENT_QUOTES, 'UTF-8'); ?>.filter(i => !search || i.description.toLowerCase().includes(search.toLowerCase()) || i.category.toLowerCase().includes(search.toLowerCase()))" :key="entry.id">
+                                    <tr class="hover:bg-slate-50/50 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-bold text-slate-900" x-text="new Date(entry.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'})"></div>
+                                            <div class="text-[10px] text-slate-400 font-medium" x-text="new Date(entry.created_at).toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'})"></div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <p class="text-sm text-slate-600 font-medium" x-text="entry.description"></p>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                                                :class="entry.category === 'payout' ? 'bg-amber-50 text-amber-600' : (entry.category === 'refund' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600')"
+                                                x-text="entry.category">
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="text-sm font-bold" :class="entry.type === 'credit' ? 'text-emerald-600' : 'text-red-600'" x-text="(entry.type === 'credit' ? '+' : '-') + ' ₦' + parseFloat(entry.amount).toLocaleString()">
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                                            <span class="text-sm font-mono font-bold text-slate-900" x-text="'₦' + parseFloat(entry.balance_after).toLocaleString()"></span>
+                                        </td>
+                                    </tr>
+                                </template>
+                                <?php if (false): ?>
                                 <?php foreach ($ledger as $entry): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
                                         <td class="px-6 py-4 whitespace-nowrap">

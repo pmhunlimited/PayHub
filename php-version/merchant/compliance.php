@@ -11,6 +11,9 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_compliance') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $business_type = sanitize($_POST['business_type']);
     $registration_number = sanitize($_POST['registration_number'] ?? '');
     $bn_number = sanitize($_POST['bn_number'] ?? '');

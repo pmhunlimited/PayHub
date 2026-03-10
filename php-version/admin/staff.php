@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'edit_role') {
         $id = (int)$_POST['role_id'];
         $name = sanitize($_POST['role_name']);

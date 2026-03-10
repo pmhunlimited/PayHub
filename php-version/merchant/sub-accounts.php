@@ -10,6 +10,9 @@ $pageTitle = 'Sub-accounts - Payhub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'create_subaccount' && $user['parent_id'] === null) {
         $email = sanitize($_POST['email']);
         $biz_name = sanitize($_POST['business_name']);

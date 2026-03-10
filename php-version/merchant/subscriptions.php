@@ -11,8 +11,12 @@ $db = Database::connect();
 $success_msg = '';
 $error_msg = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_plan') {
-    $name = sanitize($_POST['plan_name']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
+    if ($_POST['action'] === 'create_plan') {
+        $name = sanitize($_POST['plan_name']);
     $amount = (float)$_POST['amount'];
     $interval = sanitize($_POST['interval']);
     $description = sanitize($_POST['description']);
@@ -114,6 +118,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-4">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="create_plan">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Plan Name</label>

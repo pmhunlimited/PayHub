@@ -10,6 +10,9 @@ $pageTitle = 'API Manager - Admin Hub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_keys') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $keys = [
         'paystack_public_key', 'paystack_secret_key',
         'paystack_test_public_key', 'paystack_test_secret_key'
@@ -65,6 +68,7 @@ include '../includes/dashboard-head.php';
                 </div>
 
                 <form method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                     <input type="hidden" name="action" value="update_keys">
 
                     <div class="grid md:grid-cols-2 gap-6">

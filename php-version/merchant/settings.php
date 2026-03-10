@@ -13,6 +13,9 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'update_profile') {
         $business_name = sanitize($_POST['business_name']);
         $email = sanitize($_POST['email']);
@@ -82,6 +85,7 @@ include '../includes/dashboard-head.php';
                                 Business Profile
                             </h3>
                             <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <input type="hidden" name="action" value="update_profile">
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
@@ -115,6 +119,7 @@ include '../includes/dashboard-head.php';
                             </h3>
                             <p class="text-xs text-slate-500 mb-8 italic">This is where your funds will be sent when you request a payout.</p>
                             <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <input type="hidden" name="action" value="update_settlement">
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>

@@ -13,6 +13,9 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     // Check for suspension
     if ($user['is_suspended']) {
         $error_msg = "Your account is suspended. Payout requests are disabled.";
@@ -114,6 +117,7 @@ include '../includes/dashboard-head.php';
                         </div>
 
                         <form method="POST" class="space-y-6">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                             <input type="hidden" name="action" value="request_payout">
                             <div>
                                 <label class="block text-sm font-bold text-slate-700 mb-2">Amount to Withdraw</label>

@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'publish' || $_POST['action'] === 'edit') {
         $title = sanitize($_POST['title']);
         $slug = sanitize($_POST['slug']);
@@ -98,6 +101,7 @@ include '../includes/dashboard-head.php';
                                                 <i data-lucide="edit" class="w-4 h-4"></i>
                                             </button>
                                             <form method="POST" onsubmit="return confirm('Delete this post?');" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                 <input type="hidden" name="action" value="delete">
                                                 <input type="hidden" name="post_id" value="<?php echo $p['id']; ?>">
                                                 <button type="submit" class="text-rose-500 hover:text-rose-700">
@@ -125,6 +129,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" enctype="multipart/form-data" class="space-y-6" x-data="{ title: '', slug: '' }">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="publish">
                         <div class="grid md:grid-cols-2 gap-6">
                             <div>
@@ -178,6 +183,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="edit">
                         <input type="hidden" name="post_id" :value="editingPost.id">
                         <input type="hidden" name="current_image" :value="editingPost.featured_image">

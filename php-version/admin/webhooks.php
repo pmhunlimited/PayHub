@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'retry') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $logId = (int)$_POST['log_id'];
     // In a real app, this would trigger a background job
     $stmt = $db->prepare("UPDATE webhook_logs SET attempt_count = attempt_count + 1, last_attempt_at = CURRENT_TIMESTAMP WHERE id = ?");
@@ -65,6 +68,7 @@ include '../includes/dashboard-head.php';
                                     <td class="px-6 py-4 text-xs text-slate-500 font-medium"><?php echo $l['last_attempt_at'] ? date('M d, H:i', strtotime($l['last_attempt_at'])) : 'Never'; ?></td>
                                     <td class="px-6 py-4">
                                         <form method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                             <input type="hidden" name="action" value="retry">
                                             <input type="hidden" name="log_id" value="<?php echo $l['id']; ?>">
                                             <button type="submit" class="text-indigo-600 hover:text-indigo-800" title="Retry Delivery">

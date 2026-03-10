@@ -12,6 +12,9 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_evidence') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $disputeId = (int)$_POST['dispute_id'];
 
     if (isset($_FILES['evidence']) && $_FILES['evidence']['error'] === UPLOAD_ERR_OK) {
@@ -111,6 +114,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <p class="text-sm text-slate-500 mb-6">Provide proof of service delivery or product shipment for transaction <span class="font-bold text-slate-900" x-text="selectedDispute?.transaction_ref"></span></p>
                     <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="upload_evidence">
                         <input type="hidden" name="dispute_id" :value="selectedDispute?.id">
                         <div class="p-8 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-all bg-slate-50/50">

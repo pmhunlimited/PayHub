@@ -10,6 +10,9 @@ $pageTitle = 'Email Settings - Admin Hub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_smtp') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $keys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from'];
     foreach ($keys as $key) {
         $val = $_POST[$key];
@@ -49,6 +52,7 @@ include '../includes/dashboard-head.php';
                 </div>
 
                 <form method="POST" class="space-y-6">
+                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                     <input type="hidden" name="action" value="update_smtp">
                     <div class="grid md:grid-cols-2 gap-6">
                         <div>

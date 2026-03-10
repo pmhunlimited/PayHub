@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'process_payout') {
         $payoutId = (int)$_POST['payout_id'];
         $status = sanitize($_POST['status']);
@@ -119,6 +122,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <p class="text-sm font-medium text-slate-500 mb-6">Process payout of <span class="text-indigo-600 font-bold" x-text="'₦'+payout.amount"></span> to <span class="text-slate-900 font-bold" x-text="payout.business_name"></span></p>
                     <form method="POST">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="process_payout">
                         <input type="hidden" name="payout_id" :value="payout.id">
                         <div class="mb-4">

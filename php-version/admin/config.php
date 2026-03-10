@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'update_config') {
         $key = sanitize($_POST['key']);
         $value = $_POST['value'];
@@ -79,6 +82,7 @@ include '../includes/dashboard-head.php';
                     </div>
                     <?php $globalPayoutReview = getConfig('global_payout_review') === '1'; ?>
                     <form method="POST" id="payoutReviewForm">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="update_config">
                         <input type="hidden" name="key" value="global_payout_review">
                         <input type="hidden" name="value" value="<?php echo $globalPayoutReview ? '0' : '1'; ?>">
@@ -135,6 +139,7 @@ include '../includes/dashboard-head.php';
                             Admin Profile
                         </h3>
                         <form method="POST" class="space-y-4">
+                            <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                             <input type="hidden" name="action" value="update_profile">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Display Name</label>

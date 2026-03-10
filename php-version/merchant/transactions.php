@@ -13,6 +13,9 @@ $db = Database::connect();
 
 // Handle Refund Action
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'refund') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $txId = (int)$_POST['transaction_id'];
 
     $stmt = $db->prepare("SELECT * FROM transactions WHERE id = ? AND user_id = ? AND status = 'success'");
@@ -137,6 +140,7 @@ include '../includes/dashboard-head.php';
                                             </button>
                                             <?php if ($tx['status'] === 'success'): ?>
                                                 <form method="POST" onsubmit="return confirm('Are you sure you want to refund this transaction?');" class="inline">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="refund">
                                                     <input type="hidden" name="transaction_id" value="<?php echo $tx['id']; ?>">
                                                     <button type="submit" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Initiate Refund">

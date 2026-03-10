@@ -10,6 +10,9 @@ $pageTitle = 'Support Center - Payhub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'new_ticket') {
         $subject = sanitize($_POST['subject']);
         $priority = sanitize($_POST['priority']);
@@ -77,6 +80,7 @@ include '../includes/dashboard-head.php';
                                 <i data-lucide="plus-circle" class="text-indigo-600"></i> New Ticket
                             </h3>
                             <form method="POST" class="space-y-6">
+                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                 <input type="hidden" name="action" value="new_ticket">
                                 <div>
                                     <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Subject</label>
@@ -183,6 +187,7 @@ include '../includes/dashboard-head.php';
                 <?php if ($user['role'] !== 'admin'): // Merchants can reply too ?>
                 <div class="p-6 border-t border-slate-100 bg-white">
                     <form method="POST" class="flex gap-2">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="new_ticket_message">
                         <input type="hidden" name="ticket_id" :value="selectedTicket?.id">
                         <input type="text" name="message" required placeholder="Type a reply..." class="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm">

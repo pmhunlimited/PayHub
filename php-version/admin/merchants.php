@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'verify_merchant') {
         $merchantId = (int)$_POST['merchant_id'];
         $status = (int)$_POST['status'];
@@ -234,6 +237,7 @@ include '../includes/dashboard-head.php';
                                                 </form>
                                             <?php else: ?>
                                                 <form method="POST" class="inline">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                                     <input type="hidden" name="action" value="restore_merchant">
                                                     <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
                                                     <button type="submit" class="text-emerald-600 font-bold text-xs hover:underline">Restore</button>
@@ -286,6 +290,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8">
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="update_details">
                         <input type="hidden" name="merchant_id" :value="merchantId">
                         <div>
@@ -314,6 +319,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <p class="text-sm font-medium text-slate-500 mb-6">Set custom fees for <span class="text-slate-900 font-bold" x-text="merchantName"></span></p>
                     <form method="POST" class="space-y-6">
+                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="update_fees">
                         <input type="hidden" name="merchant_id" :value="merchantId">
                         <div>

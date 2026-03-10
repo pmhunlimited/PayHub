@@ -10,6 +10,9 @@ $pageTitle = 'API Keys - Payhub';
 $db = Database::connect();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'regenerate') {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     $pk = generateApiKey('pk_live_');
     $sk = generateApiKey('sk_live_');
     $tpk = generateApiKey('pk_test_');
@@ -103,6 +106,7 @@ include '../includes/dashboard-head.php';
                                         <p class="text-xs text-slate-400 mt-1">Regenerating keys will break existing integrations.</p>
                                     </div>
                                     <form method="POST" onsubmit="return confirm('Are you sure you want to regenerate your keys? This will immediately break any existing integrations using the current keys.');">
+                                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                                         <input type="hidden" name="action" value="regenerate">
                                         <button type="submit" class="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold text-sm hover:bg-red-100 transition-all">Regenerate Keys</button>
                                     </form>

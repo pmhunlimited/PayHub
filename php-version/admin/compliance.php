@@ -11,6 +11,9 @@ $db = Database::connect();
 
 // Handle Actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if (!verify_csrf_token($_POST['csrf_token'] ?? '')) {
+        die("CSRF token validation failed.");
+    }
     if ($_POST['action'] === 'process_kyc') {
         $merchantId = (int)$_POST['merchant_id'];
         $status = (int)$_POST['status'];
@@ -215,6 +218,7 @@ include '../includes/dashboard-head.php';
                 </div>
                 <div class="p-8 border-t border-slate-100 bg-slate-50/50">
                     <form method="POST" id="kycForm">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
                         <input type="hidden" name="action" value="process_kyc">
                         <input type="hidden" name="merchant_id" :value="merchant.id">
                         <input type="hidden" name="status" id="kycStatus">
