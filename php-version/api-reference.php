@@ -126,7 +126,16 @@ include 'includes/header.php';
                 <pre>curl <?php echo BASE_URL; ?>api/transaction/initialize \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d email="customer@email.com" \
--d amount=500000</pre>
+-d amount=500000 \
+-d name="John Doe" \
+-d phone="08012345678"</pre>
+                <div class="mt-4 p-4 bg-slate-800 rounded-xl">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mb-2">Optional Parameters</p>
+                    <ul class="space-y-2 text-xs">
+                        <li><span class="text-indigo-400 font-bold">name</span>: Customer full name (highly recommended for virtual account generation)</li>
+                        <li><span class="text-indigo-400 font-bold">phone</span>: Customer phone number (required by some banks for virtual account generation)</li>
+                    </ul>
+                </div>
             </div>
         </section>
 

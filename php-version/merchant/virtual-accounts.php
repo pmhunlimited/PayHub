@@ -16,75 +16,19 @@ $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'generate_account') {
-        $email = sanitize($_POST['email']);
-        $first_name = sanitize($_POST['first_name'] ?? '');
-        $last_name = sanitize($_POST['last_name'] ?? '');
+        $email = sanitize($_POST['email'] ?: $_POST['new_email']);
+        $full_name = trim(sanitize($_POST['first_name'] . ' ' . $_POST['last_name']));
         $phone = sanitize($_POST['phone'] ?? '');
 
-        // If existing customer selected, fetch details from DB
-        if (empty($first_name)) {
-            $stmt = $db->prepare("SELECT * FROM customers WHERE email = ? AND user_id = ?");
-            $stmt->execute([$email, $user['id']]);
-            $cust = $stmt->fetch();
-            if ($cust) {
-                $names = explode(' ', $cust['full_name']);
-                $first_name = $names[0];
-                $last_name = $names[1] ?? '';
-                $phone = $cust['phone'];
-            }
-        }
-
-        // 1. Create/Fetch Customer on Paystack
-        $customer_res = paystack_call('customer', 'POST', [
-            'email' => $email,
-            'first_name' => $first_name,
-            'last_name' => $last_name,
-            'phone' => $phone,
-            'metadata' => ['merchant_id' => $user['id']]
+        $va_res = ensure_virtual_account($user['id'], $email, [
+            'full_name' => $full_name,
+            'phone' => $phone
         ]);
 
-        if ($customer_res && $customer_res['status']) {
-            $customer_code = $customer_res['data']['customer_code'];
-
-            // 2. Create Dedicated Virtual Account
-            $dva_res = paystack_call('dedicated_account', 'POST', [
-                'customer' => $customer_code
-            ]);
-
-            if ($dva_res && $dva_res['status']) {
-                $acc = $dva_res['data'];
-                // Extremely robust key mapping
-                $bank = $acc['bank']['name'] ?? ($acc['Bank']['name'] ?? ($acc['Bank_name'] ?? ($acc['bank_name'] ?? 'Virtual Bank')));
-                $number = $acc['account_number'] ?? ($acc['Account_number'] ?? ($acc['Account'] ?? ($acc['account'] ?? '')));
-                $name = $acc['account_name'] ?? ($acc['Account_name'] ?? ($acc['Name'] ?? ($acc['account_name'] ?? $user['business_name'])));
-
-                if (!empty($number)) {
-                    // Check if already in DB for this customer
-                    $stmt = $db->prepare("SELECT id FROM virtual_accounts WHERE user_id = ? AND customer_email = ?");
-                    $stmt->execute([$user['id'], $email]);
-                    $existingAcc = $stmt->fetch();
-
-                    if ($existingAcc) {
-                        $stmt = $db->prepare("UPDATE virtual_accounts SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?");
-                        $stmt->execute([$bank, $number, $name, $existingAcc['id']]);
-                    } else {
-                        $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
-                        $stmt->execute([$user['id'], $bank, $number, $name, $email]);
-                    }
-
-                    if (!empty($first_name)) {
-                        $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
-                        $stmt->execute([$user['id'], trim("$first_name $last_name"), $email, $phone]);
-                    }
-                    $success_msg = "Virtual account generated: $bank - $number";
-                } else {
-                    $error_msg = "Account created but number not yet assigned by Paystack. Please try Syncing in a moment.";
-                }
-            } else {
-                $error_msg = "Paystack: " . ($dva_res['message'] ?? 'Account generation failed');
-            }
+        if ($va_res['status']) {
+            $success_msg = "Virtual account generated: " . $va_res['data']['bank_name'] . " - " . $va_res['data']['account_number'];
         } else {
-            $error_msg = "Paystack: " . ($customer_res['message'] ?? 'Customer creation failed');
+            $error_msg = $va_res['message'];
         }
     } elseif ($_POST['action'] === 'sync_accounts') {
         $res = paystack_call('dedicated_account', 'GET');
@@ -275,7 +219,7 @@ include '../includes/dashboard-head.php';
 
                         <div x-show="mode === 'existing'">
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Customer</label>
-                            <select name="email" :required="mode === 'existing'" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                            <select name="email" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                                 <option value="">-- Choose Customer --</option>
                                 <?php foreach ($customers as $c): ?>
                                     <option value="<?php echo $c['email']; ?>"><?php echo htmlspecialchars($c['full_name'] . ' (' . $c['email'] . ')'); ?></option>
@@ -286,7 +230,7 @@ include '../includes/dashboard-head.php';
                         <div x-show="mode === 'new'" class="space-y-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Email</label>
-                                <input type="email" name="email" :required="mode === 'new'" placeholder="customer@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                <input type="email" name="new_email" placeholder="customer@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                             </div>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>

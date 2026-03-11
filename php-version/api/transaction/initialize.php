@@ -27,6 +27,8 @@ if (!$user) {
 
 $email = sanitize($_POST['email'] ?? '');
 $amount = (float)($_POST['amount'] ?? 0);
+$name = sanitize($_POST['name'] ?? '');
+$phone = sanitize($_POST['phone'] ?? '');
 
 if (!$email || $amount <= 0) {
     http_response_code(400);
@@ -45,7 +47,10 @@ log_transaction_event($txId, 'initiated', "Transaction initiated via API");
 
 // Automate Virtual Account Generation
 $va_details = null;
-$va_res = ensure_virtual_account($user['id'], $email);
+$va_res = ensure_virtual_account($user['id'], $email, [
+    'full_name' => $name,
+    'phone' => $phone
+]);
 if ($va_res['status']) {
     $va_details = $va_res['data'];
 }

@@ -54,7 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
-$stmt = $db->prepare("SELECT * FROM customers WHERE user_id = ? ORDER BY created_at DESC");
+$stmt = $db->prepare("SELECT c.*, va.bank_name, va.account_number
+                      FROM customers c
+                      LEFT JOIN virtual_accounts va ON c.email = va.customer_email AND c.user_id = va.user_id
+                      WHERE c.user_id = ?
+                      ORDER BY c.created_at DESC");
 $stmt->execute([$user['id']]);
 $customers = $stmt->fetchAll();
 
@@ -105,6 +109,7 @@ include '../includes/dashboard-head.php';
                                 <tr class="bg-slate-50 border-b border-slate-100">
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Virtual Account</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date Joined</th>
                                     <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
@@ -124,6 +129,20 @@ include '../includes/dashboard-head.php';
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
+                                        <td class="px-6 py-4">
+                                            <?php if (!empty($c['account_number'])): ?>
+                                                <div class="text-sm font-bold text-slate-900"><?php echo $c['account_number']; ?></div>
+                                                <div class="text-[10px] text-slate-400 font-bold uppercase"><?php echo $c['bank_name']; ?></div>
+                                            <?php else: ?>
+                                                <form method="POST" class="inline">
+                                                    <input type="hidden" name="action" value="add_customer">
+                                                    <input type="hidden" name="email" value="<?php echo $c['email']; ?>">
+                                                    <input type="hidden" name="full_name" value="<?php echo $c['full_name']; ?>">
+                                                    <input type="hidden" name="phone" value="<?php echo $c['phone']; ?>">
+                                                    <button type="submit" class="text-indigo-600 text-xs font-bold hover:underline">Generate VA</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </td>
                                         <td class="px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
                                         <td class="px-6 py-4">
                                             <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>

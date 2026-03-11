@@ -314,35 +314,52 @@ function ensure_virtual_account($userId, $email, $customerData = []) {
             ];
         }
 
-        // 4. Create/Fetch Customer on Paystack
+        // 4. Create/Fetch/Update Customer on Paystack
         $fullName = $customerData['full_name'] ?? '';
-        if (empty($fullName)) {
+        $phone = $customerData['phone'] ?? '';
+
+        if (empty($fullName) || empty($phone)) {
             $stmt = $db->prepare("SELECT full_name, phone FROM customers WHERE user_id = ? AND email = ?");
             $stmt->execute([$userId, $email]);
             $localCust = $stmt->fetch();
             if ($localCust) {
-                $fullName = $localCust['full_name'];
-                $customerData['phone'] = $customerData['phone'] ?? $localCust['phone'];
+                if (empty($fullName)) $fullName = $localCust['full_name'];
+                if (empty($phone)) $phone = $localCust['phone'];
             }
         }
 
         $names = explode(' ', trim($fullName));
-        $firstName = $names[0] ?? 'Customer';
-        $lastName = $names[1] ?? '';
+        $firstName = array_shift($names) ?: 'Customer';
+        $lastName = implode(' ', $names);
 
-        $paystackCustomer = paystack_call('customer', 'POST', [
-            'email' => $email,
-            'first_name' => $firstName,
-            'last_name' => $lastName,
-            'phone' => $customerData['phone'] ?? '',
-            'metadata' => ['merchant_id' => $userId]
-        ], $is_test);
+        // Check if customer exists on Paystack
+        $checkCustomer = paystack_call('customer/' . $email, 'GET', [], $is_test);
 
-        if (!$paystackCustomer || !$paystackCustomer['status']) {
-            return ['status' => false, 'message' => 'Paystack Customer Error: ' . ($paystackCustomer['message'] ?? 'Unknown error')];
+        if ($checkCustomer && $checkCustomer['status']) {
+            $customerCode = $checkCustomer['data']['customer_code'];
+            // If phone or name missing on Paystack but available locally, update it
+            if (empty($checkCustomer['data']['phone']) && !empty($phone)) {
+                paystack_call('customer/' . $customerCode, 'PUT', [
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'phone' => $phone
+                ], $is_test);
+            }
+        } else {
+            // Create new customer
+            $paystackCustomer = paystack_call('customer', 'POST', [
+                'email' => $email,
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'phone' => $phone,
+                'metadata' => ['merchant_id' => $userId]
+            ], $is_test);
+
+            if (!$paystackCustomer || !$paystackCustomer['status']) {
+                return ['status' => false, 'message' => 'Paystack Customer Error: ' . ($paystackCustomer['message'] ?? 'Unknown error')];
+            }
+            $customerCode = $paystackCustomer['data']['customer_code'];
         }
-
-        $customerCode = $paystackCustomer['data']['customer_code'];
 
         // 5. Create Dedicated Virtual Account on Paystack
         $dvaRes = paystack_call('dedicated_account', 'POST', [
