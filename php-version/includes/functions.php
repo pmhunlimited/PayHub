@@ -101,7 +101,13 @@ function ensure_critical_tables() {
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'currency' => "VARCHAR(10) DEFAULT 'NGN'",
-                'gateway_reference' => "VARCHAR(100)"
+                'gateway_reference' => "VARCHAR(100)",
+                'invoice_id' => "INT DEFAULT NULL"
+            ],
+            'invoices' => [
+                'reference' => "VARCHAR(100)",
+                'customer_name' => "VARCHAR(255)",
+                'description' => "TEXT"
             ]
         ];
         foreach ($cols as $table => $columns) {
@@ -247,6 +253,11 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
     if ($method === 'POST') {
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    } elseif ($method === 'PUT' || $method === 'PATCH' || $method === 'DELETE') {
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if (!empty($data)) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        }
     }
 
     $response = curl_exec($ch);
@@ -331,7 +342,11 @@ function ensure_virtual_account($userId, $email, $customerData = []) {
 
         $names = explode(' ', trim($fullName));
         $firstName = array_shift($names) ?: 'Customer';
-        $lastName = implode(' ', $names);
+        $lastName = implode(' ', $names) ?: 'Merchant';
+
+        if (empty($phone)) {
+            return ['status' => false, 'message' => 'Customer phone number is required for Virtual Account generation'];
+        }
 
         // Check if customer exists on Paystack
         $checkCustomer = paystack_call('customer/' . $email, 'GET', [], $is_test);
