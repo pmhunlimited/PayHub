@@ -67,7 +67,7 @@ function ensure_critical_tables() {
         ];
         foreach ($essential_tables as $sql) { $db->exec($sql); }
 
-        // Ensure critical columns exist in users (for dashboard and admin list)
+        // Ensure critical columns exist
         $cols = [
             'users' => [
                 'is_deleted' => "TINYINT DEFAULT 0",
@@ -91,7 +91,9 @@ function ensure_critical_tables() {
                 'ngo_constitution_path' => "VARCHAR(255)",
                 'gov_auth_letter_path' => "VARCHAR(255)",
                 'gov_gazette_path' => "VARCHAR(255)",
-                'business_address_proof_path' => "VARCHAR(255)"
+                'business_address_proof_path' => "VARCHAR(255)",
+                'is_test_mode' => "TINYINT DEFAULT 1",
+                'webhook_url' => "VARCHAR(255)"
             ],
             'transactions' => [
                 'customer_email' => "VARCHAR(255)",
@@ -113,9 +115,9 @@ function ensure_critical_tables() {
         foreach ($cols as $table => $columns) {
             foreach ($columns as $col => $def) {
                 try {
-                    $cCheck = $db->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
-                    if (!$cCheck->fetch()) {
-                        $db->exec("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+                    $cCheck = $db->query("SHOW COLUMNS FROM `$table` LIKE '$col'")->fetch();
+                    if (!$cCheck) {
+                        $db->exec("ALTER TABLE `$table` ADD `$col` $def");
                     }
                 } catch (\Throwable $e) {}
             }
@@ -291,7 +293,7 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
  * Automates the process of creating/fetching a Paystack customer and
  * generating a dedicated virtual account.
  */
-function ensure_virtual_account($userId, $email, $customerData = []) {
+function ensure_virtual_account($userId, $email, $customerData = [], $is_test = null) {
     try {
         $db = Database::connect();
 
@@ -307,7 +309,9 @@ function ensure_virtual_account($userId, $email, $customerData = []) {
             return ['status' => false, 'message' => 'Merchant business tier or KYC status does not support virtual accounts'];
         }
 
-        $is_test = ($merchant['is_test_mode'] == 1);
+        if ($is_test === null) {
+            $is_test = ($merchant['is_test_mode'] == 1);
+        }
 
         // 3. Check if Virtual Account already exists locally
         $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND customer_email = ?");

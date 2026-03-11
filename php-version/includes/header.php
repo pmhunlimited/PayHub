@@ -9,9 +9,7 @@ require_once __DIR__ . '/functions.php';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle ?? 'Payhub - Modern Payments'; ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>[x-cloak] { display: none !important; }</style>
     <?php $logo = getConfig('site_logo'); ?>
     <?php if ($logo): ?>
         <link rel="icon" type="image/png" href="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>">
@@ -20,7 +18,15 @@ require_once __DIR__ . '/functions.php';
         body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body class="bg-white text-slate-900" x-data="{ mobileMenuOpen: false }" :class="mobileMenuOpen ? 'overflow-hidden' : ''">
+<body class="bg-white text-slate-900" x-data>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('nav', {
+                mobileMenuOpen: false,
+                toggle() { this.mobileMenuOpen = !this.mobileMenuOpen }
+            })
+        })
+    </script>
     <nav class="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-slate-100">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-20">
@@ -49,23 +55,21 @@ require_once __DIR__ . '/functions.php';
                     <?php endif; ?>
                 </div>
 
-                <button @click="mobileMenuOpen = !mobileMenuOpen" class="md:hidden text-slate-600 p-2">
+                <button @click="$store.nav.toggle()" class="md:hidden text-slate-600 p-2 relative z-[70]">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
             </div>
         </div>
 
         <!-- Mobile Menu -->
-        <div x-show="mobileMenuOpen"
-             x-cloak
-             @click.away="mobileMenuOpen = false"
+        <div x-show="$store.nav.mobileMenuOpen"
              x-transition:enter="transition ease-out duration-200"
              x-transition:enter-start="opacity-0 -translate-y-4"
              x-transition:enter-end="opacity-100 translate-y-0"
              x-transition:leave="transition ease-in duration-150"
              x-transition:leave-start="opacity-100 translate-y-0"
              x-transition:leave-end="opacity-0 -translate-y-4"
-             class="md:hidden bg-white border-b border-slate-100 p-4 space-y-4 shadow-xl fixed top-20 w-full left-0 z-[60]" x-cloak>
+             class="md:hidden bg-white border-b border-slate-100 p-4 space-y-4 shadow-xl" x-cloak>
             <a href="<?php echo BASE_URL; ?>pricing.php" class="block text-sm font-medium text-slate-600 hover:text-indigo-600">Pricing</a>
             <a href="<?php echo BASE_URL; ?>docs.php" class="block text-sm font-medium text-slate-600 hover:text-indigo-600">Developers</a>
             <a href="<?php echo BASE_URL; ?>blog.php" class="block text-sm font-medium text-slate-600 hover:text-indigo-600">Blog</a>

@@ -6,7 +6,9 @@ $ref = sanitize($_GET['ref'] ?? '');
 if (!$ref) die("Invalid Invoice");
 
 $db = Database::connect();
-$stmt = $db->prepare("SELECT i.*, u.business_name, u.email as merchant_email, u.public_key, u.test_public_key, u.is_test_mode
+// We fetch business_name and is_test_mode. We avoid selecting potentially non-existent public_key columns
+// and instead rely on platform-level configuration for now, or check for them safely.
+$stmt = $db->prepare("SELECT i.*, u.business_name, u.email as merchant_email, u.is_test_mode
                       FROM invoices i
                       JOIN users u ON i.user_id = u.id
                       WHERE i.reference = ?");
@@ -91,14 +93,8 @@ include 'includes/header.php';
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
 function payInvoice() {
-    const pk = '<?php echo $inv['is_test_mode'] ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key'); ?>';
-    if (!pk || pk.trim() === '') {
-        alert("Checkout Error: A valid Paystack Public Key is required but was not found. Please contact the merchant or administrator.");
-        return;
-    }
-
     let handler = PaystackPop.setup({
-        key: pk,
+        key: '<?php echo $inv['is_test_mode'] ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key'); ?>',
         email: '<?php echo $inv['customer_email']; ?>',
         amount: <?php echo $inv['amount'] * 100; ?>,
         ref: 'INV_<?php echo $inv['reference']; ?>_' + Math.floor(Math.random() * 1000000),

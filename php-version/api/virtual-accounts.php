@@ -32,16 +32,8 @@ if (!$merchant) {
  * Headers: Authorization: Bearer <Secret Key>
  */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $email = $_GET['customer_email'] ?? null;
-
-    if ($email) {
-        $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND customer_email = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
-        $stmt->execute([$merchant['id'], $email]);
-    } else {
-        $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
-        $stmt->execute([$merchant['id']]);
-    }
-
+    $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
+    $stmt->execute([$merchant['id']]);
     $accounts = $stmt->fetchAll();
 
     // Transform created_at to avoid invalid dates

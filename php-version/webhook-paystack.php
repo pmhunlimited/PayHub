@@ -96,16 +96,6 @@ if ($event['event'] === 'charge.success') {
             $stmt = $db->prepare("UPDATE transactions SET status = 'success', currency = ?, gateway_reference = ? WHERE id = ?");
             $stmt->execute([$currency, $data['id'], $tx['id']]);
 
-            // Handle Invoice Payment automation
-            if (isset($data['metadata']['invoice_id'])) {
-                $inv_id = (int)$data['metadata']['invoice_id'];
-                $db->prepare("UPDATE invoices SET status = 'paid' WHERE id = ?")->execute([$inv_id]);
-                $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
-            } elseif (strpos($ref, 'INV-') === 0) {
-                // Try matching by reference if metadata is missing (e.g. legacy or manual ref)
-                $db->prepare("UPDATE invoices SET status = 'paid' WHERE reference = ?")->execute([$ref]);
-            }
-
             // Calculate fees
             $is_intl = ($currency !== 'NGN');
             $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
@@ -120,34 +110,6 @@ if ($event['event'] === 'charge.success') {
             log_transaction_event($tx['id'], 'payment_completed', 'Payment successfully processed and confirmed via Webhook');
 
             $db->commit();
-
-            // Notify Merchant Webhook
-            $stmt = $db->prepare("SELECT webhook_url FROM users WHERE id = ?");
-            $stmt->execute([$tx['user_id']]);
-            $merchant_hook = $stmt->fetch()['webhook_url'] ?? '';
-
-            if ($merchant_hook) {
-                $webhook_data = [
-                    'event' => 'payment.success',
-                    'data' => [
-                        'reference' => $ref,
-                        'amount' => $amount,
-                        'currency' => $currency,
-                        'customer_email' => $tx['customer_email'],
-                        'status' => 'success',
-                        'metadata' => $data['metadata'] ?? []
-                    ]
-                ];
-
-                $ch = curl_init($merchant_hook);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($webhook_data));
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-                curl_exec($ch);
-                curl_close($ch);
-            }
 
             // Notify Merchant
             $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");

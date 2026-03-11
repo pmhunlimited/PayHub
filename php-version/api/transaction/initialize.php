@@ -15,8 +15,8 @@ if (!$auth || strpos($auth, 'Bearer ') !== 0) {
 
 $sk = str_replace('Bearer ', '', $auth);
 $db = Database::connect();
-$stmt = $db->prepare("SELECT id, (secret_key = ?) as is_live FROM users WHERE secret_key = ? OR test_secret_key = ?");
-$stmt->execute([$sk, $sk, $sk]);
+$stmt = $db->prepare("SELECT id FROM users WHERE secret_key = ? OR test_secret_key = ?");
+$stmt->execute([$sk, $sk]);
 $user = $stmt->fetch();
 
 if (!$user) {
@@ -24,8 +24,6 @@ if (!$user) {
     echo json_encode(['status' => false, 'message' => 'Invalid Secret Key']);
     exit;
 }
-
-$is_test = !((bool)$user['is_live']);
 
 $email = sanitize($_POST['email'] ?? '');
 $amount = (float)($_POST['amount'] ?? 0);
@@ -40,32 +38,42 @@ if (!$email || $amount <= 0) {
 
 $ref = 'PH_' . bin2hex(random_bytes(8));
 
+// Determine if it's test mode based on the Secret Key used
+$is_test = (strpos($sk, 'sk_test_') === 0);
+
 // Create transaction in pending state
-$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, status, is_test) VALUES (?, ?, ?, ?, 'pending', ?)");
-$stmt->execute([$user['id'], $ref, $amount, $email, $is_test ? 1 : 0]);
+$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, customer_name, status, is_test) VALUES (?, ?, ?, ?, ?, 'pending', ?)");
+$stmt->execute([$user['id'], $ref, $amount, $email, $name, $is_test ? 1 : 0]);
 $txId = $db->lastInsertId();
 
 log_transaction_event($txId, 'initiated', "Transaction initiated via API");
 
-// Automate Virtual Account Generation
-$va_details = null;
-$va_res = ensure_virtual_account($user['id'], $email, [
-    'full_name' => $name,
-    'phone' => $phone
-]);
-if ($va_res['status']) {
-    $va_details = $va_res['data'];
+// Attempt to automate Virtual Account generation if requested or possible
+$va_data = null;
+if (!empty($name) && !empty($phone)) {
+    $res = ensure_virtual_account($user['id'], $email, [
+        'full_name' => $name,
+        'phone' => $phone
+    ], $is_test);
+    if ($res['status']) {
+        $va_data = $res['data'];
+    }
 }
 
 $checkoutUrl = BASE_URL . "checkout.php?ref=$ref&amount=$amount&email=" . urlencode($email);
 
-echo json_encode([
+$responseData = [
     'status' => true,
     'message' => 'Transaction initialized',
     'data' => [
         'authorization_url' => $checkoutUrl,
         'access_code' => $ref,
-        'reference' => $ref,
-        'virtual_account' => $va_details
+        'reference' => $ref
     ]
-]);
+];
+
+if ($va_data) {
+    $responseData['data']['virtual_account'] = $va_data;
+}
+
+echo json_encode($responseData);

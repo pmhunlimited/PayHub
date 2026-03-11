@@ -2,29 +2,18 @@
 // php-version/checkout.php
 require_once 'includes/functions.php';
 
-$ref = $_GET['ref'] ?? '';
+$ref = sanitize($_GET['ref'] ?? '');
 $db = Database::connect();
-$stmt = $db->prepare("SELECT t.*, u.public_key, u.test_public_key, u.is_test_mode
-                      FROM transactions t
-                      JOIN users u ON t.user_id = u.id
-                      WHERE t.reference = ?");
+$stmt = $db->prepare("SELECT t.*, u.is_test_mode FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.reference = ?");
 $stmt->execute([$ref]);
 $tx = $stmt->fetch();
 
-$pk = '';
-$isTest = false;
+$isTest = $tx ? ($tx['is_test_mode'] == 1) : false;
+$pk = $isTest ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key');
 
-if ($tx) {
-    $isTest = ($tx['is_test_mode'] == 1);
-    // Checkout uses Platform Keys
-    $pk = $isTest ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key');
-} else {
-    $pk = getConfig('paystack_public_key');
-}
-
-$amount = (float)($_GET['amount'] ?? 1000);
-$email = $_GET['email'] ?? '';
-$ref = $_GET['ref'] ?? 'PH_'.time();
+$amount = $tx ? (float)$tx['amount'] : (float)($_GET['amount'] ?? 1000);
+$email = $tx ? $tx['customer_email'] : ($_GET['email'] ?? '');
+if (!$ref) $ref = 'PH_'.time();
 $isEmbedded = isset($_GET['embed']) && $_GET['embed'] == '1';
 
 if (!$isEmbedded) {
@@ -91,14 +80,8 @@ if (!$isEmbedded) {
 
 <script>
 function payWithPaystack() {
-    const pk = '<?php echo $pk; ?>';
-    if (!pk || pk.trim() === '') {
-        alert("Checkout Error: A valid Paystack Public Key is required but was not found. Please contact the merchant or administrator.");
-        return;
-    }
-
     let handler = PaystackPop.setup({
-        key: pk,
+        key: '<?php echo $pk; ?>',
         email: '<?php echo $email; ?>',
         amount: <?php echo $amount * 100; ?>,
         ref: '<?php echo $ref; ?>',

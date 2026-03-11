@@ -98,7 +98,7 @@ $contacts = $db->query("SELECT * FROM marketing_contacts ORDER BY created_at DES
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showTpl: false, showContact: false, showSend: false, showGroup: false, showEditTpl: false, editingTpl: {id:null, name:'', subject:'', body:''} }">
         <?php include '../includes/topbar.php'; ?>

@@ -14,152 +14,151 @@ $tx = $stmt->fetch();
 $status = 'pending';
 $amount = 0;
 
-// Determine if we should use test mode
-$is_test = false;
+// Detect if it's an invoice payment or standard transaction
+$is_invoice = (strpos($ref, 'INV_') === 0);
+$is_test_mode = false;
+
 if ($tx) {
-    $is_test = (bool)$tx['is_test'];
-} else {
-    // If no transaction record, attempt to determine mode from reference prefix
-    // Invoices use INV_INV-xxxx_random
-    if (strpos($ref, 'INV_') === 0) {
-        $parts = explode('_', $ref);
-        if (count($parts) >= 2) {
-            $inv_ref = $parts[1];
-            $stmt = $db->prepare("SELECT u.is_test_mode FROM invoices i JOIN users u ON i.user_id = u.id WHERE i.reference = ?");
-            $stmt->execute([$inv_ref]);
-            $row = $stmt->fetch();
-            if ($row) {
-                $is_test = ($row['is_test_mode'] == 1);
-            }
-        }
+    $is_test_mode = (bool)$tx['is_test'];
+} elseif ($is_invoice) {
+    // For invoices, we determine test mode from the invoice's merchant
+    $parts = explode('_', $ref);
+    if (count($parts) >= 2) {
+        $inv_ref = $parts[1];
+        $stmt = $db->prepare("SELECT u.is_test_mode FROM invoices i JOIN users u ON i.user_id = u.id WHERE i.reference = ?");
+        $stmt->execute([$inv_ref]);
+        $m = $stmt->fetch();
+        if ($m) $is_test_mode = (bool)$m['is_test_mode'];
     }
 }
 
-// Call Paystack to verify - Always use platform keys for verification on public pages
-$res = paystack_call("transaction/verify/" . $ref, 'GET', [], $is_test);
+// Call Paystack to verify
+$res = paystack_call("transaction/verify/" . $ref, 'GET', [], $is_test_mode);
 
-if ($res['status'] && $res['data']['status'] === 'success') {
+if ($res && $res['status'] && $res['data']['status'] === 'success') {
     $status = 'success';
-    $data = $res['data'];
-    $amount = $data['amount'] / 100;
-    $currency = $data['currency'];
+    $amount = $res['data']['amount'] / 100;
 
-    // 1. If no transaction record exists, create one (e.g. for dynamic invoice payments)
+    // If transaction doesn't exist (e.g. direct invoice payment), create it
     if (!$tx) {
-        $userId = null;
-        $invoiceId = null;
-        $customerEmail = $data['customer']['email'];
-        $customerName = trim(($data['customer']['first_name'] ?? '') . ' ' . ($data['customer']['last_name'] ?? ''));
-
-        // Identify merchant and invoice from metadata or reference
-        if (isset($data['metadata']['invoice_id'])) {
-            $invoiceId = (int)$data['metadata']['invoice_id'];
-            $stmt = $db->prepare("SELECT user_id FROM invoices WHERE id = ?");
-            $stmt->execute([$invoiceId]);
-            $userId = $stmt->fetchColumn();
-        } elseif (strpos($ref, 'INV_') === 0) {
-            $parts = explode('_', $ref);
-            $inv_ref = $parts[1];
-            $stmt = $db->prepare("SELECT id, user_id FROM invoices WHERE reference = ?");
-            $stmt->execute([$inv_ref]);
-            $inv = $stmt->fetch();
-            if ($inv) {
-                $invoiceId = $inv['id'];
-                $userId = $inv['user_id'];
-            }
-        }
-
-        if ($userId) {
-            // Create the missing transaction record
-            $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, customer_name, currency, is_test) VALUES (?, ?, ?, 'pending', ?, ?, ?, ?)");
-            $stmt->execute([$userId, $ref, $amount, $customerEmail, $customerName, $currency, $is_test ? 1 : 0]);
-
-            $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
-            $stmt->execute([$ref]);
-            $tx = $stmt->fetch();
-        }
-    }
-
-    // 2. Process fulfillment if transaction is still pending
-    if ($tx && ($tx['status'] === 'pending' || $tx['status'] === 'failed')) {
         $db->beginTransaction();
         try {
-            // Update transaction basic info
-            $stmt = $db->prepare("UPDATE transactions SET status = 'success', gateway_reference = ?, currency = ? WHERE id = ?");
-            $stmt->execute([$data['id'], $currency, $tx['id']]);
+            $merchant_id = null;
+            $invoice_id = null;
+            $customer_email = $res['data']['customer']['email'];
+            $customer_name = trim(($res['data']['customer']['first_name'] ?? '') . ' ' . ($res['data']['customer']['last_name'] ?? ''));
 
-            // Calculate fees
-            $is_intl = ($currency !== 'NGN');
-            $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
-            $settled = $amount - $fee;
-
-            $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
-            $stmt->execute([$fee, $settled, $tx['id']]);
-
-            // Ensure Customer record exists locally
-            $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name)");
-            $stmt->execute([$tx['user_id'], $tx['customer_name'] ?: 'Guest Customer', $tx['customer_email']]);
-
-            // Handle Invoice linkage
-            $inv_id = null;
-            if (isset($data['metadata']['invoice_id'])) {
-                $inv_id = (int)$data['metadata']['invoice_id'];
-            } elseif (strpos($ref, 'INV_') === 0) {
+            if ($is_invoice) {
                 $parts = explode('_', $ref);
                 $inv_ref = $parts[1];
-                $stmt = $db->prepare("SELECT id FROM invoices WHERE reference = ?");
+                $stmt = $db->prepare("SELECT id, user_id FROM invoices WHERE reference = ?");
                 $stmt->execute([$inv_ref]);
-                $inv_id = $stmt->fetchColumn();
+                $inv_data = $stmt->fetch();
+                if ($inv_data) {
+                    $invoice_id = $inv_data['id'];
+                    $merchant_id = $inv_data['user_id'];
+                }
             }
 
-            if ($inv_id) {
-                $db->prepare("UPDATE invoices SET status = 'paid' WHERE id = ?")->execute([$inv_id]);
-                $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
+            if ($merchant_id) {
+                $stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, customer_name, status, is_test, invoice_id) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)");
+                $stmt->execute([$merchant_id, $ref, $amount, $customer_email, $customer_name, $is_test_mode ? 1 : 0, $invoice_id]);
+                $tx_id = $db->lastInsertId();
+
+                // Fetch the new tx to proceed with standard logic
+                $stmt = $db->prepare("SELECT * FROM transactions WHERE id = ?");
+                $stmt->execute([$tx_id]);
+                $tx = $stmt->fetch();
+                $db->commit();
+            } else {
+                $db->rollBack();
             }
-
-            // Log ledger and credit merchant wallet
-            log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");
-            log_transaction_event($tx['id'], 'verified', "Payment verified and credited via direct lookup.");
-
-            $db->commit();
-
-            // 3. Notify Merchant Webhook immediately
-            $stmt = $db->prepare("SELECT webhook_url FROM users WHERE id = ?");
-            $stmt->execute([$tx['user_id']]);
-            $merchant_hook = $stmt->fetch()['webhook_url'] ?? '';
-
-            if ($merchant_hook) {
-                $webhook_data = [
-                    'event' => 'payment.success',
-                    'data' => [
-                        'reference' => $ref,
-                        'amount' => $amount,
-                        'currency' => $currency,
-                        'customer_email' => $tx['customer_email'],
-                        'status' => 'success',
-                        'metadata' => $data['metadata'] ?? []
-                    ]
-                ];
-
-                $ch = curl_init($merchant_hook);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_POST, true);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($webhook_data));
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-                curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Short timeout for user experience
-                curl_exec($ch);
-                curl_close($ch);
-            }
-
         } catch (Exception $e) {
             $db->rollBack();
-            error_log("Verification Error: " . $e->getMessage());
         }
     }
-} elseif ($res['status'] && $res['data']['status'] !== 'pending') {
-    $status = 'failed';
+
+    if ($tx && $tx['status'] === 'pending') {
+        $status = 'success';
+        $amount = $res['data']['amount'] / 100;
+
+        if ($tx['status'] === 'pending') {
+            $db->beginTransaction();
+            try {
+                // Update transaction
+                $stmt = $db->prepare("UPDATE transactions SET status = 'success', gateway_reference = ? WHERE id = ?");
+                $stmt->execute([$res['data']['id'], $tx['id']]);
+
+                // Calculate fees
+                $is_intl = ($res['data']['currency'] !== 'NGN');
+                $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
+                $settled = $amount - $fee;
+
+                $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
+                $stmt->execute([$fee, $settled, $tx['id']]);
+
+                // Update or Create Customer record
+                $stmt = $db->prepare("SELECT id FROM customers WHERE user_id = ? AND email = ?");
+                $stmt->execute([$tx['user_id'], $tx['customer_email']]);
+                if (!$stmt->fetch()) {
+                    $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email) VALUES (?, ?, ?)");
+                    $stmt->execute([$tx['user_id'], $tx['customer_name'] ?: 'Guest Customer', $tx['customer_email']]);
+                }
+
+                // Handle Invoice Payment
+                $inv_id = $tx['invoice_id'] ?: ($res['data']['metadata']['invoice_id'] ?? null);
+                if ($inv_id) {
+                    $db->prepare("UPDATE invoices SET status = 'paid' WHERE id = ?")->execute([$inv_id]);
+                    if (!$tx['invoice_id']) {
+                        $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
+                    }
+                }
+
+                // Log ledger and update user balance
+                log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");
+
+                log_transaction_event($tx['id'], 'verified', "Payment verified via direct lookup.");
+
+                // Trigger Webhook if configured
+                $stmt = $db->prepare("SELECT webhook_url FROM users WHERE id = ?");
+                $stmt->execute([$tx['user_id']]);
+                $webhook_url = $stmt->fetchColumn();
+
+                if ($webhook_url) {
+                    $payload = [
+                        'event' => 'charge.success',
+                        'data' => [
+                            'id' => $tx['id'],
+                            'reference' => $tx['reference'],
+                            'amount' => $tx['amount'],
+                            'status' => 'success',
+                            'customer' => [
+                                'email' => $tx['customer_email'],
+                                'name' => $tx['customer_name']
+                            ],
+                            'metadata' => $res['data']['metadata'] ?? []
+                        ]
+                    ];
+                    $ch = curl_init($webhook_url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                    curl_exec($ch);
+                    curl_close($ch);
+                }
+
+                $db->commit();
+            } catch (Exception $e) {
+                $db->rollBack();
+            }
+        }
+    }
 } else {
-    $status = 'pending';
+    if ($res && isset($res['data']['status']) && $res['data']['status'] === 'failed') {
+        $status = 'failed';
+    }
 }
 
 include 'includes/header.php';
