@@ -15,8 +15,8 @@ if (!$auth || strpos($auth, 'Bearer ') !== 0) {
 
 $sk = str_replace('Bearer ', '', $auth);
 $db = Database::connect();
-$stmt = $db->prepare("SELECT id FROM users WHERE secret_key = ? OR test_secret_key = ?");
-$stmt->execute([$sk, $sk]);
+$stmt = $db->prepare("SELECT id, (secret_key = ?) as is_live FROM users WHERE secret_key = ? OR test_secret_key = ?");
+$stmt->execute([$sk, $sk, $sk]);
 $user = $stmt->fetch();
 
 if (!$user) {
@@ -24,6 +24,8 @@ if (!$user) {
     echo json_encode(['status' => false, 'message' => 'Invalid Secret Key']);
     exit;
 }
+
+$is_test = !((bool)$user['is_live']);
 
 $email = sanitize($_POST['email'] ?? '');
 $amount = (float)($_POST['amount'] ?? 0);
@@ -39,8 +41,8 @@ if (!$email || $amount <= 0) {
 $ref = 'PH_' . bin2hex(random_bytes(8));
 
 // Create transaction in pending state
-$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, status) VALUES (?, ?, ?, ?, 'pending')");
-$stmt->execute([$user['id'], $ref, $amount, $email]);
+$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, status, is_test) VALUES (?, ?, ?, ?, 'pending', ?)");
+$stmt->execute([$user['id'], $ref, $amount, $email, $is_test ? 1 : 0]);
 $txId = $db->lastInsertId();
 
 log_transaction_event($txId, 'initiated', "Transaction initiated via API");

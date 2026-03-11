@@ -17,6 +17,7 @@ $role = $_SESSION['role'] ?? 'merchant';
      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" x-cloak></div>
 
 <aside
+    x-cloak
     :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
     @click.away="mobileMenuOpen = false"
