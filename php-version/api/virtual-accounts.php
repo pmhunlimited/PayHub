@@ -32,9 +32,23 @@ if (!$merchant) {
  * Headers: Authorization: Bearer <Secret Key>
  */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
-    $stmt->execute([$merchant['id']]);
+    $email = sanitize($_GET['email'] ?? '');
+
+    if ($email) {
+        $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND customer_email = ? AND account_number IS NOT NULL AND account_number != ''");
+        $stmt->execute([$merchant['id'], $email]);
+    } else {
+        $stmt = $db->prepare("SELECT bank_name, account_number, account_name, customer_email, created_at FROM virtual_accounts WHERE user_id = ? AND account_number IS NOT NULL AND account_number != '' ORDER BY created_at DESC");
+        $stmt->execute([$merchant['id']]);
+    }
+
     $accounts = $stmt->fetchAll();
+
+    if ($email && !$accounts) {
+        http_response_code(404);
+        echo json_encode(['status' => false, 'message' => 'No virtual account found for this email']);
+        exit;
+    }
 
     // Transform created_at to avoid invalid dates
     foreach ($accounts as &$acc) {
@@ -42,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $acc['created_at_formatted'] = ($time && $time > 0) ? date('Y-m-d H:i:s', $time) : date('Y-m-d H:i:s');
     }
 
-    echo json_encode(['status' => true, 'data' => $accounts]);
+    echo json_encode(['status' => true, 'data' => ($email ? ($accounts[0] ?? null) : $accounts)]);
 } else {
     http_response_code(405);
     echo json_encode(['status' => false, 'message' => 'Method not allowed']);

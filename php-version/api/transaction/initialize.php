@@ -25,12 +25,19 @@ if (!$user) {
     exit;
 }
 
+// Handle JSON input
+$input = json_decode(file_get_contents('php://input'), true);
+if ($input) {
+    $_POST = array_merge($_POST, $input);
+}
+
 $email = sanitize($_POST['email'] ?? '');
 $amount = (float)($_POST['amount'] ?? 0);
 $name = sanitize($_POST['name'] ?? '');
 $phone = sanitize($_POST['phone'] ?? '');
 
-if (!$email || $amount <= 0) {
+// Special case for VA generation only (amount 0)
+if (!$email || ($amount <= 0 && empty($phone))) {
     http_response_code(400);
     echo json_encode(['status' => false, 'message' => 'Missing email or invalid amount']);
     exit;
