@@ -50,6 +50,12 @@ include 'includes/header.php';
                 </div>
             </div>
             <div>
+                <p class="text-xs font-bold text-slate-400 uppercase mb-3">Customers</p>
+                <div class="space-y-2">
+                    <a href="#virtual-accounts" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Virtual Accounts</a>
+                </div>
+            </div>
+            <div>
                 <p class="text-xs font-bold text-slate-400 uppercase mb-3">Plugins</p>
                 <div class="space-y-2">
                     <a href="#woocommerce" class="block text-sm text-emerald-600 font-bold">WooCommerce Plugin</a>
@@ -132,6 +138,23 @@ include 'includes/header.php';
             <p class="text-slate-600 mb-8 leading-relaxed">Confirm the status of a transaction using its reference.</p>
             <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
                 <pre>curl <?php echo BASE_URL; ?>api/transaction/verify/:reference \
+-H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
+            </div>
+        </section>
+
+        <section id="virtual-accounts" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">GET</span>
+                <h2 class="text-2xl font-bold text-slate-900">Virtual Accounts</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">Fetch dedicated virtual bank accounts provisioned for your customers.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <p class="text-slate-500 mb-4">// Fetch all virtual accounts</p>
+                <pre class="mb-6">curl <?php echo BASE_URL; ?>api/virtual-accounts \
+-H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
+
+                <p class="text-slate-500 mb-4">// Fetch for a specific customer</p>
+                <pre>curl <?php echo BASE_URL; ?>api/virtual-accounts?customer_email=jane@example.com \
 -H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
             </div>
         </section>

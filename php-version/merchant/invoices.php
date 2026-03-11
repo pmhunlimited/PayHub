@@ -22,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $stmt = $db->prepare("INSERT INTO invoices (user_id, reference, customer_name, customer_email, amount, due_date, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
     if ($stmt->execute([$user['id'], $ref, $customer_name, $customer_email, $amount, $due_date, $description])) {
         $success_msg = "Invoice created successfully!";
+        // Automate Virtual Account Generation for the customer
+        ensure_virtual_account($user['id'], $customer_email, ['full_name' => $customer_name]);
     } else {
         $error_msg = "Failed to create invoice.";
     }
@@ -90,7 +92,14 @@ include '../includes/dashboard-head.php';
                                             </span>
                                         </td>
                                         <td class="px-6 py-4">
-                                            <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="more-horizontal" class="w-5 h-5"></i></button>
+                                            <div class="flex items-center gap-2">
+                                                <a href="../invoice.php?ref=<?php echo $inv['reference']; ?>" target="_blank" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="View Invoice">
+                                                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                                                </a>
+                                                <button onclick="navigator.clipboard.writeText('<?php echo BASE_URL . 'invoice.php?ref=' . $inv['reference']; ?>'); alert('Invoice link copied!');" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors" title="Copy Link">
+                                                    <i data-lucide="copy" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

@@ -44,7 +44,11 @@ $txId = $db->lastInsertId();
 log_transaction_event($txId, 'initiated', "Transaction initiated via API");
 
 // Automate Virtual Account Generation
-ensure_virtual_account($user['id'], $email);
+$va_details = null;
+$va_res = ensure_virtual_account($user['id'], $email);
+if ($va_res['status']) {
+    $va_details = $va_res['data'];
+}
 
 $checkoutUrl = BASE_URL . "checkout.php?ref=$ref&amount=$amount&email=" . urlencode($email);
 
@@ -54,6 +58,7 @@ echo json_encode([
     'data' => [
         'authorization_url' => $checkoutUrl,
         'access_code' => $ref,
-        'reference' => $ref
+        'reference' => $ref,
+        'virtual_account' => $va_details
     ]
 ]);

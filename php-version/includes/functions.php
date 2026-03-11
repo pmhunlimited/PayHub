@@ -302,7 +302,15 @@ function ensure_virtual_account($userId, $email, $customerData = []) {
         $existing = $stmt->fetch();
 
         if ($existing && !empty($existing['account_number']) && $existing['account_number'] !== '0000000000') {
-            return ['status' => true, 'message' => 'Virtual account already exists'];
+            return [
+                'status' => true,
+                'message' => 'Virtual account already exists',
+                'data' => [
+                    'bank_name' => $existing['bank_name'],
+                    'account_number' => $existing['account_number'],
+                    'account_name' => $existing['account_name']
+                ]
+            ];
         }
 
         // 4. Create/Fetch Customer on Paystack
@@ -359,7 +367,15 @@ function ensure_virtual_account($userId, $email, $customerData = []) {
                 $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
                 $stmt->execute([$userId, trim($firstName . ' ' . $lastName), $email, $customerData['phone'] ?? '']);
 
-                return ['status' => true, 'message' => 'Virtual account generated successfully'];
+                return [
+                    'status' => true,
+                    'message' => 'Virtual account generated successfully',
+                    'data' => [
+                        'bank_name' => $bank,
+                        'account_number' => $number,
+                        'account_name' => $accName
+                    ]
+                ];
             } else {
                 return ['status' => false, 'message' => 'Account created but number not yet assigned by Paystack'];
             }

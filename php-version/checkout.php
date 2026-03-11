@@ -16,16 +16,10 @@ $isTest = false;
 
 if ($tx) {
     $isTest = ($tx['is_test_mode'] == 1);
-    $pk = $isTest ? ($tx['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($tx['public_key'] ?: getConfig('paystack_public_key'));
+    // Checkout uses Platform Keys
+    $pk = $isTest ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key');
 } else {
-    // Fallback for non-transaction checkouts (if any)
-    $user = getAuthUser();
-    if ($user) {
-        $isTest = ($user['is_test_mode'] == 1);
-        $pk = $isTest ? ($user['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($user['public_key'] ?: getConfig('paystack_public_key'));
-    } else {
-        $pk = getConfig('paystack_public_key');
-    }
+    $pk = getConfig('paystack_public_key');
 }
 
 $amount = (float)($_GET['amount'] ?? 1000);

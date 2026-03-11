@@ -91,7 +91,7 @@ include 'includes/header.php';
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script>
 function payInvoice() {
-    const pk = '<?php echo $inv['is_test_mode'] ? ($inv['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($inv['public_key'] ?: getConfig('paystack_public_key')); ?>';
+    const pk = '<?php echo $inv['is_test_mode'] ? getConfig('paystack_test_public_key') : getConfig('paystack_public_key'); ?>';
     if (!pk || pk.trim() === '') {
         alert("Checkout Error: A valid Paystack Public Key is required but was not found. Please contact the merchant or administrator.");
         return;
