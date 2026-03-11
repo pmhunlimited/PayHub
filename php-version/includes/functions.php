@@ -95,6 +95,7 @@ function ensure_critical_tables() {
             ],
             'transactions' => [
                 'customer_email' => "VARCHAR(255)",
+                'customer_name' => "VARCHAR(255)",
                 'payment_method' => "VARCHAR(50) DEFAULT 'card'",
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
