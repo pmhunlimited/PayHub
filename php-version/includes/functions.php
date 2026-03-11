@@ -14,7 +14,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Security Headers
-$isCheckoutEmbed = (strpos($_SERVER['SCRIPT_NAME'], 'checkout.php') !== false) && (isset($_GET['embed']) && $_GET['embed'] === '1');
+$isCheckoutEmbed = (strpos($_SERVER['SCRIPT_NAME'] ?? '', 'checkout.php') !== false) && (isset($_GET['embed']) && $_GET['embed'] === '1');
 if (!$isCheckoutEmbed) {
     header("X-Frame-Options: SAMEORIGIN");
 }
@@ -97,6 +97,7 @@ function ensure_critical_tables() {
                 'customer_email' => "VARCHAR(255)",
                 'customer_name' => "VARCHAR(255)",
                 'payment_method' => "VARCHAR(50) DEFAULT 'card'",
+                'is_test' => "TINYINT DEFAULT 0",
                 'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'currency' => "VARCHAR(10) DEFAULT 'NGN'",

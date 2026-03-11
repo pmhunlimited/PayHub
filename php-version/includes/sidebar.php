@@ -19,6 +19,7 @@ $role = $_SESSION['role'] ?? 'merchant';
 <aside
     :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
     class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
+    @click.away="mobileMenuOpen = false"
 >
     <div class="p-6 border-b border-slate-100 flex items-center justify-between">
         <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
@@ -32,9 +33,9 @@ $role = $_SESSION['role'] ?? 'merchant';
             <?php endif; ?>
             <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
-        <button @click="mobileMenuOpen = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
+        <button @click="mobileMenuOpen = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all md:hidden">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
     </div>
     
     <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
