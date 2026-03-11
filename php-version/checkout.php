@@ -2,14 +2,30 @@
 // php-version/checkout.php
 require_once 'includes/functions.php';
 
-$pk = getConfig('paystack_public_key');
-// Check if user is logged in and in test mode, or if ref implies test
+$ref = $_GET['ref'] ?? '';
+$db = Database::connect();
+$stmt = $db->prepare("SELECT t.*, u.public_key, u.test_public_key, u.is_test_mode
+                      FROM transactions t
+                      JOIN users u ON t.user_id = u.id
+                      WHERE t.reference = ?");
+$stmt->execute([$ref]);
+$tx = $stmt->fetch();
+
+$pk = '';
 $isTest = false;
-$user = getAuthUser();
-if ($user && $user['is_test_mode'] == 1) {
-    $isTest = true;
-    $pk = getConfig('paystack_test_public_key');
-    if (!$pk) $pk = getConfig('paystack_public_key'); // Fallback
+
+if ($tx) {
+    $isTest = ($tx['is_test_mode'] == 1);
+    $pk = $isTest ? ($tx['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($tx['public_key'] ?: getConfig('paystack_public_key'));
+} else {
+    // Fallback for non-transaction checkouts (if any)
+    $user = getAuthUser();
+    if ($user) {
+        $isTest = ($user['is_test_mode'] == 1);
+        $pk = $isTest ? ($user['test_public_key'] ?: getConfig('paystack_test_public_key')) : ($user['public_key'] ?: getConfig('paystack_public_key'));
+    } else {
+        $pk = getConfig('paystack_public_key');
+    }
 }
 
 $amount = (float)($_GET['amount'] ?? 1000);
@@ -81,8 +97,14 @@ if (!$isEmbedded) {
 
 <script>
 function payWithPaystack() {
+    const pk = '<?php echo $pk; ?>';
+    if (!pk || pk.trim() === '') {
+        alert("Checkout Error: A valid Paystack Public Key is required but was not found. Please contact the merchant or administrator.");
+        return;
+    }
+
     let handler = PaystackPop.setup({
-        key: '<?php echo $pk; ?>',
+        key: pk,
         email: '<?php echo $email; ?>',
         amount: <?php echo $amount * 100; ?>,
         ref: '<?php echo $ref; ?>',

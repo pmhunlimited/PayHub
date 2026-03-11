@@ -16,18 +16,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $phone = sanitize($_POST['phone']);
 
         try {
-            // Optional: Also create on Paystack immediately
-            $paystack_res = paystack_call('customer', 'POST', [
-                'email' => $email,
-                'first_name' => explode(' ', $name)[0],
-                'last_name' => explode(' ', $name)[1] ?? '',
-                'phone' => $phone,
-                'metadata' => ['merchant_id' => $user['id']]
+            // Automated Customer & Virtual Account Generation
+            $va_res = ensure_virtual_account($user['id'], $email, [
+                'full_name' => $name,
+                'phone' => $phone
             ]);
 
-            $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
-            $stmt->execute([$user['id'], $name, $email, $phone]);
-            $success_msg = "Customer added successfully!";
+            if ($va_res['status']) {
+                $success_msg = "Customer added and virtual account generated successfully!";
+            } else {
+                // Fallback to just local insert if VA generation is not possible (tier/KYC)
+                $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
+                $stmt->execute([$user['id'], $name, $email, $phone]);
+                $success_msg = "Customer added successfully. (Note: " . $va_res['message'] . ")";
+            }
         } catch (Exception $e) {
             $error_msg = "Error: " . $e->getMessage();
         }

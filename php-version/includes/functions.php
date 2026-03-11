@@ -14,7 +14,10 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Security Headers
-header("X-Frame-Options: SAMEORIGIN");
+$isCheckoutEmbed = (strpos($_SERVER['SCRIPT_NAME'], 'checkout.php') !== false) && (isset($_GET['embed']) && $_GET['embed'] === '1');
+if (!$isCheckoutEmbed) {
+    header("X-Frame-Options: SAMEORIGIN");
+}
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
 header("Referrer-Policy: strict-origin-when-cross-origin");
@@ -268,6 +271,104 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
 
     $result = json_decode($response, true);
     return $result;
+}
+
+/**
+ * Ensures a customer has a virtual account and is registered locally.
+ * Automates the process of creating/fetching a Paystack customer and
+ * generating a dedicated virtual account.
+ */
+function ensure_virtual_account($userId, $email, $customerData = []) {
+    try {
+        $db = Database::connect();
+
+        // 1. Fetch Merchant User details
+        $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
+        $stmt->execute([$userId]);
+        $merchant = $stmt->fetch();
+
+        if (!$merchant) return ['status' => false, 'message' => 'Merchant not found'];
+
+        // 2. Business Tier & KYC Check (Restrict to Registered/Special and Verified)
+        if ($merchant['business_type'] === 'Starter' || $merchant['is_kyc_verified'] != 1) {
+            return ['status' => false, 'message' => 'Merchant business tier or KYC status does not support virtual accounts'];
+        }
+
+        $is_test = ($merchant['is_test_mode'] == 1);
+
+        // 3. Check if Virtual Account already exists locally
+        $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND customer_email = ?");
+        $stmt->execute([$userId, $email]);
+        $existing = $stmt->fetch();
+
+        if ($existing && !empty($existing['account_number']) && $existing['account_number'] !== '0000000000') {
+            return ['status' => true, 'message' => 'Virtual account already exists'];
+        }
+
+        // 4. Create/Fetch Customer on Paystack
+        $fullName = $customerData['full_name'] ?? '';
+        if (empty($fullName)) {
+            $stmt = $db->prepare("SELECT full_name, phone FROM customers WHERE user_id = ? AND email = ?");
+            $stmt->execute([$userId, $email]);
+            $localCust = $stmt->fetch();
+            if ($localCust) {
+                $fullName = $localCust['full_name'];
+                $customerData['phone'] = $customerData['phone'] ?? $localCust['phone'];
+            }
+        }
+
+        $names = explode(' ', trim($fullName));
+        $firstName = $names[0] ?? 'Customer';
+        $lastName = $names[1] ?? '';
+
+        $paystackCustomer = paystack_call('customer', 'POST', [
+            'email' => $email,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'phone' => $customerData['phone'] ?? '',
+            'metadata' => ['merchant_id' => $userId]
+        ], $is_test);
+
+        if (!$paystackCustomer || !$paystackCustomer['status']) {
+            return ['status' => false, 'message' => 'Paystack Customer Error: ' . ($paystackCustomer['message'] ?? 'Unknown error')];
+        }
+
+        $customerCode = $paystackCustomer['data']['customer_code'];
+
+        // 5. Create Dedicated Virtual Account on Paystack
+        $dvaRes = paystack_call('dedicated_account', 'POST', [
+            'customer' => $customerCode
+        ], $is_test);
+
+        if ($dvaRes && $dvaRes['status']) {
+            $acc = $dvaRes['data'];
+            $bank = $acc['bank']['name'] ?? 'Virtual Bank';
+            $number = $acc['account_number'] ?? '';
+            $accName = $acc['account_name'] ?? $merchant['business_name'];
+
+            if (!empty($number)) {
+                if ($existing) {
+                    $stmt = $db->prepare("UPDATE virtual_accounts SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?");
+                    $stmt->execute([$bank, $number, $accName, $existing['id']]);
+                } else {
+                    $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
+                    $stmt->execute([$userId, $bank, $number, $accName, $email]);
+                }
+
+                // 6. Ensure customer exists locally
+                $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
+                $stmt->execute([$userId, trim($firstName . ' ' . $lastName), $email, $customerData['phone'] ?? '']);
+
+                return ['status' => true, 'message' => 'Virtual account generated successfully'];
+            } else {
+                return ['status' => false, 'message' => 'Account created but number not yet assigned by Paystack'];
+            }
+        } else {
+            return ['status' => false, 'message' => 'Paystack DVA Error: ' . ($dvaRes['message'] ?? 'Unknown error')];
+        }
+    } catch (\Throwable $e) {
+        return ['status' => false, 'message' => 'System Error: ' . $e->getMessage()];
+    }
 }
 
 function log_transaction_event($transactionId, $type, $desc) {
