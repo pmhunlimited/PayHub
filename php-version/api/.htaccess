@@ -2,15 +2,13 @@ RewriteEngine On
 
 # Ensure Authorization header is passed to PHP
 RewriteCond %{HTTP:Authorization} .
-RewriteRule .* - [E=HTTP_AUTHOR_IZTION:%{HTTP:Authorization}]
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # Redirect /api/virtual-accounts to /api/virtual-accounts.php
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^virtual-accounts$ virtual-accounts.php [L,QSA]
 
-# Redirect /api/:email to /api/virtual-accounts.php?email=:email (if we want to support that)
-# But based on logs, the request is /api/omotere_ebenezer@hotmail.com which looks like a lookup
-# Let's create a specific handler for email lookup if needed, or redirect to virtual-accounts.php
+# Redirect /api/:email to /api/virtual-accounts.php?email=:email
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_URI} !^/api/(transaction|virtual-accounts)
 RewriteRule ^([^/]+)$ virtual-accounts.php?email=$1 [L,QSA]

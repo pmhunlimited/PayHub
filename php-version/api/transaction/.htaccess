@@ -6,8 +6,8 @@ RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # Redirect /api/transaction/initialize to /api/transaction/initialize.php
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^transaction/initialize$ initialize.php [L,QSA]
+RewriteRule ^initialize$ initialize.php [L,QSA]
 
 # Redirect /api/transaction/verify/:ref to /api/transaction/verify.php?reference=:ref
 RewriteCond %{REQUEST_FILENAME} !-f
-RewriteRule ^transaction/verify/([^/]+)$ verify.php?reference=$1 [L,QSA]
+RewriteRule ^verify/([^/]+)$ verify.php?reference=$1 [L,QSA]

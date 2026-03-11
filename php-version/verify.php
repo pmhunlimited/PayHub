@@ -114,8 +114,9 @@ if ($res && $res['status'] && $res['data']['status'] === 'success') {
                     }
                 }
 
-                // Log ledger and update user balance
-                log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");
+                // Log ledger and update user balance (prevent real crediting for test mode)
+                $is_test_tx = (bool)$tx['is_test'] || ($res['data']['domain'] === 'test');
+                log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref", $is_test_tx);
 
                 log_transaction_event($tx['id'], 'verified', "Payment verified via direct lookup.");
 

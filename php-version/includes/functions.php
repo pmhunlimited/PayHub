@@ -63,7 +63,14 @@ function ensure_critical_tables() {
             'transactions' => "CREATE TABLE IF NOT EXISTS transactions (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, reference VARCHAR(100) UNIQUE, amount DECIMAL(15,2), status VARCHAR(20) DEFAULT 'pending', customer_email VARCHAR(255), payment_method VARCHAR(50) DEFAULT 'card', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'ledger' => "CREATE TABLE IF NOT EXISTS ledger (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, amount DECIMAL(15, 2), type ENUM('credit', 'debit'), category VARCHAR(50), description TEXT, balance_after DECIMAL(15, 2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
             'disputes' => "CREATE TABLE IF NOT EXISTS disputes (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, transaction_id INT, reason TEXT, status ENUM('open', 'won', 'lost') DEFAULT 'open', evidence_path VARCHAR(255), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
-            'customers' => "CREATE TABLE IF NOT EXISTS customers (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, full_name VARCHAR(255), email VARCHAR(255), phone VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY `merchant_customer` (`user_id`, `email`)) ENGINE=InnoDB"
+            'customers' => "CREATE TABLE IF NOT EXISTS customers (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, full_name VARCHAR(255), email VARCHAR(255), phone VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY `merchant_customer` (`user_id`, `email`)) ENGINE=InnoDB",
+            'transaction_timeline' => "CREATE TABLE IF NOT EXISTS transaction_timeline (id INT AUTO_INCREMENT PRIMARY KEY, transaction_id INT, event_type VARCHAR(50), description TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'payouts' => "CREATE TABLE IF NOT EXISTS payouts (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, amount DECIMAL(15,2), status ENUM('pending', 'processing', 'completed', 'failed') DEFAULT 'pending', reference VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'subscriptions' => "CREATE TABLE IF NOT EXISTS subscriptions (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, customer_email VARCHAR(255), plan_name VARCHAR(100), amount DECIMAL(15,2), status VARCHAR(20), next_billing_date DATE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'support_tickets' => "CREATE TABLE IF NOT EXISTS support_tickets (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, subject VARCHAR(255), message TEXT, status ENUM('open', 'closed') DEFAULT 'open', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'blog_posts' => "CREATE TABLE IF NOT EXISTS blog_posts (id INT AUTO_INCREMENT PRIMARY KEY, title VARCHAR(255), content TEXT, author VARCHAR(100), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'webhook_logs' => "CREATE TABLE IF NOT EXISTS webhook_logs (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, event_type VARCHAR(100), payload TEXT, response_code INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB",
+            'staff_roles' => "CREATE TABLE IF NOT EXISTS staff_roles (id INT AUTO_INCREMENT PRIMARY KEY, user_id INT, role VARCHAR(50), permissions TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP) ENGINE=InnoDB"
         ];
         foreach ($essential_tables as $sql) { $db->exec($sql); }
 
@@ -71,6 +78,8 @@ function ensure_critical_tables() {
         $cols = [
             'users' => [
                 'is_deleted' => "TINYINT DEFAULT 0",
+                'settlement_bank' => "VARCHAR(100)",
+                'settlement_account' => "VARCHAR(50)",
                 'parent_id' => "INT DEFAULT NULL",
                 'fee_percentage' => "DECIMAL(5, 2) DEFAULT NULL",
                 'fee_flat' => "DECIMAL(15, 2) DEFAULT NULL",
@@ -109,7 +118,12 @@ function ensure_critical_tables() {
             'invoices' => [
                 'reference' => "VARCHAR(100)",
                 'customer_name' => "VARCHAR(255)",
-                'description' => "TEXT"
+                'description' => "TEXT",
+                'status' => "ENUM('pending', 'paid', 'cancelled') DEFAULT 'pending'"
+            ],
+            'virtual_accounts' => [
+                'customer_email' => "VARCHAR(255)",
+                'account_name' => "VARCHAR(255)"
             ]
         ];
         foreach ($cols as $table => $columns) {
@@ -426,9 +440,14 @@ function ensure_virtual_account($userId, $email, $customerData = [], $is_test = 
 }
 
 function log_transaction_event($transactionId, $type, $desc) {
-    $db = Database::connect();
-    $stmt = $db->prepare("INSERT INTO transaction_timeline (transaction_id, event_type, description) VALUES (?, ?, ?)");
-    return $stmt->execute([$transactionId, $type, $desc]);
+    try {
+        $db = Database::connect();
+        $stmt = $db->prepare("INSERT INTO transaction_timeline (transaction_id, event_type, description) VALUES (?, ?, ?)");
+        return $stmt->execute([$transactionId, $type, $desc]);
+    } catch (\Throwable $e) {
+        error_log("Transaction Timeline Log Error: " . $e->getMessage());
+        return false;
+    }
 }
 
 function calculate_fees($amount, $is_international = false, $userId = null) {
@@ -464,13 +483,20 @@ function calculate_fees($amount, $is_international = false, $userId = null) {
     }
 }
 
-function log_ledger_entry($userId, $amount, $type, $category, $desc) {
+function log_ledger_entry($userId, $amount, $type, $category, $desc, $is_test = false) {
     $db = Database::connect();
 
-    // Get current balance
-    $stmt = $db->prepare("SELECT wallet_balance FROM users WHERE id = ?");
+    // Fetch user details including test mode status
+    $stmt = $db->prepare("SELECT wallet_balance, is_test_mode FROM users WHERE id = ?");
     $stmt->execute([$userId]);
-    $current = $stmt->fetch()['wallet_balance'];
+    $user = $stmt->fetch();
+    $current = (float)$user['wallet_balance'];
+
+    // If it's a test transaction, we don't update the real balance
+    if ($is_test) {
+        $stmt = $db->prepare("INSERT INTO ledger (user_id, amount, type, category, description, balance_after) VALUES (?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([$userId, $amount, $type, $category, "[TEST] " . $desc, $current]);
+    }
 
     $newBalance = ($type === 'credit') ? ($current + $amount) : ($current - $amount);
 

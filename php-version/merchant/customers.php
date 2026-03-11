@@ -59,6 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         } else {
             $error_msg = "Error: " . $res['message'];
         }
+    } elseif ($_POST['action'] === 'delete_customer') {
+        $id = (int)$_POST['customer_id'];
+        $stmt = $db->prepare("DELETE FROM customers WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $user['id']]);
+        $success_msg = "Customer removed successfully.";
+    } elseif ($_POST['action'] === 'edit_customer') {
+        $id = (int)$_POST['customer_id'];
+        $name = sanitize($_POST['full_name']);
+        $phone = sanitize($_POST['phone']);
+        $stmt = $db->prepare("UPDATE customers SET full_name = ?, phone = ? WHERE id = ? AND user_id = ?");
+        $stmt->execute([$name, $phone, $id, $user['id']]);
+        $success_msg = "Customer updated successfully.";
     }
 }
 
@@ -153,9 +165,40 @@ include '../includes/dashboard-head.php';
                                         <td class="px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
                                         <td class="px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
                                         <td class="px-6 py-4">
-                                            <div class="flex items-center gap-2">
-                                                <button class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
-                                                <button class="p-2 text-slate-400 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                            <div class="flex items-center gap-2" x-data="{ editing: false, fullName: '<?php echo addslashes($c['full_name']); ?>', phone: '<?php echo addslashes($c['phone']); ?>' }">
+                                                <button @click="editing = true" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                                                <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove this customer?');">
+                                                    <input type="hidden" name="action" value="delete_customer">
+                                                    <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                    <button type="submit" class="p-2 text-slate-400 hover:text-red-600 transition-colors"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                                </form>
+
+                                                <!-- Edit Modal -->
+                                                <div x-show="editing" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                                                    <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
+                                                        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                                            <h3 class="font-bold text-slate-900">Edit Customer</h3>
+                                                            <button @click="editing = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                                                                <i data-lucide="x" class="w-5 h-5"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="p-8">
+                                                            <form method="POST" class="space-y-4 text-left">
+                                                                <input type="hidden" name="action" value="edit_customer">
+                                                                <input type="hidden" name="customer_id" value="<?php echo $c['id']; ?>">
+                                                                <div>
+                                                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name</label>
+                                                                    <input type="text" name="full_name" x-model="fullName" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                                </div>
+                                                                <div>
+                                                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Phone Number</label>
+                                                                    <input type="tel" name="phone" x-model="phone" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                                </div>
+                                                                <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 mt-4">Save Changes</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>

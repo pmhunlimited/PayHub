@@ -68,21 +68,26 @@ if ($event['event'] === 'charge.success') {
         }
 
         if ($acc_number) {
-            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ?");
-            $stmt->execute([$acc_number]);
+            // Clean account number (Paystack sometimes sends it with leading zeros or slightly different)
+            $clean_acc = ltrim($acc_number, '0');
+            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ? OR account_number = ?");
+            $stmt->execute([$acc_number, str_pad($clean_acc, 10, '0', STR_PAD_LEFT)]);
             $va = $stmt->fetch();
 
             if ($va) {
+                // Determine if it's a test transaction
+                $is_test_va = ($data['domain'] === 'test');
+
                 // Create a pending transaction for this VA payment
                 // Using INSERT IGNORE in case webhook is retried quickly
-                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer')");
-                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email']]);
+                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method, is_test) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer', ?)");
+                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email'], $is_test_va ? 1 : 0]);
 
                 $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
                 $stmt->execute([$ref]);
                 $tx = $stmt->fetch();
 
-                file_put_contents('webhook_debug.log', "Matched Virtual Account: $acc_number for user " . $va['user_id'] . PHP_EOL, FILE_APPEND);
+                file_put_contents('webhook_debug.log', "Matched Virtual Account: $acc_number for user " . $va['user_id'] . " (Test: ".($is_test_va?'Yes':'No').")" . PHP_EOL, FILE_APPEND);
             } else {
                 file_put_contents('webhook_debug.log', "Dedicated Account payment but NO MATCH in DB: $acc_number" . PHP_EOL, FILE_APPEND);
             }
@@ -104,8 +109,9 @@ if ($event['event'] === 'charge.success') {
             $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
             $stmt->execute([$fee, $settled, $tx['id']]);
 
-            // Log ledger and update user balance
-            log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment received for Ref: $ref");
+            // Log ledger and update user balance (prevent real crediting for test mode)
+            $is_test_tx = (bool)$tx['is_test'] || ($data['domain'] === 'test');
+            log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment received for Ref: $ref", $is_test_tx);
 
             log_transaction_event($tx['id'], 'payment_completed', 'Payment successfully processed and confirmed via Webhook');
 
