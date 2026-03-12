@@ -28,4 +28,14 @@ require_once __DIR__ . '/functions.php';
         ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
     </style>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            if (!Alpine.store('nav')) {
+                Alpine.store('nav', {
+                    mobileMenuOpen: false,
+                    toggle() { this.mobileMenuOpen = !this.mobileMenuOpen }
+                });
+            }
+        });
+    </script>
 </head>
