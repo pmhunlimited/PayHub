@@ -87,7 +87,7 @@ include '../includes/dashboard-head.php';
         editingStaff: {id:null, full_name:'', email:'', role_id:null}
     }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -99,7 +99,7 @@ include '../includes/dashboard-head.php';
                 </div>
             <?php endif; ?>
 
-            <div class="mb-8 flex justify-between items-center">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Staff Management</h1>
                     <p class="text-slate-500">Create roles and manage staff access with granular permissions</p>
@@ -121,18 +121,18 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Name</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Email</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Role</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Name</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Email</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Role</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($staff as $s): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo $s['full_name']; ?></td>
-                                    <td class="px-6 py-4 text-sm text-slate-700"><?php echo $s['email']; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-4 sm:px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $s['full_name']; ?></td>
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm text-slate-700"><?php echo $s['email']; ?></td>
+                                    <td class="px-4 sm:px-6 py-4">
                                         <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700">
                                             <?php echo $s['role_name'] ?: 'No Role'; ?>
                                         </span>
@@ -191,7 +191,7 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
 
-        <div x-show="showAddRole" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showAddRole" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Create Staff Role</h3>
@@ -209,7 +209,7 @@ include '../includes/dashboard-head.php';
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Permissions</label>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <?php
                                 $perms = ['Manage Merchants', 'Process Payouts', 'Review KYC', 'Manage Blog', 'System Settings', 'Support Desk', 'View Reports', 'Webhook Logs'];
                                 foreach($perms as $p):
@@ -228,7 +228,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Edit Role Modal -->
-        <div x-show="showEditRole" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showEditRole" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Staff Role</h3>
@@ -247,7 +247,7 @@ include '../includes/dashboard-head.php';
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-4 tracking-wider">Permissions</label>
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <?php
                                 foreach($perms as $p):
                                 ?>
@@ -265,7 +265,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Add Staff Modal -->
-        <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Add New Staff Member</h3>
@@ -305,7 +305,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Edit Staff Modal -->
-        <div x-show="showEditStaff" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showEditStaff" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Staff Member</h3>

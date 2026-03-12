@@ -18,7 +18,7 @@ $role = $_SESSION['role'] ?? 'merchant';
 
 <aside
     :class="$store.nav.mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
-    class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
+    class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-[60] transition-transform duration-300 shrink-0"
 >
     <div class="p-6 border-b border-slate-100 flex items-center justify-between">
         <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
@@ -167,6 +167,10 @@ $role = $_SESSION['role'] ?? 'merchant';
             <a href="<?php echo BASE_URL; ?>merchant/api-keys.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-keys.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="code" class="w-5 h-5"></i>
                 API Keys
+            </a>
+            <a href="<?php echo BASE_URL; ?>merchant/reconcile.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'reconcile.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                Reconcile
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/settings.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'settings.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="settings" class="w-5 h-5"></i>

@@ -42,13 +42,13 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="mb-8">
                 <h1 class="text-2xl font-bold text-slate-900 mb-2">System Health</h1>
                 <p class="text-slate-500">Monitor API uptime, database performance, and server latency in real-time</p>
             </div>
 
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <h4 class="text-slate-500 text-sm font-bold mb-4 uppercase tracking-widest">Gateway Latency</h4>
                     <p class="text-4xl font-bold text-emerald-600"><?php echo $stats['api_latency']; ?></p>

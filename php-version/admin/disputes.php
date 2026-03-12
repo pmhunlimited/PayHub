@@ -29,7 +29,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -47,23 +47,23 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Transaction</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Reason</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Transaction</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Reason</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($disputes as $d): ?>
                                 <tr class="hover:bg-slate-50/30 transition-colors">
-                                    <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo $d['business_name']; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-4 sm:px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $d['business_name']; ?></td>
+                                    <td class="hidden sm:table-cell px-6 py-4">
                                         <div class="text-xs font-mono text-slate-600"><?php echo $d['transaction_ref']; ?></div>
                                         <div class="text-xs font-bold text-slate-900"><?php echo formatCurrency($d['amount']); ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-slate-600"><?php echo $d['reason']; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden md:table-cell px-6 py-4 text-sm text-slate-600"><?php echo $d['reason']; ?></td>
+                                    <td class="px-4 sm:px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $d['status'] === 'won' ? 'bg-emerald-100 text-emerald-700' : ($d['status'] === 'lost' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'); ?>">
                                             <?php echo $d['status']; ?>
                                         </span>

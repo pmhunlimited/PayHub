@@ -103,7 +103,7 @@ include '../includes/dashboard-head.php';
         <?php include '../includes/topbar.php'; ?>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -241,7 +241,7 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Reference</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                             </tr>
@@ -250,7 +250,7 @@ include '../includes/dashboard-head.php';
                             <?php foreach ($recentTransactions as $tx): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-6 py-4 font-mono text-sm"><?php echo $tx['reference']; ?></td>
-                                    <td class="px-6 py-4 text-sm"><?php echo $tx['customer_email']; ?></td>
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm"><?php echo $tx['customer_email']; ?></td>
                                     <td class="px-6 py-4 text-sm font-bold"><?php echo formatCurrency($tx['amount']); ?></td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $tx['status'] === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'; ?>">

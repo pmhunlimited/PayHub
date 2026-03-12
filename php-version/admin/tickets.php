@@ -45,7 +45,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showReply: false, ticketId: null, ticketSubject: '' }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -66,28 +66,28 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Subject</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Priority</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Subject</th>
+                                <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Priority</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($tickets as $t): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-900"><?php echo $t['business_name']; ?></div>
-                                        <div class="text-[10px] text-slate-500"><?php echo $t['user_email']; ?></div>
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $t['business_name']; ?></div>
+                                        <div class="hidden sm:block text-[10px] text-slate-500"><?php echo $t['user_email']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-700"><?php echo $t['subject']; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-4 sm:px-6 py-4 text-sm font-medium text-slate-700 truncate max-w-[150px] sm:max-w-none"><?php echo $t['subject']; ?></td>
+                                    <td class="hidden lg:table-cell px-6 py-4">
                                         <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['priority'] === 'critical' || $t['priority'] === 'high' ? 'bg-red-50 text-red-600' : 'bg-amber-50 text-amber-600'; ?>"><?php echo $t['priority']; ?></span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden sm:table-cell px-6 py-4">
                                         <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['status'] === 'open' ? 'bg-indigo-50 text-indigo-700' : ($t['status'] === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'); ?>"><?php echo $t['status']; ?></span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="px-4 sm:px-6 py-4">
                                         <div class="flex gap-2">
                                             <button @click="showReply = true; ticketId = <?php echo $t['id']; ?>; ticketSubject = '<?php echo addslashes($t['subject']); ?>'" class="text-indigo-600 hover:underline text-xs font-bold">Reply</button>
                                             <form method="POST" class="inline">
@@ -106,7 +106,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Reply Modal -->
-        <div x-show="showReply" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showReply" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reply to Ticket</h3>

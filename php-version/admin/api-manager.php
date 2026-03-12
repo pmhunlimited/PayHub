@@ -41,7 +41,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -67,7 +67,7 @@ include '../includes/dashboard-head.php';
                 <form method="POST" class="space-y-6">
                     <input type="hidden" name="action" value="update_keys">
 
-                    <div class="grid md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Live Public Key</label>
                             <input type="text" name="paystack_public_key" value="<?php echo $pk; ?>" placeholder="pk_live_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
@@ -78,7 +78,7 @@ include '../includes/dashboard-head.php';
                         </div>
                     </div>
 
-                    <div class="grid md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Test Public Key</label>
                             <input type="text" name="paystack_test_public_key" value="<?php echo $tpk; ?>" placeholder="pk_test_..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none font-mono text-sm">
@@ -114,24 +114,24 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50/50">
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Method & Endpoint</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payload</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Response</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Time</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Method & Endpoint</th>
+                                <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                <th class="hidden md:table-cell px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Payload</th>
+                                <th class="hidden lg:table-cell px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Response</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($logs as $l): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-8 py-4 text-xs text-slate-500 whitespace-nowrap"><?php echo date('H:i:s d M', strtotime($l['created_at'])); ?></td>
-                                    <td class="px-8 py-4">
+                                    <td class="px-4 sm:px-8 py-4 text-xs text-slate-500 whitespace-nowrap"><?php echo date('H:i:s d M', strtotime($l['created_at'])); ?></td>
+                                    <td class="px-4 sm:px-8 py-4">
                                         <div class="flex items-center gap-2">
                                             <span class="px-2 py-0.5 rounded bg-slate-900 text-white text-[9px] font-bold"><?php echo $l['method']; ?></span>
-                                            <span class="text-xs font-mono text-slate-600"><?php echo $l['endpoint']; ?></span>
+                                            <span class="text-xs font-mono text-slate-600 truncate max-w-[80px] sm:max-w-none"><?php echo $l['endpoint']; ?></span>
                                         </div>
                                     </td>
-                                    <td class="px-8 py-4">
+                                    <td class="hidden sm:table-cell px-8 py-4">
                                         <span class="px-2 py-1 rounded-full text-[10px] font-bold <?php echo $l['status_code'] < 300 ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'; ?>">
                                             <?php echo $l['status_code']; ?>
                                         </span>

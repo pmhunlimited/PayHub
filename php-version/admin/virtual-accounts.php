@@ -34,7 +34,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
             <?php endif; ?>
@@ -58,27 +58,27 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Bank</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Details</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Bank</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Details</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($accounts as $a): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm font-bold text-slate-900"><?php echo $a['business_name'] ?: 'Unknown'; ?></div>
-                                        <div class="text-[10px] text-slate-400"><?php echo $a['merchant_email']; ?></div>
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="text-sm font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $a['business_name'] ?: 'Unknown'; ?></div>
+                                        <div class="hidden sm:block text-[10px] text-slate-400"><?php echo $a['merchant_email']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-slate-700"><?php echo $a['bank_name'] ?: 'N/A'; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm text-slate-700"><?php echo $a['bank_name'] ?: 'N/A'; ?></td>
+                                    <td class="px-4 sm:px-6 py-4">
                                         <div class="text-sm font-mono font-bold text-indigo-600"><?php echo $a['account_number'] ?: 'N/A'; ?></div>
                                         <div class="text-[10px] text-slate-500"><?php echo $a['account_name'] ?: 'N/A'; ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-xs text-slate-400"><?php echo (isset($a['created_at']) && $a['created_at']) ? date('M d, Y', strtotime($a['created_at'])) : 'Recently'; ?></td>
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="hidden md:table-cell px-6 py-4 text-xs text-slate-400"><?php echo (isset($a['created_at']) && $a['created_at']) ? date('M d, Y', strtotime($a['created_at'])) : 'Recently'; ?></td>
+                                    <td class="px-4 sm:px-6 py-4 text-right">
                                         <form method="POST" class="inline" onsubmit="return confirm('Delete this record?');">
                                             <input type="hidden" name="action" value="delete_account">
                                             <input type="hidden" name="account_id" value="<?php echo $a['id']; ?>">

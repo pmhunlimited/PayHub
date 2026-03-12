@@ -129,14 +129,14 @@ include '../includes/dashboard-head.php';
         }
     }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="mb-8 flex justify-between items-center">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Merchant Directory</h1>
                     <div class="flex gap-4 mt-2">
@@ -157,12 +157,12 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50 border-b border-slate-100">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Name</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Custom Fees</th>
+                                <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
+                                <th class="hidden xl:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
+                                <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
+                                <th class="hidden xl:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Custom Fees</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
@@ -173,7 +173,7 @@ include '../includes/dashboard-head.php';
                                         <div class="font-bold text-slate-900"><?php echo $m['business_name']; ?></div>
                                         <div class="text-xs text-slate-500"><?php echo $m['email']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden lg:table-cell px-6 py-4">
                                         <?php if ($m['parent_id']): ?>
                                             <div class="flex flex-col">
                                                 <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-purple-100 text-purple-700 w-fit">Sub-account</span>
@@ -183,20 +183,20 @@ include '../includes/dashboard-head.php';
                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Main Account</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-500">
+                                    <td class="hidden xl:table-cell px-6 py-4 text-sm font-medium text-slate-500">
                                         <?php echo date('M d, Y', strtotime($m['created_at'])); ?>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden sm:table-cell px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $m['is_kyc_verified'] == 1 ? 'bg-emerald-100 text-emerald-700' : ($m['is_kyc_verified'] == 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'); ?>">
                                             <?php echo $m['is_kyc_verified'] == 1 ? 'Verified' : ($m['is_kyc_verified'] == 2 ? 'Submitted' : 'Pending'); ?>
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden md:table-cell px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $m['is_suspended'] ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'; ?>">
                                             <?php echo $m['is_suspended'] ? 'Suspended' : 'Active'; ?>
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden lg:table-cell px-6 py-4">
                                         <form method="POST" class="inline">
                                             <input type="hidden" name="action" value="toggle_payout_review">
                                             <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
@@ -206,7 +206,7 @@ include '../includes/dashboard-head.php';
                                             </button>
                                         </form>
                                     </td>
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="hidden xl:table-cell px-6 py-4 text-sm">
                                         <?php if ($m['fee_percentage'] !== null): ?>
                                             <span class="text-indigo-600 font-bold"><?php echo $m['fee_percentage']; ?>% + <?php echo $m['fee_flat']; ?></span>
                                         <?php else: ?>
@@ -265,7 +265,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Reset Password Modal -->
-        <div x-show="showReset" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showReset" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reset Password</h3>
@@ -286,7 +286,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Edit Modal -->
-        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Merchant</h3>
@@ -313,7 +313,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Fee Modal -->
-        <div x-show="showFees" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showFees" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Custom Fees</h3>

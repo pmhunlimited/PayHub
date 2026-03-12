@@ -37,7 +37,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-6xl mx-auto">
                 <?php if ($success_msg): ?>
                     <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
@@ -48,7 +48,7 @@ include '../includes/dashboard-head.php';
 
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h1 class="text-3xl font-bold text-slate-900 mb-2">Invoices</h1>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Invoices</h1>
                         <p class="text-slate-500">Create and manage professional invoices for your customers</p>
                     </div>
                     <button @click="showCreate = true" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
@@ -68,23 +68,23 @@ include '../includes/dashboard-head.php';
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-100">
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Due Date</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                                    <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Due Date</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php foreach ($invoices as $inv): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4">
-                                            <div class="font-bold text-slate-900"><?php echo $inv['customer_name']; ?></div>
-                                            <div class="text-xs text-slate-500 font-medium"><?php echo $inv['customer_email']; ?></div>
+                                        <td class="px-4 sm:px-6 py-4">
+                                            <div class="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $inv['customer_name']; ?></div>
+                                            <div class="hidden sm:block text-xs text-slate-500 font-medium"><?php echo $inv['customer_email']; ?></div>
                                         </td>
-                                        <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($inv['amount']); ?></td>
-                                        <td class="px-6 py-4 text-sm font-medium text-slate-600"><?php echo date('M d, Y', strtotime($inv['due_date'])); ?></td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-4 sm:px-6 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($inv['amount']); ?></td>
+                                        <td class="hidden md:table-cell px-6 py-4 text-sm font-medium text-slate-600"><?php echo date('M d, Y', strtotime($inv['due_date'])); ?></td>
+                                        <td class="px-4 sm:px-6 py-4">
                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $inv['status'] === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'; ?>">
                                                 <?php echo $inv['status']; ?>
                                             </span>
@@ -112,7 +112,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Create Invoice Modal -->
-        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Create New Invoice</h3>
@@ -123,7 +123,7 @@ include '../includes/dashboard-head.php';
                 <div class="p-8">
                     <form method="POST" class="space-y-4">
                         <input type="hidden" name="action" value="create_invoice">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Customer Name</label>
                                 <input type="text" name="customer_name" required placeholder="Jane Doe" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -133,7 +133,7 @@ include '../includes/dashboard-head.php';
                                 <input type="email" name="customer_email" required placeholder="jane@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Amount (NGN)</label>
                                 <input type="number" step="0.01" name="amount" required placeholder="0.00" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">

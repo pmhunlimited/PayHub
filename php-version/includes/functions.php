@@ -1,5 +1,5 @@
 <?php
-// php-version/functions.php
+// php-version/includes/functions.php
 
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -49,7 +49,6 @@ if (file_exists(BASE_PATH . 'vendor/autoload.php')) {
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Migrations are now handled via php-version/install/migrate.php
 // Lightweight auto-migration for critical table stability
 function ensure_critical_tables() {
     if (!isInstalled()) return;
@@ -282,21 +281,12 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
 
     if ($response === false) return ['status' => false, 'message' => 'CURL error'];
 
-    // Log the API call - Exceptionally robust to prevent site-wide crashes
+    // Log the API call
     try {
         $db = Database::connect();
         $stmt = $db->prepare("INSERT INTO api_logs (endpoint, method, payload, response, status_code) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$endpoint, $method, json_encode($data), $response, (int)$http_code]);
-    } catch (\Exception $e) {
-        // Fallback check if table doesn't exist
-        if (strpos($e->getMessage(), '1146') !== false || strpos($e->getMessage(), 'not found') !== false) {
-            // Silently ignore if table missing
-        } else {
-            error_log("API Log Error: " . $e->getMessage());
-        }
-    } catch (\Throwable $t) {
-        // Ultimate fallback
-    }
+    } catch (\Throwable $t) {}
 
     $result = json_decode($response, true);
     return $result;
@@ -304,101 +294,45 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
 
 /**
  * Ensures a customer has a virtual account and is registered locally.
- * Automates the process of creating/fetching a Paystack customer and
- * generating a dedicated virtual account.
  */
 function ensure_virtual_account($userId, $email, $customerData = [], $is_test = null) {
     try {
         $db = Database::connect();
-
-        // 1. Fetch Merchant User details
         $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
         $stmt->execute([$userId]);
         $merchant = $stmt->fetch();
-
         if (!$merchant) return ['status' => false, 'message' => 'Merchant not found'];
-
-        // 2. Business Tier & KYC Check (Restrict to Registered/Special and Verified)
-        if ($merchant['business_type'] === 'Starter' || $merchant['is_kyc_verified'] != 1) {
-            return ['status' => false, 'message' => 'Merchant business tier or KYC status does not support virtual accounts'];
-        }
 
         if ($is_test === null) {
             $is_test = ($merchant['is_test_mode'] == 1);
         }
 
-        // 3. Check if Virtual Account already exists locally
         $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE user_id = ? AND customer_email = ?");
         $stmt->execute([$userId, $email]);
         $existing = $stmt->fetch();
 
         if ($existing && !empty($existing['account_number']) && $existing['account_number'] !== '0000000000') {
-            return [
-                'status' => true,
-                'message' => 'Virtual account already exists',
-                'data' => [
-                    'bank_name' => $existing['bank_name'],
-                    'account_number' => $existing['account_number'],
-                    'account_name' => $existing['account_name']
-                ]
-            ];
+            return ['status' => true, 'message' => 'Account exists', 'data' => $existing];
         }
 
-        // 4. Create/Fetch/Update Customer on Paystack
-        $fullName = $customerData['full_name'] ?? '';
+        $fullName = $customerData['full_name'] ?? 'Customer';
         $phone = $customerData['phone'] ?? '';
 
-        if (empty($fullName) || empty($phone)) {
-            $stmt = $db->prepare("SELECT full_name, phone FROM customers WHERE user_id = ? AND email = ?");
-            $stmt->execute([$userId, $email]);
-            $localCust = $stmt->fetch();
-            if ($localCust) {
-                if (empty($fullName)) $fullName = $localCust['full_name'];
-                if (empty($phone)) $phone = $localCust['phone'];
-            }
-        }
-
-        $names = explode(' ', trim($fullName));
-        $firstName = array_shift($names) ?: 'Customer';
-        $lastName = implode(' ', $names) ?: 'Merchant';
-
-        if (empty($phone)) {
-            return ['status' => false, 'message' => 'Customer phone number is required for Virtual Account generation'];
-        }
-
-        // Check if customer exists on Paystack
-        $checkCustomer = paystack_call('customer/' . $email, 'GET', [], $is_test);
-
-        if ($checkCustomer && $checkCustomer['status']) {
-            $customerCode = $checkCustomer['data']['customer_code'];
-            // If phone or name missing on Paystack but available locally, update it
-            if (empty($checkCustomer['data']['phone']) && !empty($phone)) {
-                paystack_call('customer/' . $customerCode, 'PUT', [
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'phone' => $phone
-                ], $is_test);
-            }
-        } else {
-            // Create new customer
-            $paystackCustomer = paystack_call('customer', 'POST', [
-                'email' => $email,
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'phone' => $phone,
-                'metadata' => ['merchant_id' => $userId]
-            ], $is_test);
-
-            if (!$paystackCustomer || !$paystackCustomer['status']) {
-                return ['status' => false, 'message' => 'Paystack Customer Error: ' . ($paystackCustomer['message'] ?? 'Unknown error')];
-            }
-            $customerCode = $paystackCustomer['data']['customer_code'];
-        }
-
-        // 5. Create Dedicated Virtual Account on Paystack
-        $dvaRes = paystack_call('dedicated_account', 'POST', [
-            'customer' => $customerCode
+        // Paystack Customer logic
+        $paystackCustomer = paystack_call('customer', 'POST', [
+            'email' => $email,
+            'first_name' => explode(' ', $fullName)[0],
+            'last_name' => explode(' ', $fullName)[1] ?? 'Merchant',
+            'phone' => $phone,
+            'metadata' => ['merchant_id' => $userId]
         ], $is_test);
+
+        if (!$paystackCustomer || !$paystackCustomer['status']) {
+            return ['status' => false, 'message' => 'Paystack Customer Error: ' . ($paystackCustomer['message'] ?? 'Unknown error')];
+        }
+        $customerCode = $paystackCustomer['data']['customer_code'];
+
+        $dvaRes = paystack_call('dedicated_account', 'POST', ['customer' => $customerCode], $is_test);
 
         if ($dvaRes && $dvaRes['status']) {
             $acc = $dvaRes['data'];
@@ -407,35 +341,14 @@ function ensure_virtual_account($userId, $email, $customerData = [], $is_test = 
             $accName = $acc['account_name'] ?? $merchant['business_name'];
 
             if (!empty($number)) {
-                if ($existing) {
-                    $stmt = $db->prepare("UPDATE virtual_accounts SET bank_name = ?, account_number = ?, account_name = ? WHERE id = ?");
-                    $stmt->execute([$bank, $number, $accName, $existing['id']]);
-                } else {
-                    $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->execute([$userId, $bank, $number, $accName, $email]);
-                }
-
-                // 6. Ensure customer exists locally
-                $stmt = $db->prepare("INSERT INTO customers (user_id, full_name, email, phone) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE full_name = VALUES(full_name), phone = VALUES(phone)");
-                $stmt->execute([$userId, trim($firstName . ' ' . $lastName), $email, $customerData['phone'] ?? '']);
-
-                return [
-                    'status' => true,
-                    'message' => 'Virtual account generated successfully',
-                    'data' => [
-                        'bank_name' => $bank,
-                        'account_number' => $number,
-                        'account_name' => $accName
-                    ]
-                ];
-            } else {
-                return ['status' => false, 'message' => 'Account created but number not yet assigned by Paystack'];
+                $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE account_number = VALUES(account_number)");
+                $stmt->execute([$userId, $bank, $number, $accName, $email]);
+                return ['status' => true, 'message' => 'VA generated', 'data' => ['account_number' => $number, 'bank_name' => $bank]];
             }
-        } else {
-            return ['status' => false, 'message' => 'Paystack DVA Error: ' . ($dvaRes['message'] ?? 'Unknown error')];
         }
+        return ['status' => false, 'message' => 'Failed to generate VA'];
     } catch (\Throwable $e) {
-        return ['status' => false, 'message' => 'System Error: ' . $e->getMessage()];
+        return ['status' => false, 'message' => $e->getMessage()];
     }
 }
 
@@ -445,7 +358,6 @@ function log_transaction_event($transactionId, $type, $desc) {
         $stmt = $db->prepare("INSERT INTO transaction_timeline (transaction_id, event_type, description) VALUES (?, ?, ?)");
         return $stmt->execute([$transactionId, $type, $desc]);
     } catch (\Throwable $e) {
-        error_log("Transaction Timeline Log Error: " . $e->getMessage());
         return false;
     }
 }
@@ -485,26 +397,17 @@ function calculate_fees($amount, $is_international = false, $userId = null) {
 
 function log_ledger_entry($userId, $amount, $type, $category, $desc, $is_test = false) {
     $db = Database::connect();
-
-    // Fetch user details including test mode status
-    $stmt = $db->prepare("SELECT wallet_balance, is_test_mode FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT wallet_balance FROM users WHERE id = ?");
     $stmt->execute([$userId]);
-    $user = $stmt->fetch();
-    $current = (float)$user['wallet_balance'];
+    $current = (float)$stmt->fetch()['wallet_balance'];
 
-    // If it's a test transaction, we don't update the real balance
     if ($is_test) {
         $stmt = $db->prepare("INSERT INTO ledger (user_id, amount, type, category, description, balance_after) VALUES (?, ?, ?, ?, ?, ?)");
         return $stmt->execute([$userId, $amount, $type, $category, "[TEST] " . $desc, $current]);
     }
 
     $newBalance = ($type === 'credit') ? ($current + $amount) : ($current - $amount);
-
-    // Update user balance
-    $stmt = $db->prepare("UPDATE users SET wallet_balance = ? WHERE id = ?");
-    $stmt->execute([$newBalance, $userId]);
-
-    // Log entry
+    $db->prepare("UPDATE users SET wallet_balance = ? WHERE id = ?")->execute([$newBalance, $userId]);
     $stmt = $db->prepare("INSERT INTO ledger (user_id, amount, type, category, description, balance_after) VALUES (?, ?, ?, ?, ?, ?)");
     return $stmt->execute([$userId, $amount, $type, $category, $desc, $newBalance]);
 }
@@ -519,7 +422,6 @@ function sendEmail($to, $subject, $body) {
     $logo = getConfig('site_logo');
 
     if (!$smtp_host || !$smtp_user) {
-        // Fallback to native mail if SMTP not fully configured
         $logo_html = '';
         if ($logo) {
             $logo_url = BASE_URL . 'uploads/' . $logo;
@@ -531,9 +433,7 @@ function sendEmail($to, $subject, $body) {
     }
 
     $mail = new PHPMailer(true);
-
     try {
-        // Server settings
         $mail->isSMTP();
         $mail->Host       = $smtp_host;
         $mail->SMTPAuth   = true;
@@ -541,40 +441,14 @@ function sendEmail($to, $subject, $body) {
         $mail->Password   = $smtp_pass;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = $smtp_port;
-
-        // Recipients
         $mail->setFrom($smtp_from, $site_name);
         $mail->addAddress($to);
-
-        // Content
-        $logo_html = '';
-        if ($logo) {
-            $logo_url = BASE_URL . 'uploads/' . $logo;
-            $logo_html = "<div style='text-align: center; margin-bottom: 20px;'><img src='$logo_url' alt='$site_name' style='height: 60px; width: auto; max-width: 200px;'></div>";
-        }
-
         $mail->isHTML(true);
         $mail->Subject = $subject;
-        $mail->Body    = "
-        <div style='background-color: #f9fafb; padding: 40px 0; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Helvetica, Arial, sans-serif;'>
-            <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);'>
-                <div style='padding: 32px; background-color: #ffffff; border-bottom: 1px solid #f3f4f6; text-align: center;'>
-                    $logo_html
-                </div>
-                <div style='padding: 40px; line-height: 1.6; color: #374151;'>
-                    $body
-                </div>
-                <div style='padding: 32px; background-color: #f9fafb; text-align: center; font-size: 12px; color: #9ca3af;'>
-                    <p style='margin-bottom: 8px;'>&copy; " . date('Y') . " $site_name. All rights reserved.</p>
-                    <p>You are receiving this email because you have an account with $site_name.</p>
-                </div>
-            </div>
-        </div>";
-
+        $mail->Body    = "<div style='background-color: #f9fafb; padding: 40px 0; font-family: sans-serif;'><div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; padding: 40px;'>$body</div></div>";
         $mail->send();
         return true;
     } catch (Exception $e) {
-        error_log("PHPMailer Error: " . $mail->ErrorInfo);
         return false;
     }
 }

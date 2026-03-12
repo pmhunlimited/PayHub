@@ -55,7 +55,7 @@ include '../includes/dashboard-head.php';
               }
           }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -76,21 +76,21 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50/50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Type</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Merchant</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Type</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($pending as $m): ?>
                                 <tr class="hover:bg-slate-50/30 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-900"><?php echo $m['business_name']; ?></div>
-                                        <div class="text-xs text-slate-500"><?php echo $m['email']; ?></div>
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="font-bold text-slate-900 truncate max-w-[150px] sm:max-w-none"><?php echo $m['business_name']; ?></div>
+                                        <div class="text-xs text-slate-500 truncate max-w-[150px] sm:max-w-none"><?php echo $m['email']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-700"><?php echo $m['business_type'] ?: 'Not selected'; ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm font-medium text-slate-700"><?php echo $m['business_type'] ?: 'Not selected'; ?></td>
+                                    <td class="hidden md:table-cell px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $m['is_kyc_verified'] == 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'; ?>">
                                             <?php echo $m['is_kyc_verified'] == 2 ? 'Submitted' : 'Pending'; ?>
                                         </span>
@@ -107,7 +107,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Review Modal -->
-        <div x-show="showReview" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showReview" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-5xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col h-[90vh]">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>

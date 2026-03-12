@@ -53,7 +53,7 @@ $banks = $banks_response['data'] ?? [];
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">

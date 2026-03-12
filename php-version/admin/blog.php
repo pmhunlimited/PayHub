@@ -54,14 +54,14 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{ showCreate: false, showEdit: false, editingPost: {} }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="mb-8 flex justify-between items-center">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Blog Manager</h1>
                     <p class="text-slate-500">Publish updates, guides, and news directly to the platform's blog</p>
@@ -77,22 +77,22 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50">
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Title</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Author</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Title</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Author</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Date</th>
+                                <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <?php foreach ($posts as $p): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-slate-900"><?php echo $p['title']; ?></div>
-                                        <div class="text-[10px] text-slate-400 font-mono"><?php echo $p['slug']; ?></div>
+                                    <td class="px-4 sm:px-6 py-4">
+                                        <div class="font-bold text-slate-900 truncate max-w-[150px] sm:max-w-none"><?php echo $p['title']; ?></div>
+                                        <div class="hidden sm:block text-[10px] text-slate-400 font-mono"><?php echo $p['slug']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-slate-700"><?php echo $p['author']; ?></td>
-                                    <td class="px-6 py-4 text-sm text-slate-500"><?php echo date('M d, Y', strtotime($p['created_at'])); ?></td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden md:table-cell px-6 py-4 text-sm text-slate-700"><?php echo $p['author']; ?></td>
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm text-slate-500"><?php echo date('M d, Y', strtotime($p['created_at'])); ?></td>
+                                    <td class="px-4 sm:px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <button @click="editingPost = <?php echo htmlspecialchars(json_encode($p)); ?>; showEdit = true;" class="text-indigo-600 hover:text-indigo-800 transition-colors">
                                                 <i data-lucide="edit" class="w-4 h-4"></i>
@@ -115,7 +115,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Create Modal -->
-        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showCreate" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
                     <h3 class="font-bold text-slate-900">Create New Blog Post</h3>
@@ -168,7 +168,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Edit Modal -->
-        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 sticky top-0 z-10 backdrop-blur-md">
                     <h3 class="font-bold text-slate-900">Edit Blog Post</h3>

@@ -83,8 +83,8 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
-            <div class="mb-8 flex justify-between items-center">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-slate-900 mb-2">Platform Overview</h1>
                 <div class="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
@@ -232,24 +232,24 @@ include '../includes/dashboard-head.php';
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50/50">
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reference</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Merchant</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                                <th class="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reference</th>
+                                <th class="hidden sm:table-cell px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Merchant</th>
+                                <th class="hidden lg:table-cell px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Amount</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                <th class="px-4 sm:px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             <template x-for="tx in (transactions || [])" :key="tx.id">
                                 <tr class="hover:bg-slate-50/50 transition-colors">
-                                    <td class="px-8 py-4 font-mono text-xs text-slate-500" x-text="tx.reference"></td>
-                                    <td class="px-8 py-4">
+                                    <td class="px-4 sm:px-8 py-4 font-mono text-xs text-slate-500" x-text="tx.reference"></td>
+                                    <td class="hidden sm:table-cell px-8 py-4">
                                         <div class="font-bold text-slate-900" x-text="tx.business_name"></div>
                                     </td>
-                                    <td class="px-8 py-4 text-sm text-slate-600" x-text="tx.customer_email"></td>
-                                    <td class="px-8 py-4 text-sm font-bold text-slate-900" x-text="'₦' + parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits:2})"></td>
-                                    <td class="px-8 py-4">
+                                    <td class="hidden lg:table-cell px-8 py-4 text-sm text-slate-600" x-text="tx.customer_email"></td>
+                                    <td class="px-4 sm:px-8 py-4 text-sm font-bold text-slate-900" x-text="'₦' + parseFloat(tx.amount).toLocaleString(undefined, {minimumFractionDigits:2})"></td>
+                                    <td class="px-4 sm:px-8 py-4">
                                         <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                                               :class="tx.status === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'"
                                               x-text="tx.status">
@@ -267,7 +267,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Transaction Details Modal -->
-        <div x-show="selectedTx" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="selectedTx" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-xl overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>

@@ -63,10 +63,10 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-6xl mx-auto">
                 <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Support Center</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Support Center</h1>
                     <p class="text-slate-500">Communicate directly with our support team to resolve any issues</p>
                 </div>
 
@@ -114,21 +114,21 @@ include '../includes/dashboard-head.php';
                                 <table class="w-full text-left">
                                     <thead>
                                         <tr class="bg-slate-50 border-b border-slate-100">
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                                            <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
+                                            <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Subject</th>
+                                            <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                            <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
+                                            <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         <?php foreach ($tickets as $t): ?>
                                             <tr class="hover:bg-slate-50/50 transition-colors">
-                                                <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo $t['subject']; ?></td>
-                                                <td class="px-6 py-4">
+                                                <td class="px-4 sm:px-6 py-4 text-sm font-bold text-slate-900 truncate max-w-[150px] sm:max-w-none"><?php echo $t['subject']; ?></td>
+                                                <td class="px-4 sm:px-6 py-4">
                                                     <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $t['status'] === 'open' ? 'bg-indigo-50 text-indigo-700' : ($t['status'] === 'resolved' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'); ?>"><?php echo $t['status']; ?></span>
                                                 </td>
-                                                <td class="px-6 py-4 text-xs text-slate-500 font-medium"><?php echo date('M d, Y', strtotime($t['created_at'])); ?></td>
-                                                <td class="px-6 py-4">
+                                                <td class="hidden md:table-cell px-6 py-4 text-xs text-slate-500 font-medium"><?php echo date('M d, Y', strtotime($t['created_at'])); ?></td>
+                                                <td class="px-4 sm:px-6 py-4">
                                                     <button
                                                         @click="selectedTicket = <?php echo htmlspecialchars(json_encode($t)); ?>; loadingMessages = true; fetch('?action=get_messages&id=' + selectedTicket.id).then(r => r.json()).then(data => { messages = data; loadingMessages = false; })"
                                                         class="text-indigo-600 hover:underline text-xs font-bold"
@@ -156,7 +156,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Ticket Messages Modal -->
-        <div x-show="selectedTicket" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="selectedTicket" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[80vh]">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <div>

@@ -3,7 +3,7 @@
 require_once 'functions.php';
 $user = getAuthUser();
 ?>
-<header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+<header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
     <div class="flex items-center gap-4">
         <button @click="$store.nav.mobileMenuOpen = true" class="md:hidden flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-100 relative z-[70]">
             <i data-lucide="menu" class="w-6 h-6"></i>

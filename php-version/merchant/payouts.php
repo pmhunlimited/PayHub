@@ -69,9 +69,9 @@ include '../includes/dashboard-head.php';
 
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
         <div class="max-w-6xl mx-auto">
-            <h1 class="text-3xl font-bold text-slate-900 mb-8">Payouts</h1>
+            <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-8">Payouts</h1>
 
             <?php if ($success_msg): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
@@ -152,23 +152,23 @@ include '../includes/dashboard-head.php';
                         <table class="w-full text-left">
                             <thead class="bg-slate-50">
                                 <tr>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Amount</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
-                                    <th class="px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Destination</th>
+                                    <th class="px-4 sm:px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Amount</th>
+                                    <th class="px-4 sm:px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th class="hidden sm:table-cell px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
+                                    <th class="hidden md:table-cell px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Destination</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php foreach ($payouts as $p): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-8 py-5 font-bold text-slate-900"><?php echo formatCurrency($p['amount']); ?></td>
-                                        <td class="px-8 py-5">
+                                        <td class="px-4 sm:px-8 py-5 font-bold text-slate-900"><?php echo formatCurrency($p['amount']); ?></td>
+                                        <td class="px-4 sm:px-8 py-5">
                                             <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $p['status'] === 'processed' ? 'bg-emerald-100 text-emerald-700' : ($p['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'); ?>">
                                                 <?php echo $p['status']; ?>
                                             </span>
                                         </td>
-                                        <td class="px-8 py-5 text-sm text-slate-500 font-medium"><?php echo date('M d, Y H:i', strtotime($p['request_date'])); ?></td>
-                                        <td class="px-8 py-5">
+                                        <td class="hidden sm:table-cell px-8 py-5 text-sm text-slate-500 font-medium"><?php echo date('M d, Y H:i', strtotime($p['request_date'])); ?></td>
+                                        <td class="hidden md:table-cell px-8 py-5">
                                             <p class="text-xs font-bold text-slate-700"><?php echo $p['bank_name']; ?></p>
                                             <p class="text-[10px] text-slate-400 font-mono"><?php echo $p['account_number']; ?></p>
                                         </td>

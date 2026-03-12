@@ -90,7 +90,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-6xl mx-auto">
                 <?php if (isset($success_msg)): ?>
                     <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
@@ -129,28 +129,28 @@ include '../includes/dashboard-head.php';
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-100">
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Virtual Account</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date Joined</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer Details</th>
+                                    <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Virtual Account</th>
+                                    <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Phone Number</th>
+                                    <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date Joined</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php foreach ($customers as $c): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4">
+                                        <td class="px-4 sm:px-6 py-4">
                                             <div class="flex items-center gap-3">
-                                                <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                                                <div class="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-xs uppercase shrink-0">
                                                     <?php echo substr($c['full_name'], 0, 2); ?>
                                                 </div>
-                                                <div>
-                                                    <div class="font-bold text-slate-900"><?php echo $c['full_name']; ?></div>
-                                                    <div class="text-[10px] text-slate-400 font-medium"><?php echo $c['email']; ?></div>
+                                                <div class="min-w-0">
+                                                    <div class="font-bold text-slate-900 truncate"><?php echo $c['full_name']; ?></div>
+                                                    <div class="text-[10px] text-slate-400 font-medium truncate"><?php echo $c['email']; ?></div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4">
+                                        <td class="hidden sm:table-cell px-6 py-4">
                                             <?php if ($c['account_number']): ?>
                                                 <div class="text-sm font-bold text-slate-900"><?php echo $c['account_number']; ?></div>
                                                 <div class="text-[10px] text-slate-400 font-bold uppercase"><?php echo $c['bank_name']; ?></div>
@@ -162,9 +162,9 @@ include '../includes/dashboard-head.php';
                                                 </form>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
-                                        <td class="px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
-                                        <td class="px-6 py-4">
+                                        <td class="hidden md:table-cell px-6 py-4 text-sm font-mono text-slate-600"><?php echo $c['phone']; ?></td>
+                                        <td class="hidden lg:table-cell px-6 py-4 text-sm font-medium text-slate-500"><?php echo date('M d, Y', strtotime($c['created_at'])); ?></td>
+                                        <td class="px-4 sm:px-6 py-4">
                                             <div class="flex items-center gap-2" x-data="{ editing: false, fullName: '<?php echo addslashes($c['full_name']); ?>', phone: '<?php echo addslashes($c['phone']); ?>' }">
                                                 <button @click="editing = true" class="p-2 text-slate-400 hover:text-indigo-600 transition-colors"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
                                                 <form method="POST" class="inline" onsubmit="return confirm('Are you sure you want to remove this customer?');">
@@ -220,7 +220,7 @@ include '../includes/dashboard-head.php';
             </div>
         </div>
     <!-- Add Customer Modal -->
-    <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div x-show="showAdd" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
         <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h3 class="font-bold text-slate-900">Add New Customer</h3>
