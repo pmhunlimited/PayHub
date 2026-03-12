@@ -11,3 +11,7 @@ RewriteRule ^initialize$ initialize.php [L,QSA]
 # Redirect /api/transaction/verify/:ref to /api/transaction/verify.php?reference=:ref
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^verify/([^/]+)$ verify.php?reference=$1 [L,QSA]
+
+# Redirect /api/transaction/reconcile to /api/transaction/reconcile.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^reconcile$ reconcile.php [L,QSA]
