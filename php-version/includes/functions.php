@@ -30,10 +30,14 @@ $script_name = $_SERVER['SCRIPT_NAME'] ?? '/';
 $base_dir = str_replace(basename($script_name), '', $script_name);
 // Ensure we get the root of the php-version directory
 if (strpos($base_dir, '/admin/') !== false) {
-    $base_dir = str_replace('/admin/', '/', $base_dir);
+    $base_dir = explode('/admin/', $base_dir)[0] . '/';
 } elseif (strpos($base_dir, '/merchant/') !== false) {
-    $base_dir = str_replace('/merchant/', '/', $base_dir);
+    $base_dir = explode('/merchant/', $base_dir)[0] . '/';
+} elseif (strpos($base_dir, '/api/') !== false) {
+    $base_dir = explode('/api/', $base_dir)[0] . '/';
 }
+// Remove double slashes
+$base_dir = preg_replace('#/+#', '/', $base_dir);
 define('BASE_URL', $protocol . "://" . $host . $base_dir);
 
 if (file_exists(__DIR__ . '/config.php')) {
