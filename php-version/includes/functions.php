@@ -28,16 +28,12 @@ $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $script_name = $_SERVER['SCRIPT_NAME'] ?? '/';
 $base_dir = str_replace(basename($script_name), '', $script_name);
-// Ensure we get the root of the php-version directory
-if (strpos($base_dir, '/admin/') !== false) {
-    $base_dir = explode('/admin/', $base_dir)[0] . '/';
-} elseif (strpos($base_dir, '/merchant/') !== false) {
-    $base_dir = explode('/merchant/', $base_dir)[0] . '/';
-} elseif (strpos($base_dir, '/api/') !== false) {
-    $base_dir = explode('/api/', $base_dir)[0] . '/';
-}
-// Remove double slashes
+// Ensure we get the root of the php-version directory by stripping subfolders
+$base_dir = preg_replace('#/(admin|merchant|api)/.*$#', '/', $base_dir);
+// Remove double slashes and ensure trailing slash
 $base_dir = preg_replace('#/+#', '/', $base_dir);
+if (substr($base_dir, -1) !== '/') $base_dir .= '/';
+
 define('BASE_URL', $protocol . "://" . $host . $base_dir);
 
 if (file_exists(__DIR__ . '/config.php')) {
@@ -132,7 +128,8 @@ function ensure_critical_tables() {
             ],
             'virtual_accounts' => [
                 'customer_email' => "VARCHAR(255)",
-                'account_name' => "VARCHAR(255)"
+                'account_name' => "VARCHAR(255)",
+                'metadata' => "TEXT"
             ]
         ];
         foreach ($cols as $table => $columns) {
@@ -326,7 +323,7 @@ function paystack_call($endpoint, $method = 'GET', $data = [], $is_test = null) 
 /**
  * Ensures a customer has a virtual account and is registered locally.
  */
-function ensure_virtual_account($userId, $email, $customerData = [], $is_test = null) {
+function ensure_virtual_account($userId, $email, $customerData = [], $is_test = null, $metadata = '') {
     try {
         $db = Database::connect();
         $stmt = $db->prepare("SELECT * FROM users WHERE id = ?");
@@ -372,8 +369,8 @@ function ensure_virtual_account($userId, $email, $customerData = [], $is_test = 
             $accName = $acc['account_name'] ?? $merchant['business_name'];
 
             if (!empty($number)) {
-                $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE account_number = VALUES(account_number)");
-                $stmt->execute([$userId, $bank, $number, $accName, $email]);
+                $stmt = $db->prepare("INSERT INTO virtual_accounts (user_id, bank_name, account_number, account_name, customer_email, metadata) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE account_number = VALUES(account_number), metadata = VALUES(metadata)");
+                $stmt->execute([$userId, $bank, $number, $accName, $email, $metadata]);
                 return ['status' => true, 'message' => 'VA generated', 'data' => ['account_number' => $number, 'bank_name' => $bank]];
             }
         }
@@ -424,6 +421,52 @@ function calculate_fees($amount, $is_international = false, $userId = null) {
         if ($fee > $cap) $fee = $cap;
         return $fee;
     }
+}
+
+/**
+ * Triggers the merchant's webhook for a specific transaction.
+ */
+function trigger_merchant_webhook($transactionId) {
+    try {
+        $db = Database::connect();
+        $stmt = $db->prepare("SELECT t.*, u.webhook_url FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.id = ?");
+        $stmt->execute([$transactionId]);
+        $tx = $stmt->fetch();
+
+        if ($tx && !empty($tx['webhook_url']) && $tx['status'] === 'success') {
+            $payload = [
+                'event' => 'charge.success',
+                'data' => [
+                    'id' => $tx['gateway_reference'] ?? $tx['id'],
+                    'reference' => $tx['reference'],
+                    'amount' => $tx['amount'] * 100,
+                    'status' => 'success',
+                    'currency' => $tx['currency'],
+                    'customer' => ['email' => $tx['customer_email']],
+                    'metadata' => json_decode($tx['metadata'] ?? '[]', true),
+                    'channel' => $tx['payment_method'],
+                    'paid_at' => $tx['created_at']
+                ]
+            ];
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $tx['webhook_url']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            $res = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            // Log Webhook Forwarding
+            try {
+                $stmtLog = $db->prepare("INSERT INTO webhook_logs (user_id, event_type, payload, response_code) VALUES (?, ?, ?, ?)");
+                $stmtLog->execute([$tx['user_id'], 'charge.success', json_encode($payload), (int)$code]);
+            } catch (\Throwable $t) {}
+        }
+    } catch (\Throwable $e) {}
 }
 
 function log_ledger_entry($userId, $amount, $type, $category, $desc, $is_test = false) {

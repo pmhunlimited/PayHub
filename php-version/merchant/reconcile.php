@@ -63,6 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                         log_ledger_entry($user['id'], $settled, 'credit', 'payment', "Reconciled Payment: $ref", $is_test);
 
                         $db->commit();
+                        trigger_merchant_webhook($t_id);
                         $reconciled_count++;
                         $results[] = ['reference' => $ref, 'amount' => $amount, 'status' => 'Reconciled'];
                     } catch (Exception $e) {

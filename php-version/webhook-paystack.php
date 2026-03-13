@@ -78,10 +78,14 @@ if ($event['event'] === 'charge.success') {
                 // Determine if it's a test transaction
                 $is_test_va = ($data['domain'] === 'test');
 
+                // Recover metadata if missing
+                $recovered_metadata = $data['metadata'] ?? $va['metadata'];
+                if (is_array($recovered_metadata)) $recovered_metadata = json_encode($recovered_metadata);
+
                 // Create a pending transaction for this VA payment
                 // Using INSERT IGNORE in case webhook is retried quickly
-                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method, is_test) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer', ?)");
-                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email'], $is_test_va ? 1 : 0]);
+                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method, is_test, metadata) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer', ?, ?)");
+                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email'], $is_test_va ? 1 : 0, $recovered_metadata]);
 
                 $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
                 $stmt->execute([$ref]);
@@ -126,16 +130,14 @@ if ($event['event'] === 'charge.success') {
 
             // Forward Webhook to Merchant Site
             if (!empty($m['webhook_url'])) {
+                // Recover metadata for payload if missing
+                $final_metadata = $data['metadata'] ?? json_decode($tx['metadata'] ?? '[]', true);
+
                 $payload = [
                     'event' => 'charge.success',
-                    'data' => [
-                        'reference' => $ref,
-                        'amount' => $amount * 100,
-                        'status' => 'success',
-                        'currency' => $currency,
-                        'customer' => ['email' => $tx['customer_email']],
-                        'metadata' => $data['metadata'] ?? []
-                    ]
+                    'data' => array_merge($data, [
+                        'metadata' => $final_metadata
+                    ])
                 ];
 
                 $ch = curl_init();

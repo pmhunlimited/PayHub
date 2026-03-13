@@ -82,6 +82,7 @@ foreach ($remote_txs as $rtx) {
                 log_ledger_entry($user['id'], $settled, 'credit', 'payment', "Reconciled Payment: $ref", $is_test);
 
                 $db->commit();
+                trigger_merchant_webhook($t_id);
                 $reconciled[] = [
                     'reference' => $ref,
                     'amount' => $amount,

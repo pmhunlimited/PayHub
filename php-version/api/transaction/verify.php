@@ -64,6 +64,7 @@ if ($tx['status'] !== 'success') {
             log_transaction_event($tx['id'], 'verified', 'Payment verified and fulfilled via real-time API check');
 
             $db->commit();
+            trigger_merchant_webhook($tx['id']);
 
             // Refresh local tx data
             $stmt = $db->prepare("SELECT * FROM transactions WHERE id = ?");

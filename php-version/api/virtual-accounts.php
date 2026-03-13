@@ -72,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                             log_ledger_entry($merchant['id'], $settled, 'credit', 'payment', "Reconciled VA Payment: $ref", $is_test);
 
                             $db->commit();
+                            trigger_merchant_webhook($t_id);
                             $reconciled[] = ['reference' => $ref, 'amount' => $amount, 'status' => 'reconciled'];
                         } catch (Exception $e) {
                             $db->rollBack();
@@ -102,9 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $acc['created_at_formatted'] = ($time && $time > 0) ? date('Y-m-d H:i:s', $time) : date('Y-m-d H:i:s');
     }
 
+    $res_data = ($email || $account_number) ? ($accounts[0] ?? null) : $accounts;
+
     echo json_encode([
         'status' => true,
-        'data' => ($email || $account_number ? ($accounts[0] ?? null) : $accounts),
+        'data' => $res_data,
         'reconciled' => $reconciled ?? []
     ]);
 } else {

@@ -59,7 +59,7 @@ if (!empty($name) && !empty($phone)) {
     $res = ensure_virtual_account($user['id'], $email, [
         'full_name' => $name,
         'phone' => $phone
-    ], $is_test);
+    ], $is_test, $metadata);
     if ($res['status']) {
         $va_data = $res['data'];
     }
