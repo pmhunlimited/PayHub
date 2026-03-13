@@ -44,6 +44,37 @@ if (!$tx) {
     exit;
 }
 
+// If local status is not success, check the gateway directly (Real-time reconciliation)
+if ($tx['status'] !== 'success') {
+    $is_test = (bool)$tx['is_test'];
+    $response = paystack_call("transaction/verify/" . urlencode($ref), 'GET', [], $is_test);
+
+    if ($response && $response['status'] && $response['data']['status'] === 'success') {
+        $data = $response['data'];
+        $amount = $data['amount'] / 100;
+        $fee = calculate_fees($amount, ($data['currency'] !== 'NGN'), $user['id']);
+        $settled = $amount - $fee;
+
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("UPDATE transactions SET status = 'success', fee_amount = ?, settled_amount = ?, gateway_reference = ? WHERE id = ?");
+            $stmt->execute([$fee, $settled, $data['id'], $tx['id']]);
+
+            log_ledger_entry($user['id'], $settled, 'credit', 'payment', "Real-time Verified Payment: $ref", $is_test);
+            log_transaction_event($tx['id'], 'verified', 'Payment verified and fulfilled via real-time API check');
+
+            $db->commit();
+
+            // Refresh local tx data
+            $stmt = $db->prepare("SELECT * FROM transactions WHERE id = ?");
+            $stmt->execute([$tx['id']]);
+            $tx = $stmt->fetch();
+        } catch (Exception $e) {
+            $db->rollBack();
+        }
+    }
+}
+
 echo json_encode([
     'status' => true,
     'message' => 'Transaction retrieved',
@@ -55,7 +86,8 @@ echo json_encode([
         'customer' => [
             'email' => $tx['customer_email']
         ],
-        'gateway_response' => $tx['status'] === 'success' ? 'Successful' : 'Pending',
-        'created_at' => $tx['created_at']
+        'gateway_response' => $tx['status'] === 'success' ? 'Successful' : ($response['data']['status'] ?? 'Pending'),
+        'created_at' => $tx['created_at'],
+        'metadata' => json_decode($tx['metadata'] ?? '[]', true)
     ]
 ]);

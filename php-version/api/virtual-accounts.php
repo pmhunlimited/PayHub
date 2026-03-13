@@ -32,9 +32,10 @@ if (!$merchant) {
  * Headers: Authorization: Bearer <Secret Key>
  */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $email = sanitize($_GET['email'] ?? '');
-    $account_number = sanitize($_GET['account_number'] ?? '');
-    $date = sanitize($_GET['date'] ?? '');
+    $input = get_api_input();
+    $email = sanitize($input['email'] ?? '');
+    $account_number = sanitize($input['account_number'] ?? '');
+    $date = sanitize($input['date'] ?? '');
 
     // Reconciliation Mode: if account_number and date are provided
     if ($account_number && $date) {

@@ -121,7 +121,8 @@ function ensure_critical_tables() {
                 'settled_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
                 'currency' => "VARCHAR(10) DEFAULT 'NGN'",
                 'gateway_reference' => "VARCHAR(100)",
-                'invoice_id' => "INT DEFAULT NULL"
+                'invoice_id' => "INT DEFAULT NULL",
+                'metadata' => "TEXT"
             ],
             'invoices' => [
                 'reference' => "VARCHAR(100)",
@@ -197,6 +198,23 @@ function sanitize($data) {
         return array_map('sanitize', $data);
     }
     return htmlspecialchars(strip_tags(trim($data)));
+}
+
+/**
+ * Robustly get input for API requests, merging GET, POST, and JSON body.
+ */
+function get_api_input() {
+    $input = [];
+    // 1. Get query params
+    $input = array_merge($input, $_GET);
+    // 2. Get POST params
+    $input = array_merge($input, $_POST);
+    // 3. Get JSON body
+    $json = json_decode(file_get_contents('php://input'), true);
+    if (is_array($json)) {
+        $input = array_merge($input, $json);
+    }
+    return $input;
 }
 
 function csrf_token() {

@@ -25,8 +25,8 @@ if (!$user) {
     exit;
 }
 
-// Handle input (JSON or POST)
-$input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+// Handle input
+$input = get_api_input();
 $date = sanitize($input['date'] ?? date('Y-m-d'));
 $channel = sanitize($input['channel'] ?? 'all');
 

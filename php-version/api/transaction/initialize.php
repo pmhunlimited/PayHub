@@ -25,16 +25,14 @@ if (!$user) {
     exit;
 }
 
-// Handle JSON input
-$input = json_decode(file_get_contents('php://input'), true);
-if ($input) {
-    $_POST = array_merge($_POST, $input);
-}
+$input = get_api_input();
 
-$email = sanitize($_POST['email'] ?? '');
-$amount = (float)($_POST['amount'] ?? 0);
-$name = sanitize($_POST['name'] ?? '');
-$phone = sanitize($_POST['phone'] ?? '');
+$email = sanitize($input['email'] ?? '');
+$amount = (float)($input['amount'] ?? 0);
+$name = sanitize($input['name'] ?? '');
+$phone = sanitize($input['phone'] ?? '');
+$metadata = $input['metadata'] ?? '';
+if (is_array($metadata)) $metadata = json_encode($metadata);
 
 // Special case for VA generation only (amount 0)
 if (!$email || ($amount <= 0 && empty($phone))) {
@@ -49,8 +47,8 @@ $ref = 'PH_' . bin2hex(random_bytes(8));
 $is_test = (strpos($sk, 'sk_test_') === 0);
 
 // Create transaction in pending state
-$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, customer_name, status, is_test) VALUES (?, ?, ?, ?, ?, 'pending', ?)");
-$stmt->execute([$user['id'], $ref, $amount, $email, $name, $is_test ? 1 : 0]);
+$stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, customer_name, status, is_test, metadata) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)");
+$stmt->execute([$user['id'], $ref, $amount, $email, $name, $is_test ? 1 : 0, $metadata]);
 $txId = $db->lastInsertId();
 
 log_transaction_event($txId, 'initiated', "Transaction initiated via API");

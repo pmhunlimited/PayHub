@@ -117,12 +117,44 @@ if ($event['event'] === 'charge.success') {
 
             $db->commit();
 
-            // Notify Merchant
-            $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");
+            // Notify Merchant & Forward Webhook
+            $stmt = $db->prepare("SELECT email, business_name, webhook_url FROM users WHERE id = ?");
             $stmt->execute([$tx['user_id']]);
             $m = $stmt->fetch();
 
             sendEmail($m['email'], "New Payment Received", "<h2>Payment Confirmed</h2><p>You have received a payment of <strong>".formatCurrency($amount)."</strong>.</p><p>Reference: $ref</p>");
+
+            // Forward Webhook to Merchant Site
+            if (!empty($m['webhook_url'])) {
+                $payload = [
+                    'event' => 'charge.success',
+                    'data' => [
+                        'reference' => $ref,
+                        'amount' => $amount * 100,
+                        'status' => 'success',
+                        'currency' => $currency,
+                        'customer' => ['email' => $tx['customer_email']],
+                        'metadata' => $data['metadata'] ?? []
+                    ]
+                ];
+
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $m['webhook_url']);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_POST, true);
+                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                $res = curl_exec($ch);
+                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+
+                // Log Webhook Forwarding
+                try {
+                    $stmtLog = $db->prepare("INSERT INTO webhook_logs (user_id, event_type, payload, response_code) VALUES (?, ?, ?, ?)");
+                    $stmtLog->execute([$tx['user_id'], 'charge.success', json_encode($payload), (int)$code]);
+                } catch (\Throwable $t) {}
+            }
 
         } catch (Exception $e) {
             $db->rollBack();
