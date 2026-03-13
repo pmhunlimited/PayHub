@@ -41,6 +41,7 @@ include '../includes/dashboard-head.php';
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden"
           x-data="{
               showReview: false,
+              processing: false,
               merchant: {},
               maskValue(val) {
                   if (!val) return 'Not provided';
@@ -52,6 +53,11 @@ include '../includes/dashboard-head.php';
                   this.merchant = m;
                   this.showReview = true;
                   this.$nextTick(() => { if (typeof lucide !== 'undefined') lucide.createIcons(); });
+              },
+              submitKYC(status) {
+                  this.processing = true;
+                  document.getElementById('kycStatus').value = status;
+                  document.getElementById('kycForm').submit();
               }
           }">
         <?php include '../includes/topbar.php'; ?>
@@ -224,8 +230,20 @@ include '../includes/dashboard-head.php';
                                 <textarea name="notes" placeholder="Enter rejection reason or approval notes..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 outline-none h-20 text-sm"></textarea>
                             </div>
                             <div class="flex gap-3 shrink-0">
-                                <button type="button" @click="document.getElementById('kycStatus').value = 0; document.getElementById('kycForm').submit();" class="px-8 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-all text-sm">Reject</button>
-                                <button type="button" @click="document.getElementById('kycStatus').value = 1; document.getElementById('kycForm').submit();" class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 text-sm">Approve KYC</button>
+                                <button type="button"
+                                        :disabled="processing"
+                                        @click="submitKYC(0)"
+                                        class="px-8 py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 disabled:opacity-50 transition-all text-sm flex items-center gap-2">
+                                    <span x-show="processing && document.getElementById('kycStatus').value == 0" class="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></span>
+                                    Reject
+                                </button>
+                                <button type="button"
+                                        :disabled="processing"
+                                        @click="submitKYC(1)"
+                                        class="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-100 text-sm flex items-center gap-2">
+                                    <span x-show="processing && document.getElementById('kycStatus').value == 1" class="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    Approve KYC
+                                </button>
                             </div>
                         </div>
                     </form>

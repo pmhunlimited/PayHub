@@ -56,6 +56,11 @@ use PHPMailer\PHPMailer\Exception;
 // Lightweight auto-migration for critical table stability
 function ensure_critical_tables() {
     if (!isInstalled()) return;
+
+    // Quick version check to avoid redundant DB calls on every request
+    $version = '1.0.6';
+    if (getConfig('sys_db_version') === $version) return;
+
     try {
         $db = Database::connect();
         $essential_tables = [
@@ -139,6 +144,10 @@ function ensure_critical_tables() {
                 } catch (\Throwable $e) {}
             }
         }
+
+        // Set version flag to skip future checks until next code update
+        $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES ('sys_db_version', ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+        $stmt->execute([$version]);
 
     } catch (\Throwable $e) {
         error_log("Critical Table Migration Error: " . $e->getMessage());
