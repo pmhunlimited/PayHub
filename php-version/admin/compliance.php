@@ -21,14 +21,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute([$status, $notes, $merchantId]);
         $success_msg = "KYC application processed.";
 
-        // Notify Merchant
+        // Notify Merchant asynchronously if possible, or just efficiently
         $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");
         $stmt->execute([$merchantId]);
         $m = $stmt->fetch();
         $status_text = $status == 1 ? 'Approved' : 'Rejected';
-        sendEmail($m['email'], "KYC Verification $status_text", "<h2>Hello {$m['business_name']},</h2><p>Your KYC verification request has been <strong>$status_text</strong>.</p><p>Admin Notes: $notes</p>");
+        // Use a simple subject to avoid encoding issues
+        sendEmail($m['email'], "KYC Status: $status_text", "<h2>Hello {$m['business_name']},</h2><p>Your KYC verification request has been <strong>$status_text</strong>.</p><p>Admin Notes: " . nl2br($notes) . "</p>");
+
+        // Use a redirect to prevent re-submission and clear POST state
+        header("Location: compliance.php?success=1");
+        exit;
     }
 }
+
+$success_msg = isset($_GET['success']) ? "Compliance processed successfully." : "";
 
 // Fetch Pending KYC (is_kyc_verified = 2 is submitted, but let's show all unverified for now)
 $stmt = $db->query("SELECT * FROM users WHERE role = 'merchant' AND is_kyc_verified != 1 ORDER BY is_kyc_verified DESC, created_at DESC");

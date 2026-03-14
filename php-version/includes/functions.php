@@ -486,6 +486,52 @@ function log_ledger_entry($userId, $amount, $type, $category, $desc, $is_test = 
     return $stmt->execute([$userId, $amount, $type, $category, $desc, $newBalance]);
 }
 
+/**
+ * Resizes and optimizes an image to reduce file size while maintaining readability.
+ * Targets roughly < 50KB as requested.
+ */
+function resize_and_optimize_image($source_path, $target_path, $max_width = 1000, $quality = 50) {
+    if (!extension_loaded('gd')) {
+        return move_uploaded_file($source_path, $target_path);
+    }
+
+    $info = getimagesize($source_path);
+    if (!$info) return move_uploaded_file($source_path, $target_path);
+
+    $mime = $info['mime'];
+    switch ($mime) {
+        case 'image/jpeg': $image = imagecreatefromjpeg($source_path); break;
+        case 'image/png': $image = imagecreatefrompng($source_path); break;
+        case 'image/webp': $image = imagecreatefromwebp($source_path); break;
+        default: return move_uploaded_file($source_path, $target_path);
+    }
+
+    $width = $info[0];
+    $height = $info[1];
+
+    if ($width > $max_width) {
+        $ratio = $max_width / $width;
+        $new_width = $max_width;
+        $new_height = (int)($height * $ratio);
+        $new_image = imagecreatetruecolor($new_width, $new_height);
+
+        // Handle transparency for PNG/WebP
+        if ($mime == 'image/png' || $mime == 'image/webp') {
+            imagealphablending($new_image, false);
+            imagesavealpha($new_image, true);
+        }
+
+        imagecopyresampled($new_image, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+        imagedestroy($image);
+        $image = $new_image;
+    }
+
+    // Save as JPEG to optimize size
+    $res = imagejpeg($image, $target_path, $quality);
+    imagedestroy($image);
+    return $res;
+}
+
 function sendEmail($to, $subject, $body) {
     $smtp_host = getConfig('smtp_host');
     $smtp_port = getConfig('smtp_port');

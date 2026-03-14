@@ -34,9 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     foreach ($files_to_handle as $field) {
         if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
             $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
-            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $ext;
-            if (!is_dir('../uploads')) mkdir('../uploads');
-            move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            $filename = $field . '_' . $user['id'] . '_' . time() . '.jpg'; // Store as JPG for optimization
+            if (!is_dir('../uploads')) mkdir('../uploads', 0755, true);
+
+            if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'webp'])) {
+                resize_and_optimize_image($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            } else {
+                move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            }
             $uploads[$field . '_path'] = $filename;
         }
     }

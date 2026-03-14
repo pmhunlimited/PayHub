@@ -67,6 +67,11 @@ if ($event['event'] === 'charge.success') {
             $acc_number = $data['authorization']['account_number'];
         }
 
+        // Check metadata if Paystack didn't explicitly label it as dedicated_account
+        if (!$acc_number && isset($data['metadata']['receiver_account_number'])) {
+            $acc_number = $data['metadata']['receiver_account_number'];
+        }
+
         if ($acc_number) {
             // Clean account number (Paystack sometimes sends it with leading zeros or slightly different)
             $clean_acc = ltrim($acc_number, '0');
@@ -101,7 +106,7 @@ if ($event['event'] === 'charge.success') {
         }
     }
 
-    if ($tx && $tx['status'] === 'pending') {
+    if ($tx && $tx['status'] !== 'success') {
         $db->beginTransaction();
         try {
             // Update transaction
@@ -113,8 +118,8 @@ if ($event['event'] === 'charge.success') {
             $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
             $settled = $amount - $fee;
 
-            $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
-            $stmt->execute([$fee, $settled, $tx['id']]);
+            $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ?, payment_method = ? WHERE id = ?");
+            $stmt->execute([$fee, $settled, $data['channel'] ?? $tx['payment_method'], $tx['id']]);
 
             // Log ledger and update user balance (prevent real crediting for test mode)
             $is_test_tx = (bool)$tx['is_test'] || ($data['domain'] === 'test');
