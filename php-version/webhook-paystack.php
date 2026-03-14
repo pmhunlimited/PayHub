@@ -78,8 +78,11 @@ if ($event['event'] === 'charge.success') {
                 // Determine if it's a test transaction
                 $is_test_va = ($data['domain'] === 'test');
 
-                // Recover metadata if missing
-                $recovered_metadata = $data['metadata'] ?? $va['metadata'];
+                // Recover metadata if missing or lacks custom fields
+                $va_meta = json_decode($va['metadata'] ?? '[]', true);
+                $rtx_meta = $data['metadata'] ?? [];
+                // Merge, prioritizing rtx_meta for gateway fields but keeping VA's custom fields
+                $recovered_metadata = array_merge($va_meta, $rtx_meta);
                 if (is_array($recovered_metadata)) $recovered_metadata = json_encode($recovered_metadata);
 
                 // Create a pending transaction for this VA payment
@@ -130,8 +133,9 @@ if ($event['event'] === 'charge.success') {
 
             // Forward Webhook to Merchant Site
             if (!empty($m['webhook_url'])) {
-                // Recover metadata for payload if missing
-                $final_metadata = $data['metadata'] ?? json_decode($tx['metadata'] ?? '[]', true);
+                // Recover metadata for payload - merge what we have in DB with what came in
+                $db_meta = json_decode($tx['metadata'] ?? '[]', true);
+                $final_metadata = array_merge($db_meta, $data['metadata'] ?? []);
 
                 $payload = [
                     'event' => 'charge.success',
