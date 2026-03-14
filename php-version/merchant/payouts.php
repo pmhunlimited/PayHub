@@ -17,17 +17,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if ($user['is_suspended']) {
         $error_msg = "Your account is suspended. Payout requests are disabled.";
     } else {
-        // Brute-force protection: check for recent payout attempts
-        $stmt = $db->prepare("SELECT COUNT(*) as recent_attempts FROM payouts WHERE user_id = ? AND request_date > DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+        // Check Daily Limit from Platform Config
+        $max_daily = (int)getConfig('max_daily_payout_requests', '5');
+        $stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND DATE(request_date) = CURDATE()");
         $stmt->execute([$user['id']]);
-        $recent = $stmt->fetch()['recent_attempts'];
+        $daily_count = $stmt->fetch()['daily_count'];
 
-        if ($recent >= 5) {
-            // Auto-suspend for suspicious activity
-            $stmt = $db->prepare("UPDATE users SET is_suspended = 1, kyc_notes = CONCAT(IFNULL(kyc_notes,''), '\nAuto-suspended: Too many payout requests (5+) in 1 hour.') WHERE id = ?");
-            $stmt->execute([$user['id']]);
-            $error_msg = "Suspicious activity detected. Your account has been suspended for review.";
-            $user['is_suspended'] = 1;
+        if ($daily_count >= $max_daily) {
+            $error_msg = "You have reached your daily limit of $max_daily payout requests.";
         } else {
             $amount = (float)$_POST['amount'];
             if ($amount > 0 && $amount <= $user['wallet_balance']) {
