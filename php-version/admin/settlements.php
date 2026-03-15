@@ -18,6 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $db->beginTransaction();
         try {
+            // If approved, attempt Paystack payout
+            if ($status === 'processed') {
+                $stmt = $db->prepare("SELECT user_id, amount FROM payouts WHERE id = ?");
+                $stmt->execute([$payoutId]);
+                $p = $stmt->fetch();
+
+                $res = paystack_payout($p['user_id'], (float)$p['amount']);
+                if (!$res || !$res['status']) {
+                    // Log error but allow admin to see what happened
+                    file_put_contents(BASE_PATH . 'payout_debug.log', "[" . date('Y-m-d H:i:s') . "] Payout Approval Failed for ID $payoutId: " . json_encode($res) . PHP_EOL, FILE_APPEND);
+                    throw new Exception("Paystack Payout Error: " . ($res['message'] ?? 'Unknown gateway error'));
+                }
+                $details .= " | Paystack Ref: " . ($res['data']['reference'] ?? 'N/A');
+            }
+
             $stmt = $db->prepare("UPDATE payouts SET status = ?, status_details = ? WHERE id = ?");
             $stmt->execute([$status, $details, $payoutId]);
 

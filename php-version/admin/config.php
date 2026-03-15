@@ -18,6 +18,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("INSERT INTO config (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
         $stmt->execute([$key, $value]);
         $success_msg = "Configuration updated: $key";
+        // Flush migration cache if key is sys_db_version
+        if ($key === 'sys_db_version') {
+            ensure_critical_tables();
+        }
     } elseif ($_POST['action'] === 'update_logo') {
         if (isset($_FILES['site_logo']) && $_FILES['site_logo']['error'] === UPLOAD_ERR_OK) {
             $ext = pathinfo($_FILES['site_logo']['name'], PATHINFO_EXTENSION);

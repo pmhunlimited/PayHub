@@ -83,7 +83,9 @@ function ensure_critical_tables() {
             'users' => [
                 'is_deleted' => "TINYINT DEFAULT 0",
                 'settlement_bank' => "VARCHAR(100)",
-                'settlement_account' => "VARCHAR(50)",
+                'settlement_account_number' => "VARCHAR(50)",
+                'settlement_account_name' => "VARCHAR(255)",
+                'settlement_bank_code' => "VARCHAR(10)",
                 'parent_id' => "INT DEFAULT NULL",
                 'fee_percentage' => "DECIMAL(5, 2) DEFAULT NULL",
                 'fee_flat' => "DECIMAL(15, 2) DEFAULT NULL",
@@ -130,6 +132,10 @@ function ensure_critical_tables() {
                 'customer_email' => "VARCHAR(255)",
                 'account_name' => "VARCHAR(255)",
                 'metadata' => "TEXT"
+            ],
+            'payouts' => [
+                'status_details' => "TEXT",
+                'gateway_reference' => "VARCHAR(100)"
             ]
         ];
         foreach ($cols as $table => $columns) {
@@ -388,6 +394,50 @@ function log_transaction_event($transactionId, $type, $desc) {
     } catch (\Throwable $e) {
         return false;
     }
+}
+
+/**
+ * Processes a payout via Paystack Transfer API.
+ */
+function paystack_payout($userId, $amount, $reason = "Merchant Payout") {
+    $db = Database::connect();
+    $stmt = $db->prepare("SELECT settlement_bank, settlement_bank_code, settlement_account_number, is_test_mode FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $u = $stmt->fetch();
+
+    if (!$u || empty($u['settlement_bank_code']) || empty($u['settlement_account_number'])) {
+        return ['status' => false, 'message' => 'Merchant settlement details incomplete'];
+    }
+
+    $is_test = ($u['is_test_mode'] == 1);
+
+    // 1. Create Transfer Recipient
+    $recipient = paystack_call('transferrecipient', 'POST', [
+        'type' => 'nuban',
+        'name' => $reason,
+        'account_number' => $u['settlement_account_number'],
+        'bank_code' => $u['settlement_bank_code'],
+        'currency' => 'NGN'
+    ], $is_test);
+
+    if (!$recipient || !$recipient['status']) {
+        return ['status' => false, 'message' => 'Failed to create recipient: ' . ($recipient['message'] ?? 'Unknown error')];
+    }
+
+    $recipient_code = $recipient['data']['recipient_code'];
+
+    // 2. Initiate Transfer
+    $transfer = paystack_call('transfer', 'POST', [
+        'source' => 'balance',
+        'amount' => (int)($amount * 100),
+        'recipient' => $recipient_code,
+        'reason' => $reason
+    ], $is_test);
+
+    // Detailed Logging
+    file_put_contents(BASE_PATH . 'payout_debug.log', "[" . date('Y-m-d H:i:s') . "] Payout for user $userId: " . json_encode($transfer) . PHP_EOL, FILE_APPEND);
+
+    return $transfer;
 }
 
 function calculate_fees($amount, $is_international = false, $userId = null) {

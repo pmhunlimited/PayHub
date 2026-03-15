@@ -47,8 +47,9 @@ if ($event['event'] === 'charge.success') {
     $amount = $data['amount'] / 100;
     $currency = $data['currency'];
 
-    $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
-    $stmt->execute([$ref]);
+    // Find transaction by reference OR gateway reference
+    $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ? OR gateway_reference = ?");
+    $stmt->execute([$ref, $data['id']]);
     $tx = $stmt->fetch();
 
     // If no transaction found, check if it's a payment to a dedicated virtual account
@@ -75,8 +76,8 @@ if ($event['event'] === 'charge.success') {
         if ($acc_number) {
             // Clean account number (Paystack sometimes sends it with leading zeros or slightly different)
             $clean_acc = ltrim($acc_number, '0');
-            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ? OR account_number = ?");
-            $stmt->execute([$acc_number, str_pad($clean_acc, 10, '0', STR_PAD_LEFT)]);
+            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ? OR account_number = ? OR account_number = ?");
+            $stmt->execute([$acc_number, str_pad($clean_acc, 10, '0', STR_PAD_LEFT), $clean_acc]);
             $va = $stmt->fetch();
 
             if ($va) {
@@ -109,6 +110,9 @@ if ($event['event'] === 'charge.success') {
     if ($tx && $tx['status'] !== 'success') {
         $db->beginTransaction();
         try {
+            // Detailed Logging of fulfillment start
+            file_put_contents('webhook_debug.log', "[" . date('Y-m-d H:i:s') . "] Fulfilling Tx ID: " . $tx['id'] . " for Amount: " . $amount . PHP_EOL, FILE_APPEND);
+
             // Update transaction
             $stmt = $db->prepare("UPDATE transactions SET status = 'success', currency = ?, gateway_reference = ? WHERE id = ?");
             $stmt->execute([$currency, $data['id'], $tx['id']]);

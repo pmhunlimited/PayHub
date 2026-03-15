@@ -37,8 +37,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
 $success_msg = isset($_GET['success']) ? "Compliance processed successfully." : "";
 
+// Pagination
+$limit = 20;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
+
+$total_stmt = $db->query("SELECT COUNT(*) FROM users WHERE role = 'merchant' AND is_kyc_verified != 1");
+$total_rows = $total_stmt->fetchColumn();
+$total_pages = ceil($total_rows / $limit);
+
 // Fetch Pending KYC (is_kyc_verified = 2 is submitted, but let's show all unverified for now)
-$stmt = $db->query("SELECT * FROM users WHERE role = 'merchant' AND is_kyc_verified != 1 ORDER BY is_kyc_verified DESC, created_at DESC");
+$stmt = $db->prepare("SELECT * FROM users WHERE role = 'merchant' AND is_kyc_verified != 1 ORDER BY is_kyc_verified DESC, created_at DESC LIMIT ? OFFSET ?");
+$stmt->bindValue(1, $limit, PDO::PARAM_INT);
+$stmt->bindValue(2, $offset, PDO::PARAM_INT);
+$stmt->execute();
 $pending = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';
@@ -82,8 +94,11 @@ include '../includes/dashboard-head.php';
 
             <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-slate-100 font-bold flex justify-between items-center">
-                    <span>KYC Review Queue</span>
-                    <span class="text-xs font-normal text-slate-500"><?php echo count(array_filter($pending, fn($m) => $m['is_kyc_verified'] == 2)); ?> applications pending review</span>
+                    <div>
+                        <span>KYC Review Queue</span>
+                        <p class="text-[10px] text-slate-400 font-normal">Page <?php echo $page; ?> of <?php echo $total_pages; ?></p>
+                    </div>
+                    <span class="text-xs font-normal text-slate-500"><?php echo $total_rows; ?> total applications</span>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
@@ -116,6 +131,17 @@ include '../includes/dashboard-head.php';
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Pagination UI -->
+                <?php if ($total_pages > 1): ?>
+                    <div class="p-6 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
+                        <p class="text-xs text-slate-500">Showing <?php echo $offset + 1; ?> to <?php echo min($offset + $limit, $total_rows); ?> of <?php echo $total_rows; ?> entries</p>
+                        <div class="flex gap-2">
+                            <a href="?page=<?php echo max(1, $page - 1); ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all <?php echo $page <= 1 ? 'opacity-50 pointer-events-none' : ''; ?>">Previous</a>
+                            <a href="?page=<?php echo min($total_pages, $page + 1); ?>" class="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-all <?php echo $page >= $total_pages ? 'opacity-50 pointer-events-none' : ''; ?>">Next</a>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -206,7 +232,8 @@ include '../includes/dashboard-head.php';
                                         <div class="space-y-2">
                                             <a :href="'../uploads/' + merchant[key]" target="_blank" class="block aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm">
                                                 <template x-if="(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
-                                                    <img :src="'../uploads/' + merchant[key]" class="w-full h-full object-cover">
+                                                    <!-- Use loading=lazy to prevent browser memory issues with large docs -->
+                                                    <img :src="'../uploads/' + merchant[key]" loading="lazy" class="w-full h-full object-cover">
                                                 </template>
                                                 <template x-if="!(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
                                                     <div class="w-full h-full flex flex-col items-center justify-center gap-2">
