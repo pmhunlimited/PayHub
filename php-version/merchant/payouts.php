@@ -27,7 +27,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $error_msg = "You have reached your daily limit of $max_daily payout requests.";
         } else {
             $amount = (float)$_POST['amount'];
-            if ($amount > 0 && $amount <= $user['wallet_balance']) {
+            $min_payout = (float)getConfig('min_payout_amount', '1000');
+
+            if ($amount < $min_payout) {
+                $error_msg = "Minimum payout amount is " . formatCurrency($min_payout);
+            } elseif ($amount > $user['wallet_balance']) {
+                $error_msg = "Insufficient wallet balance.";
+            } elseif ($amount > 0) {
                 if ($user['settlement_bank'] && $user['settlement_account_number']) {
                     $db->beginTransaction();
                     try {
