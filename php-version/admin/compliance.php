@@ -21,13 +21,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt->execute([$status, $notes, $merchantId]);
         $success_msg = "KYC application processed.";
 
-        // Notify Merchant asynchronously if possible, or just efficiently
+        // Notify Merchant efficiently
         $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");
         $stmt->execute([$merchantId]);
         $m = $stmt->fetch();
         $status_text = $status == 1 ? 'Approved' : 'Rejected';
-        // Use a simple subject to avoid encoding issues
-        sendEmail($m['email'], "KYC Status: $status_text", "<h2>Hello {$m['business_name']},</h2><p>Your KYC verification request has been <strong>$status_text</strong>.</p><p>Admin Notes: " . nl2br($notes) . "</p>");
+
+        // Attempt to send email but don't let it crash the request
+        try {
+            sendEmail($m['email'], "KYC Status: $status_text", "<h2>Hello {$m['business_name']},</h2><p>Your KYC verification request has been <strong>$status_text</strong>.</p><p>Admin Notes: " . nl2br($notes) . "</p>");
+        } catch (\Throwable $e) {
+            error_log("KYC Email Error: " . $e->getMessage());
+        }
 
         // Use a redirect to prevent re-submission and clear POST state
         header("Location: compliance.php?success=1");
@@ -230,21 +235,11 @@ include '../includes/dashboard-head.php';
                                 }" :key="key">
                                     <template x-if="merchant[key]">
                                         <div class="space-y-2">
-                                            <a :href="'../uploads/' + merchant[key]" target="_blank" class="block aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm">
-                                                <template x-if="(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
-                                                    <!-- Use loading=lazy to prevent browser memory issues with large docs -->
-                                                    <img :src="'../uploads/' + merchant[key]" loading="lazy" class="w-full h-full object-cover">
-                                                </template>
-                                                <template x-if="!(merchant[key] || '').match(/\.(jpg|jpeg|png|gif|webp)$/i)">
-                                                    <div class="w-full h-full flex flex-col items-center justify-center gap-2">
-                                                        <i :data-lucide="doc.icon" class="text-slate-400 w-8 h-8"></i>
-                                                        <span class="text-[8px] font-bold text-slate-400 uppercase">View File</span>
-                                                    </div>
-                                                </template>
-                                                <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                                    <i data-lucide="eye" class="text-white w-6 h-6"></i>
-                                                </div>
-                                            </a>
+                                            <button type="button" @click="window.open('../uploads/' + merchant[key], '_blank')" class="w-full aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm flex flex-col items-center justify-center gap-2">
+                                                <i :data-lucide="doc.icon" class="text-slate-400 group-hover:text-indigo-600 w-8 h-8"></i>
+                                                <span class="text-[10px] font-bold text-slate-500 uppercase">View File</span>
+                                                <div class="absolute inset-0 bg-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            </button>
                                             <p class="text-[10px] font-bold text-slate-500 uppercase text-center" x-text="doc.label"></p>
                                         </div>
                                     </template>

@@ -414,7 +414,7 @@ function paystack_payout($userId, $amount, $reason = "Merchant Payout") {
     // 1. Create Transfer Recipient
     $recipient = paystack_call('transferrecipient', 'POST', [
         'type' => 'nuban',
-        'name' => $reason,
+        'name' => $u['settlement_account_name'] ?: $reason,
         'account_number' => $u['settlement_account_number'],
         'bank_code' => $u['settlement_bank_code'],
         'currency' => 'NGN'

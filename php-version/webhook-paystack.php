@@ -132,8 +132,16 @@ if ($event['event'] === 'charge.success') {
             log_transaction_event($tx['id'], 'payment_completed', 'Payment successfully processed and confirmed via Webhook');
 
             $db->commit();
+            $fulfillment_success = true;
 
-            // Notify Merchant & Forward Webhook
+        } catch (Exception $e) {
+            $db->rollBack();
+            $fulfillment_success = false;
+            file_put_contents('webhook_debug.log', "Transaction Error: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
+        }
+
+        if ($fulfillment_success) {
+            // Notify Merchant & Forward Webhook (Outside Transaction to prevent timeouts/locks)
             $stmt = $db->prepare("SELECT email, business_name, webhook_url FROM users WHERE id = ?");
             $stmt->execute([$tx['user_id']]);
             $m = $stmt->fetch();
