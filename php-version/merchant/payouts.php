@@ -50,12 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                             // Log ledger entry (this also deducts the balance)
                             log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request (Net: ".formatCurrency($net).") to " . $user['settlement_bank']);
 
-                        $db->commit();
-                        $success_msg = "Payout request submitted successfully.";
-                        $user = getAuthUser(); // Refresh user data
-                    } catch (Exception $e) {
-                        $db->rollBack();
-                        $error_msg = "Payout failed: " . $e->getMessage();
+                            $db->commit();
+                            $success_msg = "Payout request submitted successfully.";
+                            $user = getAuthUser(); // Refresh user data
+                        } catch (Exception $e) {
+                            $db->rollBack();
+                            $error_msg = "Payout failed: " . $e->getMessage();
+                        }
                     }
                 } else {
                     $error_msg = "Please set up your settlement bank details in settings first.";
