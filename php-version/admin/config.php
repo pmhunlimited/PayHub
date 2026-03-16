@@ -95,20 +95,53 @@ include '../includes/dashboard-head.php';
             </div>
 
             <div class="max-w-7xl">
-                <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm mb-8 w-fit">
-                    <div class="flex flex-col">
-                        <span class="text-xs font-bold text-slate-900">Global Payout Review</span>
-                        <span class="text-[10px] text-slate-500">Force all payouts to be reviewed</span>
+                <div class="flex flex-wrap gap-4 mb-8">
+                    <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm w-fit">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-900">Global Payout Review</span>
+                            <span class="text-[10px] text-slate-500">Force all payouts to be reviewed</span>
+                        </div>
+                        <?php $globalPayoutReview = getConfig('global_payout_review') === '1'; ?>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update_config">
+                            <input type="hidden" name="key" value="global_payout_review">
+                            <input type="hidden" name="value" value="<?php echo $globalPayoutReview ? '0' : '1'; ?>">
+                            <button type="submit" class="w-12 h-6 rounded-full transition-all relative <?php echo $globalPayoutReview ? 'bg-indigo-600' : 'bg-slate-300'; ?>">
+                                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all <?php echo $globalPayoutReview ? 'left-7' : 'left-1'; ?>"></div>
+                            </button>
+                        </form>
                     </div>
-                    <?php $globalPayoutReview = getConfig('global_payout_review') === '1'; ?>
-                    <form method="POST" id="payoutReviewForm">
-                        <input type="hidden" name="action" value="update_config">
-                        <input type="hidden" name="key" value="global_payout_review">
-                        <input type="hidden" name="value" value="<?php echo $globalPayoutReview ? '0' : '1'; ?>">
-                        <button type="submit" class="w-12 h-6 rounded-full transition-all relative <?php echo $globalPayoutReview ? 'bg-indigo-600' : 'bg-slate-300'; ?>">
-                            <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all <?php echo $globalPayoutReview ? 'left-7' : 'left-1'; ?>"></div>
-                        </button>
-                    </form>
+
+                    <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm w-fit">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-900">Manual Payout Status</span>
+                            <span class="text-[10px] text-slate-500">Toggle manual payouts on/off</span>
+                        </div>
+                        <?php $manualPayoutEnabled = getConfig('manual_payout_enabled', '1') === '1'; ?>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update_config">
+                            <input type="hidden" name="key" value="manual_payout_enabled">
+                            <input type="hidden" name="value" value="<?php echo $manualPayoutEnabled ? '0' : '1'; ?>">
+                            <button type="submit" class="w-12 h-6 rounded-full transition-all relative <?php echo $manualPayoutEnabled ? 'bg-emerald-600' : 'bg-slate-300'; ?>">
+                                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all <?php echo $manualPayoutEnabled ? 'left-7' : 'left-1'; ?>"></div>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm w-fit">
+                        <div class="flex flex-col">
+                            <span class="text-xs font-bold text-slate-900">24h Manual Payout Limit</span>
+                            <span class="text-[10px] text-slate-500">Max requests per merchant</span>
+                        </div>
+                        <form method="POST" class="flex items-center gap-2">
+                            <input type="hidden" name="action" value="update_config">
+                            <input type="hidden" name="key" value="max_manual_payouts_limit">
+                            <input type="number" name="value" value="<?php echo getConfig('max_manual_payouts_limit', '1'); ?>" class="w-12 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-bold text-center">
+                            <button type="submit" class="p-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
+                                <i data-lucide="check" class="w-3 h-3"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
 
             <div class="grid lg:grid-cols-3 gap-8 max-w-7xl">

@@ -54,7 +54,7 @@ function ensure_critical_tables() {
     if (!isInstalled()) return;
 
     // Quick version check to avoid redundant DB calls on every request
-    $version = '1.0.6';
+    $version = '1.0.7';
     if (getConfig('sys_db_version') === $version) return;
 
     try {
@@ -108,7 +108,9 @@ function ensure_critical_tables() {
                 'gov_gazette_path' => "VARCHAR(255)",
                 'business_address_proof_path' => "VARCHAR(255)",
                 'is_test_mode' => "TINYINT DEFAULT 1",
-                'webhook_url' => "VARCHAR(255)"
+                'webhook_url' => "VARCHAR(255)",
+                'has_payout_consent' => "TINYINT DEFAULT 0",
+                'payout_consent_date' => "TIMESTAMP NULL"
             ],
             'transactions' => [
                 'customer_email' => "VARCHAR(255)",

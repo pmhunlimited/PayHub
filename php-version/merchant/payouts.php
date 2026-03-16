@@ -12,19 +12,53 @@ $db = Database::connect();
 $success_msg = '';
 $error_msg = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
+$manualPayoutGlobalEnabled = getConfig('manual_payout_enabled', '1') === '1';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'submit_consent') {
+        $stmt = $db->prepare("UPDATE users SET has_payout_consent = 1, payout_consent_date = CURRENT_TIMESTAMP WHERE id = ?");
+        $stmt->execute([$user['id']]);
+        $success_msg = "Manual payout consent recorded. You can now request payouts.";
+        $user = getAuthUser();
+    } elseif ($_POST['action'] === 'request_payout') {
+        // Check for global disable vs individual consent
+        if (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) {
+            $error_msg = "Manual payouts are currently disabled by the admin. Please sign the consent form to proceed.";
+            goto skip_payout;
+        }
+
     // Check for suspension
     if ($user['is_suspended']) {
         $error_msg = "Your account is suspended. Payout requests are disabled.";
     } else {
         // Check Daily Limit from Platform Config
-        $max_daily = (int)getConfig('max_daily_payout_requests', '5');
-        $stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND DATE(request_date) = CURDATE()");
+        $max_daily = (int)getConfig('max_manual_payouts_limit', '1');
+        $stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
         $stmt->execute([$user['id']]);
         $daily_count = $stmt->fetch()['daily_count'];
 
         if ($daily_count >= $max_daily) {
-            $error_msg = "You have reached your daily limit of $max_daily payout requests.";
+            $error_msg = "You have reached the 24-hour limit of $max_daily manual payout request(s) set by the administrator.";
+
+            // Trigger notifications
+            $admin_email = getConfig('smtp_user');
+            $site_name = getConfig('site_name', 'Payhub');
+
+            // Notification to Merchant
+            sendEmail($user['email'], "Payout Limit Reached - $site_name", "
+                <h2 style='color: #ef4444;'>24-Hour Payout Limit Hit</h2>
+                <p>Hello {$user['business_name']},</p>
+                <p>You have reached the maximum number of manual payout requests allowed within a 24-hour period ($max_daily).</p>
+                <p>Please wait for the automated settlement or try again later.</p>
+            ");
+
+            // Notification to Admin
+            sendEmail($admin_email, "Merchant Payout Limit Hit: {$user['business_name']}", "
+                <h2>Merchant Alert</h2>
+                <p><strong>Merchant:</strong> {$user['business_name']} ({$user['email']})</p>
+                <p>This merchant has hit their manual payout limit of <strong>$max_daily</strong> requests within 24 hours.</p>
+                <p>Time: " . date('Y-m-d H:i:s') . "</p>
+            ");
         } else {
             $amount = (float)$_POST['amount'];
             $min_payout = (float)getConfig('min_payout_amount', '1000');
@@ -67,7 +101,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 }
+}
 
+skip_payout:
 $stmt = $db->prepare("SELECT * FROM payouts WHERE user_id = ? ORDER BY request_date DESC");
 $stmt->execute([$user['id']]);
 $payouts = $stmt->fetchAll();
@@ -96,7 +132,35 @@ include '../includes/dashboard-head.php';
 
             <div class="grid lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-1 space-y-6">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
+                    <?php if (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']): ?>
+                        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-amber-200 shadow-xl shadow-amber-900/5 bg-gradient-to-br from-amber-50/50 to-white">
+                            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
+                                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-4">Manual Payout Consent</h3>
+                            <p class="text-sm text-slate-600 leading-relaxed mb-6">
+                                The administrator has disabled manual payouts globally to prioritize automated daily settlements. To request a manual payout, you must agree to the following:
+                            </p>
+                            <div class="space-y-4 mb-8 bg-white/50 p-4 rounded-2xl border border-amber-100">
+                                <div class="flex gap-3">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-500 shrink-0 mt-1"></i>
+                                    <p class="text-xs text-slate-600">I acknowledge that I am choosing to operate manual payout despite the global automated policy.</p>
+                                </div>
+                                <div class="flex gap-3">
+                                    <i data-lucide="check-circle-2" class="w-4 h-4 text-amber-500 shrink-0 mt-1"></i>
+                                    <p class="text-xs text-slate-600">I understand that manual payouts are limited to <?php echo getConfig('max_manual_payouts_limit', '1'); ?> request(s) every 24 hours.</p>
+                                </div>
+                            </div>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="submit_consent">
+                                <button type="submit" class="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
+                                    I Agree & Consent
+                                </button>
+                            </form>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm <?php echo (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) ? 'opacity-50 pointer-events-none grayscale' : ''; ?>">
                         <h3 class="text-xl font-bold text-slate-900 mb-6">Withdraw Funds</h3>
                         <div class="mb-8 p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
                             <p class="text-xs text-indigo-600 uppercase font-bold mb-1 tracking-widest">Available Balance</p>
