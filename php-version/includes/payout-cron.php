@@ -31,7 +31,7 @@ $db = Database::connect();
 // Fetch merchants with automated payout and balance > min_payout_amount
 $min_payout = (float)getConfig('min_payout_amount', '1000');
 
-$stmt = $db->prepare("SELECT * FROM users WHERE role = 'merchant' AND payout_method = 'automated' AND wallet_balance >= ? AND is_suspended = 0");
+$stmt = $db->prepare("SELECT * FROM users WHERE role = 'merchant' AND payout_method = 'automated' AND payout_method_status = 'active' AND wallet_balance >= ? AND is_suspended = 0");
 $stmt->execute([$min_payout]);
 $merchants = $stmt->fetchAll();
 

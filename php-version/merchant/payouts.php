@@ -21,6 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $success_msg = "Manual payout consent recorded. You can now request payouts.";
         $user = getAuthUser();
     } elseif ($_POST['action'] === 'request_payout') {
+        // Check for pending payout switch
+        if ($user['payout_method_status'] === 'pending_switch') {
+            $error_msg = "Your payout requests are currently on hold pending admin review of your payout method change.";
+            goto skip_payout;
+        }
+
         // Check for global disable vs individual consent
         if (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) {
             $error_msg = "Manual payouts are currently disabled by the admin. Please sign the consent form to proceed.";
@@ -205,10 +211,10 @@ include '../includes/dashboard-head.php';
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo (!$user['settlement_bank'] || $user['is_suspended']) ? 'disabled' : ''; ?>
+                                <?php echo (!$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch') ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
-                                Confirm Withdrawal
+                                <?php echo $user['payout_method_status'] === 'pending_switch' ? 'Payouts on Hold' : 'Confirm Withdrawal'; ?>
                             </button>
                         </form>
                     </div>
