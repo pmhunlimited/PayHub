@@ -35,14 +35,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $error_msg = "Insufficient wallet balance.";
             } elseif ($amount > 0) {
                 if ($user['settlement_bank'] && $user['settlement_account_number']) {
-                    $db->beginTransaction();
-                    try {
-                        // Create payout record
-                        $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
-                        $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
+                    $fee = (float)getConfig('manual_payout_fee', '0');
+                    $net = $amount - $fee;
 
-                        // Log ledger entry (this also deducts the balance)
-                        log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request to " . $user['settlement_bank']);
+                    if ($net <= 0) {
+                        $error_msg = "Amount after fees must be greater than zero.";
+                    } else {
+                        $db->beginTransaction();
+                        try {
+                            // Create payout record
+                            $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, fee_amount, net_amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
+                            $stmt->execute([$user['id'], $amount, $fee, $net, $user['settlement_bank'], $user['settlement_account_number']]);
+
+                            // Log ledger entry (this also deducts the balance)
+                            log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request (Net: ".formatCurrency($net).") to " . $user['settlement_bank']);
 
                         $db->commit();
                         $success_msg = "Payout request submitted successfully.";
@@ -156,6 +162,7 @@ include '../includes/dashboard-head.php';
                             <thead class="bg-slate-50">
                                 <tr>
                                     <th class="px-4 sm:px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Amount</th>
+                                    <th class="hidden md:table-cell px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Fee / Net</th>
                                     <th class="px-4 sm:px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                     <th class="hidden sm:table-cell px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Date</th>
                                     <th class="hidden md:table-cell px-8 py-5 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Destination</th>
@@ -165,6 +172,10 @@ include '../includes/dashboard-head.php';
                                 <?php foreach ($payouts as $p): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
                                         <td class="px-4 sm:px-8 py-5 font-bold text-slate-900"><?php echo formatCurrency($p['amount']); ?></td>
+                                        <td class="hidden md:table-cell px-8 py-5">
+                                            <div class="text-[10px] text-slate-400 font-medium">Fee: <?php echo formatCurrency($p['fee_amount'] ?? 0); ?></div>
+                                            <div class="text-xs font-bold text-emerald-600">Net: <?php echo formatCurrency($p['net_amount'] ?? $p['amount']); ?></div>
+                                        </td>
                                         <td class="px-4 sm:px-8 py-5">
                                             <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <?php echo $p['status'] === 'processed' ? 'bg-emerald-100 text-emerald-700' : ($p['status'] === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'); ?>">
                                                 <?php echo $p['status']; ?>

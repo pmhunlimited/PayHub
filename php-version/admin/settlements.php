@@ -20,11 +20,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         try {
             // If approved, attempt Paystack payout
             if ($status === 'processed') {
-                $stmt = $db->prepare("SELECT user_id, amount FROM payouts WHERE id = ?");
+                $stmt = $db->prepare("SELECT user_id, amount, net_amount FROM payouts WHERE id = ?");
                 $stmt->execute([$payoutId]);
                 $p = $stmt->fetch();
 
-                $res = paystack_payout($p['user_id'], (float)$p['amount']);
+                // Fallback to full amount if net_amount wasn't set (legacy)
+                $payout_amount = (float)($p['net_amount'] > 0 ? $p['net_amount'] : $p['amount']);
+
+                $res = paystack_payout($p['user_id'], $payout_amount);
                 if (!$res || !$res['status']) {
                     // Log error but allow admin to see what happened
                     file_put_contents(BASE_PATH . 'payout_debug.log', "[" . date('Y-m-d H:i:s') . "] Payout Approval Failed for ID $payoutId: " . json_encode($res) . PHP_EOL, FILE_APPEND);

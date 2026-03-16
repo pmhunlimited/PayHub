@@ -135,7 +135,9 @@ function ensure_critical_tables() {
             ],
             'payouts' => [
                 'status_details' => "TEXT",
-                'gateway_reference' => "VARCHAR(100)"
+                'gateway_reference' => "VARCHAR(100)",
+                'fee_amount' => "DECIMAL(15, 2) DEFAULT 0.00",
+                'net_amount' => "DECIMAL(15, 2) DEFAULT 0.00"
             ]
         ];
         foreach ($cols as $table => $columns) {

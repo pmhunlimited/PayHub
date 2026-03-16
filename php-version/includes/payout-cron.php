@@ -53,7 +53,7 @@ foreach ($merchants as $m) {
     // In a real system, we'd have sub-wallets.
     // Here we enforce settlement currency from user settings.
 
-    $fee = (float)getConfig('payout_fee', '50');
+    $fee = (float)getConfig('automated_payout_fee', '50');
     $net = $amount - $fee;
 
     if ($net <= 0) continue;

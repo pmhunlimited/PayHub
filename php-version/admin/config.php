@@ -207,7 +207,8 @@ include '../includes/dashboard-head.php';
                                 ['key' => 'transaction_fee_cap', 'label' => 'Local Fee Cap', 'desc' => 'Maximum fee for local transactions'],
                                 ['key' => 'international_fee_percent', 'label' => 'Intl. Fee (%)', 'desc' => 'Percentage fee on international collections'],
                                 ['key' => 'international_fee_flat', 'label' => 'Intl. Fee (Flat)', 'desc' => 'Flat fee on international collections'],
-                                ['key' => 'payout_fee', 'label' => 'Payout Fee (NGN)', 'desc' => 'Flat fee per withdrawal'],
+                                ['key' => 'manual_payout_fee', 'label' => 'Manual Payout Fee', 'desc' => 'Fee charged for manual payout requests'],
+                                ['key' => 'automated_payout_fee', 'label' => 'Automated Payout Fee', 'desc' => 'Fee charged for automated daily payouts'],
                                 ['key' => 'min_payout_amount', 'label' => 'Min Payout Amount', 'desc' => 'Minimum amount a merchant can request for payout'],
                                 ['key' => 'max_daily_payout_requests', 'label' => 'Max Daily Payouts', 'desc' => 'Max times a merchant can request payout per day'],
                                 ['key' => 'smtp_host', 'label' => 'SMTP Host', 'desc' => 'Email server address']
