@@ -29,6 +29,12 @@ $is_test = (strpos($sk, 'sk_test_') === 0);
 $input = get_api_input();
 
 // 1. Merchant Status Checks
+if ($user['is_test_mode']) {
+    http_response_code(403);
+    echo json_encode(['status' => false, 'message' => 'Payouts are not available in Test Mode']);
+    exit;
+}
+
 if ($user['is_suspended']) {
     http_response_code(403);
     echo json_encode(['status' => false, 'message' => 'Account is suspended']);

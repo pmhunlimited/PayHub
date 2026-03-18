@@ -19,16 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $description = sanitize($_POST['description']);
     $ref = 'INV-' . strtoupper(bin2hex(random_bytes(4)));
 
-    $stmt = $db->prepare("INSERT INTO invoices (user_id, reference, customer_name, customer_email, amount, due_date, description, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-    if ($stmt->execute([$user['id'], $ref, $customer_name, $customer_email, $amount, $due_date, $description])) {
+    $is_test = $user['is_test_mode'];
+    $stmt = $db->prepare("INSERT INTO invoices (user_id, reference, customer_name, customer_email, amount, due_date, description, status, is_test_mode) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)");
+    if ($stmt->execute([$user['id'], $ref, $customer_name, $customer_email, $amount, $due_date, $description, $is_test])) {
         $success_msg = "Invoice created successfully!";
     } else {
         $error_msg = "Failed to create invoice.";
     }
 }
 
-$stmt = $db->prepare("SELECT * FROM invoices WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->execute([$user['id']]);
+$is_test = $user['is_test_mode'];
+$stmt = $db->prepare("SELECT * FROM invoices WHERE user_id = ? AND is_test_mode = ? ORDER BY created_at DESC");
+$stmt->execute([$user['id'], $is_test]);
 $invoices = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';

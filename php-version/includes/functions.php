@@ -250,7 +250,7 @@ function getConfig($key, $default = '') {
     }
 }
 
-function get_stats($userId) {
+function get_stats($userId, $is_test = 0) {
     $db = Database::connect();
     $stmt = $db->prepare("
         SELECT 
@@ -258,17 +258,17 @@ function get_stats($userId) {
             COUNT(*) as transaction_count,
             (SELECT wallet_balance FROM users WHERE id = ?) as balance
         FROM transactions 
-        WHERE user_id = ? AND status = 'success'
+        WHERE user_id = ? AND status = 'success' AND is_test = ?
     ");
-    $stmt->execute([$userId, $userId]);
+    $stmt->execute([$userId, $userId, $is_test]);
     $stats = $stmt->fetch();
 
-    $stmt = $db->prepare("SELECT COUNT(*) as count FROM transactions WHERE user_id = ?");
-    $stmt->execute([$userId]);
+    $stmt = $db->prepare("SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND is_test = ?");
+    $stmt->execute([$userId, $is_test]);
     $total = $stmt->fetch();
 
-    $stmt = $db->prepare("SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND status = 'success'");
-    $stmt->execute([$userId]);
+    $stmt = $db->prepare("SELECT COUNT(*) as count FROM transactions WHERE user_id = ? AND status = 'success' AND is_test = ?");
+    $stmt->execute([$userId, $is_test]);
     $success = $stmt->fetch();
 
     $successRate = $total['count'] > 0 ? number_format(($success['count'] / $total['count']) * 100, 1) : '100';

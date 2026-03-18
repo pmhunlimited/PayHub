@@ -54,8 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Fetch Transactions
-$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->execute([$user['id']]);
+$is_test = $user['is_test_mode'];
+$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? AND is_test = ? ORDER BY created_at DESC");
+$stmt->execute([$user['id'], $is_test]);
 $transactions = $stmt->fetchAll();
 
 include '../includes/dashboard-head.php';

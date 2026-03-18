@@ -26,7 +26,14 @@ if ($inv['status'] === 'paid') {
 include 'includes/header.php';
 ?>
 
-<div class="pt-32 pb-20 bg-slate-50 min-h-screen">
+<div class="pt-32 pb-20 bg-slate-50 min-h-screen relative">
+    <?php if ($inv['is_test_mode']): ?>
+        <div class="fixed top-0 left-0 right-0 bg-amber-500 text-white text-[10px] font-bold uppercase tracking-[0.2em] py-2 text-center z-[100] flex items-center justify-center gap-2">
+            <i data-lucide="shield-alert" class="w-3 h-3"></i>
+            Test Mode - No real money will be processed
+            <i data-lucide="shield-alert" class="w-3 h-3"></i>
+        </div>
+    <?php endif; ?>
     <div class="max-w-4xl mx-auto px-4">
         <div class="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
             <div class="p-8 lg:p-12 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-50/50">
@@ -67,9 +74,9 @@ include 'includes/header.php';
 
                 <?php if ($inv['status'] !== 'paid'): ?>
                     <div class="flex flex-col items-center gap-6">
-                        <button onclick="payInvoice()" class="w-full max-w-md bg-indigo-600 text-white py-5 rounded-2xl font-bold text-lg shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3">
-                            <i data-lucide="shield-check" class="w-6 h-6"></i>
-                            Pay Now with Payhub
+                        <button onclick="payInvoice()" class="w-full max-w-md <?php echo $inv['is_test_mode'] ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-100' : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200'; ?> text-white py-5 rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-3">
+                            <i data-lucide="<?php echo $inv['is_test_mode'] ? 'beaker' : 'shield-check'; ?>" class="w-6 h-6"></i>
+                            <?php echo $inv['is_test_mode'] ? 'Simulate Success' : 'Pay Now with Payhub'; ?>
                         </button>
                         <p class="text-[10px] text-slate-400 uppercase tracking-widest flex items-center gap-2">
                             <i data-lucide="lock" class="w-3 h-3"></i>

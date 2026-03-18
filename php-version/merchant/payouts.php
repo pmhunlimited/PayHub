@@ -21,6 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $success_msg = "Manual payout consent recorded. You can now request payouts.";
         $user = getAuthUser();
     } elseif ($_POST['action'] === 'request_payout') {
+        // Check for Test Mode
+        if ($user['is_test_mode']) {
+            $error_msg = "Payouts are not available in Test Mode. Please switch to Live Mode to withdraw real funds.";
+            goto skip_payout;
+        }
+
         // Check for pending payout switch
         if ($user['payout_method_status'] === 'pending_switch') {
             $error_msg = "Your payout requests are currently on hold pending admin review of your payout method change.";
@@ -166,7 +172,7 @@ include '../includes/dashboard-head.php';
                         </div>
                     <?php endif; ?>
 
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm <?php echo (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) ? 'opacity-50 pointer-events-none grayscale' : ''; ?>">
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm <?php echo (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) || $user['is_test_mode'] ? 'opacity-50 pointer-events-none grayscale' : ''; ?>">
                         <h3 class="text-xl font-bold text-slate-900 mb-6">Withdraw Funds</h3>
                         <div class="mb-8 p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
                             <p class="text-xs text-indigo-600 uppercase font-bold mb-1 tracking-widest">Available Balance</p>
@@ -211,10 +217,14 @@ include '../includes/dashboard-head.php';
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo (!$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch') ? 'disabled' : ''; ?>
+                                <?php echo (!$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch' || $user['is_test_mode']) ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
-                                <?php echo $user['payout_method_status'] === 'pending_switch' ? 'Payouts on Hold' : 'Confirm Withdrawal'; ?>
+                                <?php
+                                if ($user['is_test_mode']) echo 'Live Mode Only';
+                                elseif ($user['payout_method_status'] === 'pending_switch') echo 'Payouts on Hold';
+                                else echo 'Confirm Withdrawal';
+                                ?>
                             </button>
                         </form>
                     </div>

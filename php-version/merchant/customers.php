@@ -74,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     }
 }
 
+$is_test = $user['is_test_mode'];
 $stmt = $db->prepare("
     SELECT c.*, va.bank_name, va.account_number, va.account_name
     FROM customers c
@@ -151,7 +152,9 @@ include '../includes/dashboard-head.php';
                                             </div>
                                         </td>
                                         <td class="hidden sm:table-cell px-6 py-4">
-                                            <?php if ($c['account_number']): ?>
+                                            <?php if ($is_test): ?>
+                                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg">Live Only</span>
+                                            <?php elseif ($c['account_number']): ?>
                                                 <div class="text-sm font-bold text-slate-900"><?php echo $c['account_number']; ?></div>
                                                 <div class="text-[10px] text-slate-400 font-bold uppercase"><?php echo $c['bank_name']; ?></div>
                                             <?php else: ?>

@@ -15,13 +15,14 @@ $tab = $_GET['tab'] ?? 'overview';
 $pageTitle = 'Dashboard - Payhub';
 
 // Fetch stats for overview
-$stats = get_stats($user['id']);
+$is_test = $user['is_test_mode'];
+$stats = get_stats($user['id'], $is_test);
 
 $db = Database::connect();
 
 // Fetch transactions
-$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
-$stmt->execute([$user['id']]);
+$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? AND is_test = ? ORDER BY created_at DESC LIMIT 10");
+$stmt->execute([$user['id'], $is_test]);
 $recentTransactions = $stmt->fetchAll();
 
 // Fetch revenue data for chart (last 7 days)
@@ -30,7 +31,7 @@ $stmt = $db->prepare("
         DATE(created_at) as date,
         SUM(amount) as revenue
     FROM transactions 
-    WHERE user_id = ? AND status = 'success'
+    WHERE user_id = ? AND status = 'success' AND is_test = ?
     GROUP BY DATE(created_at)
     ORDER BY date DESC
     LIMIT 7
@@ -52,10 +53,10 @@ $stmt = $db->prepare("
         payment_method,
         COUNT(*) as count
     FROM transactions
-    WHERE user_id = ? AND status = 'success'
+    WHERE user_id = ? AND status = 'success' AND is_test = ?
     GROUP BY payment_method
 ");
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], $is_test]);
 $methodCounts = $stmt->fetchAll();
 $totalMethods = array_sum(array_column($methodCounts, 'count'));
 
