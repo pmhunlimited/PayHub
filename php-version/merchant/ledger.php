@@ -7,8 +7,9 @@ if (!isLoggedIn()) redirect('../login.php');
 $user = getAuthUser();
 $pageTitle = 'Balance Ledger - Payhub';
 
+$is_test = $user['is_test_mode'];
 $db = Database::connect();
-$stmt = $db->prepare("SELECT * FROM ledger WHERE user_id = ? ORDER BY created_at DESC");
+$stmt = $db->prepare("SELECT * FROM ledger WHERE user_id = ? AND description " . ($is_test ? "LIKE '[TEST]%'" : "NOT LIKE '[TEST]%'") . " ORDER BY created_at DESC");
 $stmt->execute([$user['id']]);
 $ledger = $stmt->fetchAll();
 

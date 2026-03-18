@@ -36,7 +36,7 @@ $stmt = $db->prepare("
     ORDER BY date DESC
     LIMIT 7
 ");
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], $is_test]);
 $revenueRaw = array_reverse($stmt->fetchAll());
 $revenueData = [];
 $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
