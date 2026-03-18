@@ -43,6 +43,12 @@ include 'includes/header.php';
                 </div>
             </div>
             <div>
+                <p class="text-xs font-bold text-slate-400 uppercase mb-3">Payouts</p>
+                <div class="space-y-2">
+                    <a href="#payout-initialize" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Initialize Payout</a>
+                </div>
+            </div>
+            <div>
                 <p class="text-xs font-bold text-slate-400 uppercase mb-3">Payments</p>
                 <div class="space-y-2">
                     <a href="#initialize" class="block text-sm text-slate-600 hover:text-indigo-600 font-medium">Initialize Transaction</a>
@@ -156,6 +162,20 @@ include 'includes/header.php';
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d date="2023-12-25" \
 -d channel="all" <span class="text-slate-500">// Optional: all, card, or dedicated_account</span></pre>
+            </div>
+        </section>
+
+        <section id="payout-initialize" class="mb-20 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg font-bold text-sm">POST</span>
+                <h2 class="text-2xl font-bold text-slate-900">Initialize Payout</h2>
+            </div>
+            <p class="text-slate-600 mb-8 leading-relaxed">Withdraw funds from your Payhub wallet directly to your registered settlement bank account. Requests are subject to 24-hour rolling limits and administrative review policies.</p>
+            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+                <pre>curl <?php echo BASE_URL; ?>api/payout/initialize \
+-H "Authorization: Bearer YOUR_SECRET_KEY" \
+-d amount=5000 \
+-d reason="Inventory Purchase"</pre>
             </div>
         </section>
 

@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Ensure Authorization header is passed to PHP
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+# Redirect /api/payout/initialize to /api/payout/initialize.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^initialize$ initialize.php [L,QSA]

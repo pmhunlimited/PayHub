@@ -1,0 +1,138 @@
+<?php
+// php-version/api/payout/initialize.php
+require_once '../../includes/functions.php';
+
+header('Content-Type: application/json');
+
+$headers = getallheaders();
+$auth = $headers['Authorization'] ?? $headers['authorization'] ?? '';
+
+if (!$auth || strpos($auth, 'Bearer ') !== 0) {
+    http_response_code(401);
+    echo json_encode(['status' => false, 'message' => 'Unauthorized']);
+    exit;
+}
+
+$sk = str_replace('Bearer ', '', $auth);
+$db = Database::connect();
+$stmt = $db->prepare("SELECT * FROM users WHERE secret_key = ? OR test_secret_key = ?");
+$stmt->execute([$sk, $sk]);
+$user = $stmt->fetch();
+
+if (!$user) {
+    http_response_code(401);
+    echo json_encode(['status' => false, 'message' => 'Invalid Secret Key']);
+    exit;
+}
+
+$is_test = (strpos($sk, 'sk_test_') === 0);
+$input = get_api_input();
+
+// 1. Merchant Status Checks
+if ($user['is_suspended']) {
+    http_response_code(403);
+    echo json_encode(['status' => false, 'message' => 'Account is suspended']);
+    exit;
+}
+
+if ($user['payout_method_status'] === 'pending_switch') {
+    http_response_code(403);
+    echo json_encode(['status' => false, 'message' => 'Payouts are on hold pending method switch review']);
+    exit;
+}
+
+// 2. Validate Settlement Details
+if (empty($user['settlement_bank_code']) || empty($user['settlement_account_number'])) {
+    http_response_code(400);
+    echo json_encode(['status' => false, 'message' => 'Settlement bank details not configured']);
+    exit;
+}
+
+// 3. Input Validation
+$amount = (float)($input['amount'] ?? 0);
+$reason = sanitize($input['reason'] ?? 'Merchant Payout API');
+$min_payout = (float)getConfig('min_payout_amount', '1000');
+
+if ($amount < $min_payout) {
+    http_response_code(400);
+    echo json_encode(['status' => false, 'message' => "Minimum payout amount is " . formatCurrency($min_payout)]);
+    exit;
+}
+
+if ($amount > $user['wallet_balance']) {
+    http_response_code(400);
+    echo json_encode(['status' => false, 'message' => 'Insufficient wallet balance']);
+    exit;
+}
+
+// 4. Rolling 24h Limit Enforcement
+$max_daily = (int)getConfig('max_manual_payouts_limit', '1');
+$stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+$stmt->execute([$user['id']]);
+$daily_count = $stmt->fetch()['daily_count'];
+
+if ($daily_count >= $max_daily) {
+    // Notify merchant and admin of limit hit (matching dashboard logic)
+    $admin_email = getConfig('smtp_user');
+    $site_name = getConfig('site_name', 'Payhub');
+    sendEmail($user['email'], "Payout Limit Reached - $site_name", "<h2>24-Hour Payout Limit Hit</h2><p>You have reached the rolling 24-hour limit of $max_daily manual payout requests.</p>");
+    sendEmail($admin_email, "Merchant Payout Limit Hit: {$user['business_name']}", "<p>Merchant {$user['business_name']} has hit their manual payout limit ($max_daily) via API.</p>");
+
+    http_response_code(429);
+    echo json_encode(['status' => false, 'message' => "24-hour payout request limit ($max_daily) reached"]);
+    exit;
+}
+
+// 5. Execution Logic
+$fee = (float)getConfig('manual_payout_fee', '0');
+$net = $amount - $fee;
+
+if ($net <= 0) {
+    http_response_code(400);
+    echo json_encode(['status' => false, 'message' => 'Amount after fees must be greater than zero']);
+    exit;
+}
+
+$db->beginTransaction();
+try {
+    // a. Record Payout
+    $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, fee_amount, net_amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
+    $stmt->execute([$user['id'], $amount, $fee, $net, $user['settlement_bank'], $user['settlement_account_number']]);
+    $payoutId = $db->lastInsertId();
+
+    // b. Log Ledger & Deduct Balance
+    log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request via API (Net: ".formatCurrency($net).") to " . $user['settlement_bank'], $is_test);
+
+    // c. Call Paystack Transfer API (if not in review mode)
+    $needs_review = (getConfig('global_payout_review') == '1') || ($user['require_payout_review'] == 1);
+
+    $transfer_res = null;
+    if (!$needs_review) {
+        $transfer_res = paystack_payout($user['id'], $net, $reason);
+        if ($transfer_res && $transfer_res['status']) {
+            $stmt = $db->prepare("UPDATE payouts SET status = 'processed', status_details = ?, gateway_reference = ? WHERE id = ?");
+            $stmt->execute(['Automated API Transfer', $transfer_res['data']['transfer_code'], $payoutId]);
+        }
+    }
+
+    $db->commit();
+
+    echo json_encode([
+        'status' => true,
+        'message' => $needs_review ? 'Payout request queued for review' : 'Payout initiated successfully',
+        'data' => [
+            'id' => $payoutId,
+            'amount' => $amount,
+            'fee' => $fee,
+            'net_amount' => $net,
+            'status' => $needs_review ? 'pending' : 'processed',
+            'bank' => $user['settlement_bank'],
+            'account' => $user['settlement_account_number']
+        ]
+    ]);
+
+} catch (Exception $e) {
+    $db->rollBack();
+    http_response_code(500);
+    echo json_encode(['status' => false, 'message' => 'Payout execution failed: ' . $e->getMessage()]);
+}
