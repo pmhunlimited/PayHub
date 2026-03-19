@@ -2,7 +2,12 @@
 // php-version/admin/merchants.php
 require_once '../includes/functions.php';
 
-if (!isLoggedIn() || !isAdmin()) redirect('../login.php');
+if (!isLoggedIn()) redirect('../login.php');
+
+// Allow "Exit Impersonation" even if role is merchant
+if (!isAdmin() && (!isset($_POST['action']) || $_POST['action'] !== 'exit_impersonation')) {
+    redirect('../login.php');
+}
 
 $user = getAuthUser();
 $pageTitle = 'Merchant Directory - Admin Hub';
@@ -94,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['user_id'] = $_SESSION['admin_user_id'];
             $_SESSION['role'] = 'admin';
             unset($_SESSION['admin_user_id']);
-            $success_msg = "Exited impersonation mode.";
+            redirect('index.php');
         }
     } elseif ($_POST['action'] === 'reset_password') {
         $merchantId = (int)$_POST['merchant_id'];
