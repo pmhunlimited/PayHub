@@ -30,7 +30,8 @@ if (isset($_GET['action'])) {
 $pageTitle = 'API Reference - Payhub';
 include 'includes/header.php';
 ?>
-<div class="pt-20 flex min-h-screen">
+<div class="pt-20 flex flex-col md:flex-row min-h-screen" x-data="{ mobileDocNav: false }">
+    <!-- Desktop Sidebar -->
     <aside class="w-64 border-r border-slate-100 p-8 hidden md:block sticky top-20 h-[calc(100vh-80px)] overflow-y-auto">
         <h3 class="font-bold text-slate-900 mb-6 uppercase text-xs tracking-widest">API Reference</h3>
         <nav class="space-y-6">
@@ -71,27 +72,78 @@ include 'includes/header.php';
             </div>
         </nav>
     </aside>
-    <main class="flex-1 p-8 lg:p-16 max-w-5xl">
+
+    <!-- Mobile Sub-Nav -->
+    <div class="md:hidden sticky top-20 bg-white/95 backdrop-blur-sm border-b border-slate-100 z-30">
+        <button @click="mobileDocNav = !mobileDocNav" class="w-full px-6 py-4 flex items-center justify-between text-indigo-600 font-bold text-sm">
+            <span class="flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                Documentation Menu
+            </span>
+            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" :class="mobileDocNav ? 'rotate-180' : ''"></i>
+        </button>
+        <div x-show="mobileDocNav" x-cloak class="p-6 bg-slate-50 border-t border-slate-100 space-y-6 max-h-[60vh] overflow-y-auto">
+            <nav class="space-y-6">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Core</p>
+                    <div class="space-y-3">
+                        <a href="#authentication" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Authentication</a>
+                        <a href="#inline-checkout" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Inline Checkout</a>
+                        <a href="#webhooks" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Webhooks & Callback</a>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Payouts</p>
+                    <div class="space-y-3">
+                        <a href="#payout-initialize" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Initialize Payout</a>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Payments</p>
+                    <div class="space-y-3">
+                        <a href="#initialize" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Initialize Transaction</a>
+                        <a href="#verify" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Verify Transaction</a>
+                        <a href="#reconcile" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Reconcile Payments</a>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Accounts</p>
+                    <div class="space-y-3">
+                        <a href="#virtual-accounts" @click="mobileDocNav = false" class="block text-sm text-slate-600 font-medium">Fetch Virtual Accounts</a>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-3 tracking-widest">Plugins</p>
+                    <div class="space-y-3">
+                        <a href="#woocommerce" @click="mobileDocNav = false" class="block text-sm text-emerald-600 font-bold">WooCommerce Plugin</a>
+                        <a href="#whmcs" @click="mobileDocNav = false" class="block text-sm text-blue-600 font-bold">WHMCS Module</a>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <main class="flex-1 p-6 sm:p-8 lg:p-16 max-w-5xl overflow-hidden">
         <div class="mb-12 border-b border-slate-100 pb-12">
             <h1 class="text-4xl font-extrabold text-slate-900 mb-4">API Documentation</h1>
             <p class="text-xl text-slate-500 leading-relaxed">Everything you need to build powerful payment experiences with Payhub.</p>
         </div>
 
-        <section id="authentication" class="mb-20 scroll-mt-24">
+        <section id="authentication" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <h2 class="text-2xl font-bold text-slate-900 mb-4">Authentication</h2>
             <p class="text-slate-600 mb-6 leading-relaxed">The Payhub API uses Secret Keys to authenticate requests. You can view and manage your API keys in the <a href="merchant/api-keys.php" class="text-indigo-600 font-bold">Dashboard</a>. Your secret keys carry many privileges, so be sure to keep them secure!</p>
-            <div class="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm">
+            <div class="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 Authorization: Bearer sk_live_xxxxxxxxxxxx
             </div>
         </section>
 
-        <section id="inline-checkout" class="mb-20 scroll-mt-24">
+        <section id="inline-checkout" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-sm">JAVASCRIPT</span>
-                <h2 class="text-2xl font-bold text-slate-900">Inline Checkout</h2>
+                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">JAVASCRIPT</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Inline Checkout</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Collect payments without redirecting your customers. Our inline checkout provides a seamless experience for your users.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <p class="text-slate-500 mb-4">// Add the Payhub Inline Script</p>
                 <pre>&lt;script src="<?php echo BASE_URL; ?>inline.js"&gt;&lt;/script&gt;
 
@@ -123,13 +175,13 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="initialize" class="mb-20 scroll-mt-24">
+        <section id="initialize" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-bold text-sm">POST</span>
-                <h2 class="text-2xl font-bold text-slate-900">Initialize Transaction</h2>
+                <span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">POST</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Initialize Transaction</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Start a transaction from your server to get a checkout URL. Optionally provide customer details to automate Virtual Account generation.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <pre>curl <?php echo BASE_URL; ?>api/transaction/initialize \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d email="customer@email.com" \
@@ -139,25 +191,25 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="verify" class="mb-20 scroll-mt-24">
+        <section id="verify" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold text-sm">GET</span>
-                <h2 class="text-2xl font-bold text-slate-900">Verify Transaction</h2>
+                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">GET</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Verify Transaction</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Confirm the status of a transaction using its reference.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <pre>curl <?php echo BASE_URL; ?>api/transaction/verify/:reference \
 -H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
             </div>
         </section>
 
-        <section id="reconcile" class="mb-20 scroll-mt-24">
+        <section id="reconcile" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-sm">POST</span>
-                <h2 class="text-2xl font-bold text-slate-900">Reconcile Payments</h2>
+                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">POST</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Reconcile Payments</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Scan the gateway for missing successful payments for a specific date and sync them to your wallet. Useful for handling webhook failures.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <pre>curl <?php echo BASE_URL; ?>api/transaction/reconcile \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d date="2023-12-25" \
@@ -165,13 +217,13 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="payout-initialize" class="mb-20 scroll-mt-24">
+        <section id="payout-initialize" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg font-bold text-sm">POST</span>
-                <h2 class="text-2xl font-bold text-slate-900">Initialize Payout</h2>
+                <span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">POST</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Initialize Payout</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Withdraw funds from your Payhub wallet directly to your registered settlement bank account. Requests are subject to 24-hour rolling limits and administrative review policies.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <pre>curl <?php echo BASE_URL; ?>api/payout/initialize \
 -H "Authorization: Bearer YOUR_SECRET_KEY" \
 -d amount=5000 \
@@ -179,13 +231,13 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="virtual-accounts" class="mb-20 scroll-mt-24">
+        <section id="virtual-accounts" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-bold text-sm">GET</span>
-                <h2 class="text-2xl font-bold text-slate-900">Fetch Virtual Accounts</h2>
+                <span class="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">GET</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Fetch Virtual Accounts</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Retrieve dedicated virtual account details for your customers. Providing <code>account_number</code> and <code>date</code> will also trigger a reconciliation check for that specific account.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <p class="text-slate-500 mb-4">// List all accounts</p>
                 <pre class="mb-6 text-indigo-400">curl <?php echo BASE_URL; ?>api/virtual-accounts \
 -H "Authorization: Bearer YOUR_SECRET_KEY"</pre>
@@ -196,13 +248,13 @@ include 'includes/header.php';
             </div>
         </section>
 
-        <section id="webhooks" class="mb-20 scroll-mt-24">
+        <section id="webhooks" class="mb-20 scroll-mt-40 md:scroll-mt-24">
             <div class="flex items-center gap-4 mb-6">
-                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-sm">WEBHOOK</span>
-                <h2 class="text-2xl font-bold text-slate-900">Webhooks & Callback</h2>
+                <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold text-[10px] sm:text-xs">WEBHOOK</span>
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-900">Webhooks & Callback</h2>
             </div>
             <p class="text-slate-600 mb-8 leading-relaxed">Configure your server to listen for events from Payhub.</p>
-            <div class="bg-slate-900 rounded-2xl p-8 text-slate-300 font-mono text-sm overflow-x-auto">
+            <div class="bg-slate-900 rounded-2xl p-6 sm:p-8 text-slate-300 font-mono text-xs sm:text-sm overflow-x-auto">
                 <pre>{
   "event": "charge.success",
   "data": {
