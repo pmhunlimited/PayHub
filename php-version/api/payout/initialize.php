@@ -28,6 +28,13 @@ if (!$user) {
 $is_test = (strpos($sk, 'sk_test_') === 0);
 $input = get_api_input();
 
+// 0. Global Service Check
+if (getConfig('payout_enabled', '1') !== '1') {
+    http_response_code(503);
+    echo json_encode(['status' => false, 'message' => 'Payout service is temporarily unavailable']);
+    exit;
+}
+
 // 1. Merchant Status Checks
 if ($user['is_test_mode']) {
     http_response_code(403);

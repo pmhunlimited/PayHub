@@ -130,6 +130,22 @@ include '../includes/dashboard-head.php';
 
                     <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm w-fit">
                         <div class="flex flex-col">
+                            <span class="text-xs font-bold text-rose-600">Global Payout Service</span>
+                            <span class="text-[10px] text-slate-500">Enable/Disable ALL payouts</span>
+                        </div>
+                        <?php $payoutEnabled = getConfig('payout_enabled', '1') === '1'; ?>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="update_config">
+                            <input type="hidden" name="key" value="payout_enabled">
+                            <input type="hidden" name="value" value="<?php echo $payoutEnabled ? '0' : '1'; ?>">
+                            <button type="submit" class="w-12 h-6 rounded-full transition-all relative <?php echo $payoutEnabled ? 'bg-emerald-600' : 'bg-rose-500'; ?>">
+                                <div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-all <?php echo $payoutEnabled ? 'left-7' : 'left-1'; ?>"></div>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="flex items-center gap-4 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm w-fit">
+                        <div class="flex flex-col">
                             <span class="text-xs font-bold text-slate-900">24h Manual Payout Limit</span>
                             <span class="text-[10px] text-slate-500">Max requests per merchant</span>
                         </div>

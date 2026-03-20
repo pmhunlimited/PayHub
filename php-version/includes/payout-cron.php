@@ -26,6 +26,10 @@ if (is_holiday(date('Y-m-d'))) {
     exit("Today is a weekend or holiday. No payouts today.");
 }
 
+if (getConfig('payout_enabled', '1') !== '1') {
+    exit("Global payout service is disabled.");
+}
+
 $db = Database::connect();
 
 // Fetch merchants with automated payout and balance > min_payout_amount

@@ -13,6 +13,7 @@ $success_msg = '';
 $error_msg = '';
 
 $manualPayoutGlobalEnabled = getConfig('manual_payout_enabled', '1') === '1';
+$payoutServiceEnabled = getConfig('payout_enabled', '1') === '1';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'submit_consent') {
@@ -21,6 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $success_msg = "Manual payout consent recorded. You can now request payouts.";
         $user = getAuthUser();
     } elseif ($_POST['action'] === 'request_payout') {
+        // Check for Global Payout Service Status
+        if (!$payoutServiceEnabled) {
+            $error_msg = "The payout service is currently unavailable. Please try again later.";
+            goto skip_payout;
+        }
+
         // Check for Test Mode
         if ($user['is_test_mode']) {
             $error_msg = "Payouts are not available in Test Mode. Please switch to Live Mode to withdraw real funds.";
@@ -144,7 +151,19 @@ include '../includes/dashboard-head.php';
 
             <div class="grid lg:grid-cols-3 gap-8">
                 <div class="lg:col-span-1 space-y-6">
-                    <?php if (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']): ?>
+                    <?php if (!$payoutServiceEnabled): ?>
+                        <div class="mb-8 p-8 bg-rose-50 border-2 border-rose-100 rounded-[2.5rem] flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mb-6">
+                                <i data-lucide="alert-octagon" class="w-8 h-8"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-rose-900 mb-2">Payout Service Offline</h3>
+                            <p class="text-rose-600 max-w-md mx-auto leading-relaxed">
+                                The platform's payout service is currently undergoing maintenance or has been disabled by the administrator. Manual requests are temporarily suspended.
+                            </p>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($payoutServiceEnabled && !$manualPayoutGlobalEnabled && !$user['has_payout_consent']): ?>
                         <div class="bg-white p-8 rounded-[2.5rem] border-2 border-amber-200 shadow-xl shadow-amber-900/5 bg-gradient-to-br from-amber-50/50 to-white">
                             <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
                                 <i data-lucide="shield-alert" class="w-6 h-6"></i>
@@ -172,7 +191,7 @@ include '../includes/dashboard-head.php';
                         </div>
                     <?php endif; ?>
 
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm <?php echo (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) || $user['is_test_mode'] ? 'opacity-50 pointer-events-none grayscale' : ''; ?>">
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm <?php echo (!$payoutServiceEnabled) || (!$manualPayoutGlobalEnabled && !$user['has_payout_consent']) || $user['is_test_mode'] ? 'opacity-50 pointer-events-none grayscale' : ''; ?>">
                         <h3 class="text-xl font-bold text-slate-900 mb-6">Withdraw Funds</h3>
                         <div class="mb-8 p-6 bg-indigo-50 rounded-3xl border border-indigo-100">
                             <p class="text-xs text-indigo-600 uppercase font-bold mb-1 tracking-widest">Available Balance</p>
@@ -217,11 +236,12 @@ include '../includes/dashboard-head.php';
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo (!$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch' || $user['is_test_mode']) ? 'disabled' : ''; ?>
+                                <?php echo (!$payoutServiceEnabled || !$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch' || $user['is_test_mode']) ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
                                 <?php
-                                if ($user['is_test_mode']) echo 'Live Mode Only';
+                                if (!$payoutServiceEnabled) echo 'Service Offline';
+                                elseif ($user['is_test_mode']) echo 'Live Mode Only';
                                 elseif ($user['payout_method_status'] === 'pending_switch') echo 'Payouts on Hold';
                                 else echo 'Confirm Withdrawal';
                                 ?>
