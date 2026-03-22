@@ -1,5 +1,5 @@
 <?php
-// php-version/payouts.php
+// php-version/merchant/payouts.php
 require_once '../includes/functions.php';
 
 if (!isLoggedIn()) {
@@ -13,31 +13,48 @@ $success_msg = '';
 $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'request_payout') {
-    $amount = (float)$_POST['amount'];
-    if ($amount > 0 && $amount <= $user['wallet_balance']) {
-        if ($user['settlement_bank'] && $user['settlement_account_number']) {
-            $db->beginTransaction();
-            try {
-                // Deduct balance
-                $stmt = $db->prepare("UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?");
-                $stmt->execute([$amount, $user['id']]);
-                
-                // Create payout record
-                $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
-                $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
-                
-                $db->commit();
-                $success_msg = "Payout request submitted successfully.";
-                $user = getAuthUser(); // Refresh user data
-            } catch (Exception $e) {
-                $db->rollBack();
-                $error_msg = "Payout failed: " . $e->getMessage();
-            }
-        } else {
-            $error_msg = "Please set up your settlement bank details in settings first.";
-        }
+    // Check for suspension
+    if ($user['is_suspended']) {
+        $error_msg = "Your account is suspended. Payout requests are disabled.";
     } else {
-        $error_msg = "Invalid amount or insufficient balance.";
+        // Brute-force protection: check for recent payout attempts
+        $stmt = $db->prepare("SELECT COUNT(*) as recent_attempts FROM payouts WHERE user_id = ? AND request_date > DATE_SUB(NOW(), INTERVAL 1 HOUR)");
+        $stmt->execute([$user['id']]);
+        $recent = $stmt->fetch()['recent_attempts'];
+
+        if ($recent >= 5) {
+            // Auto-suspend for suspicious activity
+            $stmt = $db->prepare("UPDATE users SET is_suspended = 1, kyc_notes = CONCAT(IFNULL(kyc_notes,''), '\nAuto-suspended: Too many payout requests (5+) in 1 hour.') WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $error_msg = "Suspicious activity detected. Your account has been suspended for review.";
+            $user['is_suspended'] = 1;
+        } else {
+            $amount = (float)$_POST['amount'];
+            if ($amount > 0 && $amount <= $user['wallet_balance']) {
+                if ($user['settlement_bank'] && $user['settlement_account_number']) {
+                    $db->beginTransaction();
+                    try {
+                        // Create payout record
+                        $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, 'pending')");
+                        $stmt->execute([$user['id'], $amount, $user['settlement_bank'], $user['settlement_account_number']]);
+
+                        // Log ledger entry (this also deducts the balance)
+                        log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request to " . $user['settlement_bank']);
+
+                        $db->commit();
+                        $success_msg = "Payout request submitted successfully.";
+                        $user = getAuthUser(); // Refresh user data
+                    } catch (Exception $e) {
+                        $db->rollBack();
+                        $error_msg = "Payout failed: " . $e->getMessage();
+                    }
+                } else {
+                    $error_msg = "Please set up your settlement bank details in settings first.";
+                }
+            } else {
+                $error_msg = "Invalid amount or insufficient balance.";
+            }
+        }
     }
 }
 
@@ -45,24 +62,12 @@ $stmt = $db->prepare("SELECT * FROM payouts WHERE user_id = ? ORDER BY request_d
 $stmt->execute([$user['id']]);
 $payouts = $stmt->fetchAll();
 
+include '../includes/dashboard-head.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payouts - Payhub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
 
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
         <div class="max-w-6xl mx-auto">
@@ -93,7 +98,7 @@ $payouts = $stmt->fetchAll();
                             <?php if ($user['settlement_bank']): ?>
                                 <div class="flex items-center gap-3">
                                     <div class="w-12 h-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-indigo-600 shadow-sm">
-                                        <i class="lucide-wallet w-6 h-6"></i>
+                                        <i data-lucide="wallet" class="w-6 h-6"></i>
                                     </div>
                                     <div>
                                         <p class="text-sm font-bold text-slate-900"><?php echo $user['settlement_bank']; ?></p>
@@ -126,7 +131,7 @@ $payouts = $stmt->fetchAll();
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo !$user['settlement_bank'] ? 'disabled' : ''; ?>
+                                <?php echo (!$user['settlement_bank'] || $user['is_suspended']) ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
                                 Confirm Withdrawal
@@ -139,7 +144,7 @@ $payouts = $stmt->fetchAll();
                     <div class="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                         <h3 class="text-xl font-bold text-slate-900">Payout History</h3>
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-                            <i class="lucide-activity w-4 h-4"></i>
+                            <i data-lucide="activity" class="w-4 h-4"></i>
                             Real-time
                         </div>
                     </div>
@@ -180,6 +185,14 @@ $payouts = $stmt->fetchAll();
                 </div>
             </div>
         </div>
-    </main>
+    <?php include "../includes/merchant-quick-actions.php"; ?>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

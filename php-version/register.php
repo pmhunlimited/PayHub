@@ -27,8 +27,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $public_key = generateApiKey('pk_live_');
             $secret_key = generateApiKey('sk_live_');
-            $stmt = $db->prepare("INSERT INTO users (email, password_hash, full_name, business_name, public_key, secret_key, role) VALUES (?, ?, ?, ?, ?, ?, 'merchant')");
-            if ($stmt->execute([$email, $hashedPassword, $full_name, $business_name, $public_key, $secret_key])) {
+            $test_pk = generateApiKey('pk_test_');
+            $test_sk = generateApiKey('sk_test_');
+            $stmt = $db->prepare("INSERT INTO users (email, password_hash, full_name, business_name, public_key, secret_key, test_public_key, test_secret_key, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'merchant')");
+            if ($stmt->execute([$email, $hashedPassword, $full_name, $business_name, $public_key, $secret_key, $test_pk, $test_sk])) {
                 // Auto-login or redirect to login
                 redirect('login.php?registered=1');
             } else {
@@ -57,10 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="max-w-md w-full">
             <div class="mb-10">
                 <a href="index.php" class="inline-flex items-center gap-2 mb-8">
-                    <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
-                        <i class="lucide-credit-card text-white w-6 h-6"></i>
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight text-slate-900">Payhub</span>
+                    <?php $logo = getConfig('site_logo'); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?php echo BASE_URL; ?>uploads/<?php echo $logo; ?>" alt="Logo" class="h-12 object-contain">
+                    <?php else: ?>
+                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="credit-card" class="text-white w-6 h-6"></i>
+                        </div>
+                    <?php endif; ?>
+                    <span class="text-2xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
                 </a>
                 <h1 class="text-3xl font-bold text-slate-900">Create your account</h1>
                 <p class="text-slate-500 mt-2">Start accepting payments in minutes.</p>
@@ -120,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="flex items-start gap-3 py-2">
                         <input type="checkbox" required class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
                         <p class="text-xs text-slate-500 leading-relaxed">
-                            I agree to the <a href="#" class="text-indigo-600 font-bold">Terms of Service</a> and <a href="#" class="text-indigo-600 font-bold">Privacy Policy</a>.
+                            I agree to the <a href="terms.php" target="_blank" class="text-indigo-600 font-bold">Terms of Service</a> and <a href="privacy.php" target="_blank" class="text-indigo-600 font-bold">Privacy Policy</a>.
                         </p>
                     </div>
 

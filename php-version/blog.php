@@ -49,7 +49,7 @@ include 'includes/header.php';
             <p class="text-slate-500 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">Insights, updates, and stories from the team building the future of global payments.</p>
             
             <form action="blog.php" method="GET" class="relative max-w-xl mx-auto">
-                <i class="lucide-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
+                <i data-lucide="search" class=" absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5"></i>
                 <input 
                     type="text"
                     name="q"
@@ -63,20 +63,23 @@ include 'includes/header.php';
         <div class="grid md:grid-cols-2 gap-12">
             <?php foreach ($posts as $post): ?>
                 <article class="bg-white rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group">
-                    <img 
-                        src="https://picsum.photos/seed/<?php echo $post['slug']; ?>/800/400" 
-                        alt="<?php echo $post['title']; ?>" 
-                        class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500" 
-                        referrerPolicy="no-referrer" 
-                    >
+                    <a href="blog-post.php?slug=<?php echo $post['slug']; ?>">
+                        <img
+                            src="<?php echo $post['featured_image'] ? 'uploads/'.$post['featured_image'] : 'https://picsum.photos/seed/'.$post['slug'].'/800/400'; ?>"
+                            alt="<?php echo $post['title']; ?>"
+                            class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                        >
+                    </a>
                     <div class="p-8">
-                        <h2 class="text-2xl font-bold text-slate-900 mb-4 hover:text-indigo-600 transition-colors cursor-pointer">
-                            <?php echo $post['title']; ?>
-                        </h2>
+                        <a href="blog-post.php?slug=<?php echo $post['slug']; ?>">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-4 hover:text-indigo-600 transition-colors">
+                                <?php echo $post['title']; ?>
+                            </h2>
+                        </a>
                         <p class="text-slate-600 mb-6 line-clamp-3 leading-relaxed"><?php echo $post['excerpt']; ?></p>
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-slate-400 font-medium"><?php echo date('M d, Y', strtotime($post['created_at'])); ?></span>
-                            <button class="text-indigo-600 font-bold text-sm hover:translate-x-1 transition-transform">Read more →</button>
+                            <a href="blog-post.php?slug=<?php echo $post['slug']; ?>" class="text-indigo-600 font-bold text-sm hover:translate-x-1 transition-transform">Read more →</a>
                         </div>
                     </div>
                 </article>

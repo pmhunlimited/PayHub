@@ -1,10 +1,8 @@
 <?php
-// php-version/compliance.php
+// php-version/merchant/compliance.php
 require_once '../includes/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('../login.php');
-}
+if (!isLoggedIn()) redirect('../login.php');
 
 $user = getAuthUser();
 $db = Database::connect();
@@ -14,154 +12,314 @@ $error_msg = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_compliance') {
     $business_type = sanitize($_POST['business_type']);
-    $registration_number = sanitize($_POST['registration_number']);
+    $registration_number = sanitize($_POST['registration_number'] ?? '');
+    $bn_number = sanitize($_POST['bn_number'] ?? '');
+    $tin = sanitize($_POST['tin'] ?? '');
+    $id_type = sanitize($_POST['id_type']);
+    $id_expiry = sanitize($_POST['id_expiry_date'] ?? '');
+    $bvn = sanitize($_POST['bvn'] ?? '');
+    $address = sanitize($_POST['residential_address'] ?? '');
+    $country = sanitize($_POST['country'] ?? 'Nigeria');
+
+    // Basic logic for expiry date requirement
+    $needs_expiry = in_array($id_type, ["Drivers License", "International Passport"]);
     
+    // File Uploads
+    $uploads = [];
+    $files_to_handle = [
+        'utility_bill', 'cac_cert', 'cac_form', 'id_card',
+        'memart', 'bn_cert', 'bn_form', 'ngo_form',
+        'ngo_constitution', 'gov_auth_letter', 'gov_gazette', 'business_address_proof'
+    ];
+    foreach ($files_to_handle as $field) {
+        if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
+            $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
+            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $ext;
+            if (!is_dir('../uploads')) mkdir('../uploads');
+            move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            $uploads[$field . '_path'] = $filename;
+        }
+    }
+
+    // Handle Base64 Liveliness Snapshot
+    if (!empty($_POST['liveliness_image'])) {
+        $data = $_POST['liveliness_image'];
+        if (preg_match('/^data:image\/(\w+);base64,/', $data, $type)) {
+            $data = substr($data, strpos($data, ',') + 1);
+            $type = strtolower($type[1]);
+            $data = base64_decode($data);
+            $filename = 'liveliness_' . $user['id'] . '_' . time() . '.' . $type;
+            file_put_contents('../uploads/' . $filename, $data);
+            $uploads['liveliness_path'] = $filename;
+        }
+    }
+
     try {
-        $stmt = $db->prepare("UPDATE users SET business_type = ?, registration_number = ? WHERE id = ?");
-        $stmt->execute([$business_type, $registration_number, $user['id']]);
-        $success_msg = "Compliance information updated successfully!";
-        $user = getAuthUser(); // Refresh user data
+        $sql = "UPDATE users SET
+            business_type = ?,
+            registration_number = ?,
+            bn_number = ?,
+            tin = ?,
+            id_type = ?,
+            id_expiry_date = ?,
+            bvn = ?,
+            residential_address = ?,
+            country = ?,
+            is_kyc_verified = 2";
+
+        $params = [$business_type, $registration_number, $bn_number, $tin, $id_type, $needs_expiry ? $id_expiry : null, $bvn, $address, $country];
+
+        foreach ($uploads as $col => $val) {
+            $sql .= ", $col = ?";
+            $params[] = $val;
+        }
+
+        $sql .= " WHERE id = ?";
+        $params[] = $user['id'];
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $success_msg = "Compliance documents submitted for review!";
+        $user = getAuthUser();
     } catch (Exception $e) {
-        $error_msg = "Failed to update compliance: " . $e->getMessage();
+        $error_msg = "Submission failed: " . $e->getMessage();
     }
 }
 
+include '../includes/dashboard-head.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compliance - Payhub</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lucide-static@0.321.0/font/lucide.min.css">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-    </style>
-</head>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
     <?php include '../includes/sidebar.php'; ?>
-
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
+        businessType: '<?php echo $user['business_type'] ?: 'Starter'; ?>',
+        idType: '<?php echo $user['id_type']; ?>',
+        country: '<?php echo $user['country'] ?: 'Nigeria'; ?>',
+        snapshot: null,
+        showCamera: false,
+        get needsExpiry() { return ['Drivers License', 'International Passport'].includes(this.idType) },
+        get isNigerian() { return this.country === 'Nigeria' },
+        startCamera() {
+            this.showCamera = true;
+            navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+                this.$refs.video.srcObject = stream;
+            });
+        },
+        takeSnapshot() {
+            const canvas = document.createElement('canvas');
+            canvas.width = this.$refs.video.videoWidth;
+            canvas.height = this.$refs.video.videoHeight;
+            canvas.getContext('2d').drawImage(this.$refs.video, 0, 0);
+            this.snapshot = canvas.toDataURL('image/jpeg');
+            this.stopCamera();
+        },
+        stopCamera() {
+            let stream = this.$refs.video.srcObject;
+            if (stream) stream.getTracks().forEach(track => track.stop());
+            this.showCamera = false;
+        }
+    }">
         <?php include '../includes/topbar.php'; ?>
         <div class="flex-1 overflow-y-auto p-8">
-        <div class="max-w-4xl mx-auto">
-            <div class="flex items-center gap-4 mb-8">
-                <div class="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                    <i class="lucide-shield-check w-6 h-6"></i>
+            <div class="max-w-4xl mx-auto">
+                <div class="mb-8">
+                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Compliance & KYC</h1>
+                    <p class="text-slate-500">Provide required documents to verify your business and increase limits</p>
                 </div>
-                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Compliance</h1>
-            </div>
 
-            <?php if ($success_msg): ?>
-                <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
-                    <?php echo $success_msg; ?>
-                </div>
-            <?php endif; ?>
-            <?php if ($error_msg): ?>
-                <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium">
-                    <?php echo $error_msg; ?>
-                </div>
-            <?php endif; ?>
+                <?php if ($success_msg): ?>
+                    <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
+                <?php endif; ?>
+                <?php if ($error_msg): ?>
+                    <div class="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 font-medium"><?php echo $error_msg; ?></div>
+                <?php endif; ?>
 
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="md:col-span-2 space-y-8">
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 mb-6">Business Information</h3>
-                        <form method="POST" class="space-y-6">
-                            <input type="hidden" name="action" value="update_compliance">
-                            <div class="grid md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Business Type</label>
-                                    <select name="business_type" class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700">
-                                        <option value="sole_proprietorship" <?php echo $user['business_type'] === 'sole_proprietorship' ? 'selected' : ''; ?>>Sole Proprietorship</option>
-                                        <option value="limited_liability" <?php echo $user['business_type'] === 'limited_liability' ? 'selected' : ''; ?>>Limited Liability Company</option>
-                                        <option value="non_profit" <?php echo $user['business_type'] === 'non_profit' ? 'selected' : ''; ?>>Non-Profit Organization</option>
-                                        <option value="partnership" <?php echo $user['business_type'] === 'partnership' ? 'selected' : ''; ?>>Partnership</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Registration Number (RC/BN)</label>
-                                    <input 
-                                        type="text" 
-                                        name="registration_number"
-                                        value="<?php echo $user['registration_number']; ?>"
-                                        class="w-full px-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700"
-                                        placeholder="RC-1234567"
-                                    >
-                                </div>
-                            </div>
+                <div class="grid lg:grid-cols-3 gap-8">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
+                            <form method="POST" enctype="multipart/form-data" class="space-y-8">
+                                <input type="hidden" name="csrf_token" value="<?php echo csrf_token(); ?>">
+                                <input type="hidden" name="action" value="update_compliance">
+                                <input type="hidden" name="liveliness_image" :value="snapshot">
 
-                            <div class="pt-6 border-t border-slate-100">
-                                <button type="submit" class="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200">
-                                    Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-                        <h3 class="text-xl font-bold text-slate-900 mb-6">Document Verification</h3>
-                        <div class="space-y-4">
-                            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                        <i class="lucide-file-text w-6 h-6"></i>
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Country</label>
+                                        <select name="country" x-model="country" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium">
+                                            <option value="Nigeria">Nigeria</option>
+                                            <option value="Ghana">Ghana</option>
+                                            <option value="Kenya">Kenya</option>
+                                            <option value="South Africa">South Africa</option>
+                                            <option value="Other">Other International</option>
+                                        </select>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-bold text-slate-900">Certificate of Incorporation</p>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Required</p>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Select Business Type</label>
+                                        <select name="business_type" x-model="businessType" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium">
+                                            <option value="Starter">Starter (Individual)</option>
+                                            <option value="Registered">Registered Business (LLC)</option>
+                                            <option value="Special">Special (NGO/Gov)</option>
+                                        </select>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-amber-600 font-bold text-xs bg-amber-50 px-3 py-1 rounded-full">
-                                    <i class="lucide-clock w-3 h-3"></i>
-                                    Pending
-                                </div>
-                            </div>
 
-                            <div class="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all cursor-pointer">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-12 h-12 bg-white rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 transition-colors">
-                                        <i class="lucide-user-check w-6 h-6"></i>
+                                <div class="space-y-6">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Identity Information</h4>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Government ID Type</label>
+                                            <select name="id_type" x-model="idType" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
+                                                <option value="">Select ID Type</option>
+                                                <option value="NIN Slip" x-show="isNigerian">NIN Slip</option>
+                                                <option value="Drivers License">Drivers License</option>
+                                                <option value="Voters Card" x-show="isNigerian">Voters Card</option>
+                                                <option value="International Passport">International Passport</option>
+                                                <option value="National ID" x-show="!isNigerian">National ID Card</option>
+                                            </select>
+                                        </div>
+                                        <div x-show="needsExpiry">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">ID Expiry Date</label>
+                                            <input type="date" name="id_expiry_date" value="<?php echo $user['id_expiry_date']; ?>" :required="needsExpiry" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div x-show="isNigerian">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BVN / NIN Number</label>
+                                            <input type="text" name="bvn" value="<?php echo $user['bvn']; ?>" placeholder="222********" :required="isNigerian" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                        <div x-show="businessType !== 'Starter'">
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Registration Number (RC)</label>
+                                            <input type="text" name="registration_number" value="<?php echo $user['registration_number']; ?>" placeholder="RC123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BN Number</label>
+                                            <input type="text" name="bn_number" value="<?php echo $user['bn_number']; ?>" placeholder="BN123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">TIN (Tax ID)</label>
+                                            <input type="text" name="tin" value="<?php echo $user['tin']; ?>" placeholder="12345678-0001" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
+                                        </div>
                                     </div>
                                     <div>
-                                        <p class="text-sm font-bold text-slate-900">Director's ID Card</p>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Required</p>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Residential Address</label>
+                                        <input type="text" name="residential_address" value="<?php echo $user['residential_address']; ?>" placeholder="123 Main St, City" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2 text-emerald-600 font-bold text-xs bg-emerald-50 px-3 py-1 rounded-full">
-                                    <i class="lucide-check-circle-2 w-3 h-3"></i>
-                                    Verified
+
+                                <div class="space-y-6">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Document Uploads</h4>
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="id_card" required class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="credit-card" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Government ID</p>
+                                            <p class="text-[9px] text-slate-400 mt-1">Upload front and back in one image/PDF</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="utility_bill" required class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="file-text" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Utility Bill</p>
+                                            <p class="text-[9px] text-slate-400 mt-1">Proof of address (last 3 months)</p>
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Registered'">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="cac_cert" :required="businessType === 'Registered'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="award" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">CAC Certificate</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="cac_form" :required="businessType === 'Registered'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="clipboard-list" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Form CAC 1.1</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="memart" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="book-open" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">MEMART Docs</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Special'">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="ngo_form" :required="businessType === 'Special'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="file-check" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">NGO Registration</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="ngo_constitution" :required="businessType === 'Special'" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="book-open" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">NGO Constitution</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="gov_auth_letter" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="mail" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Auth Letter</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="grid md:grid-cols-2 gap-6">
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="business_address_proof" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="map-pin" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Address Proof</p>
+                                        </div>
+                                        <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
+                                            <input type="file" name="gov_gazette" class="absolute inset-0 opacity-0 cursor-pointer">
+                                            <i data-lucide="file-text" class="text-slate-400 mb-2"></i>
+                                            <p class="text-xs font-bold text-slate-900 uppercase">Gov't Gazette</p>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+
+                                <div class="space-y-6">
+                                    <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Liveliness Check</h4>
+                                    <div class="flex flex-col items-center gap-4">
+                                        <div class="w-full max-w-sm aspect-video bg-slate-100 rounded-3xl overflow-hidden relative border-2 border-slate-200">
+                                            <video x-ref="video" autoplay playsinline class="w-full h-full object-cover" x-show="showCamera"></video>
+                                            <img :src="snapshot" class="w-full h-full object-cover" x-show="snapshot && !showCamera">
+                                            <div class="absolute inset-0 flex items-center justify-center" x-show="!showCamera && !snapshot">
+                                                <i data-lucide="camera" class="text-slate-300 w-12 h-12"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-3">
+                                            <button type="button" @click="startCamera()" x-show="!showCamera" class="bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Start Camera</button>
+                                            <button type="button" @click="takeSnapshot()" x-show="showCamera" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm">Capture Snapshot</button>
+                                            <button type="button" @click="snapshot = null" x-show="snapshot" class="bg-rose-50 text-rose-600 px-6 py-2.5 rounded-xl font-bold text-sm">Retake</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all">Submit Compliance Documents</button>
+                            </form>
                         </div>
                     </div>
-                </div>
 
-                <div class="md:col-span-1">
-                    <div class="bg-indigo-600 p-8 rounded-[2.5rem] text-white shadow-xl shadow-indigo-200 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-                        <h4 class="text-lg font-bold mb-4 relative z-10">Verification Status</h4>
-                        <div class="space-y-6 relative z-10">
-                            <div>
-                                <div class="flex justify-between text-xs font-bold mb-2 opacity-80 uppercase tracking-widest">
-                                    <span>Overall Progress</span>
-                                    <span>65%</span>
+                    <div class="lg:col-span-1 space-y-6">
+                        <div class="bg-indigo-900 p-6 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+                            <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                            <h4 class="font-bold mb-4 relative z-10">Verification Status</h4>
+                            <div class="space-y-4 relative z-10">
+                                <div class="p-4 bg-white/10 rounded-2xl border border-white/10 text-center">
+                                    <p class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mb-1">Status</p>
+                                    <p class="text-sm font-bold capitalize"><?php echo $user['is_kyc_verified'] == 1 ? 'Verified' : ($user['is_kyc_verified'] == 2 ? 'Under Review' : 'Action Required'); ?></p>
                                 </div>
-                                <div class="w-full h-2 bg-white/20 rounded-full overflow-hidden">
-                                    <div class="h-full bg-white rounded-full" style="width: 65%"></div>
-                                </div>
+                                <p class="text-xs text-indigo-200 leading-relaxed text-center italic"><?php echo $user['kyc_notes'] ? "Admin: " . $user['kyc_notes'] : "Your documents will be reviewed by our team."; ?></p>
                             </div>
-                            <p class="text-sm opacity-80 leading-relaxed">Complete all verification steps to increase your transaction limits and enable all payment methods.</p>
-                            <button class="w-full bg-white text-indigo-600 py-3 rounded-xl font-bold text-sm hover:bg-indigo-50 transition-all">
-                                View Limits
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
+    <?php include "../includes/merchant-quick-actions.php"; ?>
+</main>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
 </body>
 </html>

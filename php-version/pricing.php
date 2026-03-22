@@ -1,119 +1,89 @@
 <?php
 // php-version/pricing.php
 require_once 'includes/functions.php';
-$pageTitle = 'Pricing - Payhub';
+
+$fee_percent = getConfig('transaction_fee_percent', '1.5');
+$fee_flat = getConfig('transaction_fee_flat', '100');
+$fee_cap = getConfig('transaction_fee_cap', '2000');
+$int_fee_percent = getConfig('international_fee_percent', '3.9');
+$int_fee_flat = getConfig('international_fee_flat', '100');
+
+$pageTitle = 'Simple & Transparent Pricing - Payhub';
 include 'includes/header.php';
 ?>
-<div class="pt-32 pb-24 px-4">
-    <div class="max-w-7xl mx-auto">
-        <div class="text-center mb-16">
-            <h1 class="text-4xl font-bold text-slate-900 mb-4 tracking-tight">Simple, transparent pricing</h1>
-            <p class="text-lg text-slate-600">No hidden fees. No setup costs. Only pay when you get paid.</p>
+
+    <section class="pt-32 pb-20 lg:pt-48 lg:pb-32 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-sm font-bold text-indigo-600 uppercase tracking-widest mb-4">Pricing Plans</h2>
+            <h1 class="text-4xl lg:text-6xl font-bold text-slate-900 mb-6">Simple pricing for <br>growing businesses.</h1>
+            <p class="text-xl text-slate-600 max-w-2xl mx-auto">No hidden fees, no monthly commitments. Pay only for what you process.</p>
         </div>
+    </section>
 
-        <div class="grid md:grid-cols-3 gap-8">
-            <!-- Starter -->
-            <div class="p-8 rounded-[2rem] border bg-white border-slate-200 text-slate-900 shadow-sm hover:shadow-xl transition-all">
-                <h3 class="text-xl font-bold mb-2">Starter</h3>
-                <div class="flex items-baseline gap-1 mb-4">
-                    <span class="text-4xl font-bold tracking-tight">1.5%</span>
-                    <span class="text-slate-500 text-sm">/transaction</span>
+    <section class="pb-24 -mt-16">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden grid md:grid-cols-2">
+                <div class="p-12 lg:p-16 border-b md:border-b-0 md:border-r border-slate-100">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-8">Local Payments</h3>
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-5xl font-extrabold text-slate-900"><?php echo $fee_percent; ?>%</span>
+                        <span class="text-slate-400 font-bold">+ <?php echo formatCurrency($fee_flat); ?></span>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-8">per successful transaction</p>
+
+                    <ul class="space-y-4 mb-10">
+                        <li class="flex gap-3 text-slate-600 font-medium">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>Fee capped at <?php echo formatCurrency($fee_cap); ?></span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i data-lucide="check" class="text-emerald-500 w-5 h-5"></i>
+                            <span><?php echo formatCurrency($fee_flat); ?> fee waived for transactions under ₦2500</span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>All local cards supported</span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>Bank Transfers & USSD</span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-emerald-500 w-5 h-5"></i>
+                            <span>Instant webhook alerts</span>
+                        </li>
+                    </ul>
+
+                    <a href="register.php" class="block w-full text-center py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Get Started</a>
                 </div>
-                <p class="mb-8 text-sm text-slate-600">Perfect for small businesses and side projects.</p>
                 
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Local Payments
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Email Support
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Basic Analytics
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Payment Pages
-                    </li>
-                </ul>
+                <div class="p-12 lg:p-16 bg-slate-50">
+                    <h3 class="text-2xl font-bold text-slate-900 mb-8">International</h3>
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-5xl font-extrabold text-slate-900"><?php echo $int_fee_percent; ?>%</span>
+                        <span class="text-slate-400 font-bold">+ <?php echo formatCurrency($int_fee_flat); ?></span>
+                    </div>
+                    <p class="text-sm text-slate-500 mb-8">per successful transaction</p>
 
-                <a href="register.php" class="block w-full text-center py-4 rounded-2xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                    Get Started
-                </a>
-            </div>
+                    <ul class="space-y-4 mb-10">
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-indigo-500 w-5 h-5"></i>
+                            <span>USD and Global cards</span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-indigo-500 w-5 h-5"></i>
+                            <span>Payout in local currency</span>
+                        </li>
+                        <li class="flex gap-3 text-slate-600">
+                            <i class="lucide-check text-indigo-500 w-5 h-5"></i>
+                            <span>Advanced fraud detection</span>
+                        </li>
+                    </ul>
 
-            <!-- Growth -->
-            <div class="p-8 rounded-[2rem] border bg-indigo-600 text-white border-indigo-600 shadow-2xl shadow-indigo-200 scale-105 relative z-10">
-                <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-indigo-600 px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">Most Popular</div>
-                <h3 class="text-xl font-bold mb-2">Growth</h3>
-                <div class="flex items-baseline gap-1 mb-4">
-                    <span class="text-4xl font-bold tracking-tight">1.5% + ₦100</span>
-                    <span class="text-indigo-200 text-sm">/transaction</span>
+                    <a href="support.php" class="block w-full text-center py-4 bg-white border border-slate-200 text-slate-900 font-bold rounded-2xl hover:bg-slate-100 transition-all shadow-sm">Contact Sales</a>
                 </div>
-                <p class="mb-8 text-sm text-indigo-100">For growing businesses that need more power.</p>
-                
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-300"></i>
-                        Global Payments
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-300"></i>
-                        Priority Support
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-300"></i>
-                        Advanced Analytics
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-300"></i>
-                        Virtual Accounts
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-300"></i>
-                        Invoicing
-                    </li>
-                </ul>
-
-                <a href="register.php" class="block w-full text-center py-4 rounded-2xl font-bold bg-white text-indigo-600 hover:bg-slate-50 transition-all shadow-xl">
-                    Get Started
-                </a>
-            </div>
-
-            <!-- Enterprise -->
-            <div class="p-8 rounded-[2rem] border bg-white border-slate-200 text-slate-900 shadow-sm hover:shadow-xl transition-all">
-                <h3 class="text-xl font-bold mb-2">Enterprise</h3>
-                <div class="flex items-baseline gap-1 mb-4">
-                    <span class="text-4xl font-bold tracking-tight">Custom</span>
-                </div>
-                <p class="mb-8 text-sm text-slate-600">Tailored solutions for large-scale operations.</p>
-                
-                <ul class="space-y-4 mb-8">
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Dedicated Account Manager
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        Custom Fee Structure
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        White-labeling
-                    </li>
-                    <li class="flex items-center gap-3 text-sm">
-                        <i class="lucide-check w-5 h-5 text-indigo-600"></i>
-                        API Integration Support
-                    </li>
-                </ul>
-
-                <a href="register.php" class="block w-full text-center py-4 rounded-2xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                    Contact Sales
-                </a>
             </div>
         </div>
-    </div>
+    </section>
+
     <?php include 'includes/footer.php'; ?>
