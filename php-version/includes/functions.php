@@ -549,18 +549,18 @@ function log_ledger_entry($userId, $amount, $type, $category, $desc, $is_test = 
  */
 function resize_and_optimize_image($source_path, $target_path, $max_width = 1000, $quality = 50) {
     if (!extension_loaded('gd')) {
-        return move_uploaded_file($source_path, $target_path);
+        return copy($source_path, $target_path);
     }
 
     $info = getimagesize($source_path);
-    if (!$info) return move_uploaded_file($source_path, $target_path);
+    if (!$info) return copy($source_path, $target_path);
 
     $mime = $info['mime'];
     switch ($mime) {
         case 'image/jpeg': $image = imagecreatefromjpeg($source_path); break;
         case 'image/png': $image = imagecreatefrompng($source_path); break;
         case 'image/webp': $image = imagecreatefromwebp($source_path); break;
-        default: return move_uploaded_file($source_path, $target_path);
+        default: return copy($source_path, $target_path);
     }
 
     $width = $info[0];

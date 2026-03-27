@@ -215,7 +215,7 @@ include '../includes/dashboard-head.php';
                             </div>
                         </div>
 
-                        <div class="lg:col-span-2 space-y-8">
+                        <div class="lg:col-span-2 space-y-8" x-data="{ previewUrl: null }">
                             <h4 class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest">Uploaded Documents</h4>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
                                 <template x-for="(doc, key) in {
@@ -235,15 +235,35 @@ include '../includes/dashboard-head.php';
                                 }" :key="key">
                                     <template x-if="merchant[key]">
                                         <div class="space-y-2">
-                                            <button type="button" @click="window.open('../uploads/' + merchant[key], '_blank')" class="w-full aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm flex flex-col items-center justify-center gap-2">
-                                                <i :data-lucide="doc.icon" class="text-slate-400 group-hover:text-indigo-600 w-8 h-8"></i>
-                                                <span class="text-[10px] font-bold text-slate-500 uppercase">View File</span>
-                                                <div class="absolute inset-0 bg-indigo-900/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            </button>
+                                            <div class="w-full aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm flex flex-col items-center justify-center">
+                                                <!-- Image Thumbnail -->
+                                                <template x-if="merchant[key].match(/\.(jpg|jpeg|png|webp)$|liveliness/i)">
+                                                    <img :src="'../uploads/' + merchant[key]" class="w-full h-full object-cover cursor-pointer" @click="previewUrl = '../uploads/' + merchant[key]">
+                                                </template>
+                                                <!-- PDF Icon -->
+                                                <template x-if="merchant[key].match(/\.pdf$/i)">
+                                                    <div class="flex flex-col items-center gap-2 cursor-pointer" @click="window.open('../uploads/' + merchant[key], '_blank')">
+                                                        <i data-lucide="file-text" class="text-red-500 w-8 h-8"></i>
+                                                        <span class="text-[8px] font-bold text-slate-400">PDF Document</span>
+                                                    </div>
+                                                </template>
+
+                                                <div class="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                    <span class="text-[10px] font-bold text-white uppercase">Click to Preview</span>
+                                                </div>
+                                            </div>
                                             <p class="text-[10px] font-bold text-slate-500 uppercase text-center" x-text="doc.label"></p>
                                         </div>
                                     </template>
                                 </template>
+                            </div>
+
+                            <!-- Document Preview Modal (Inner) -->
+                            <div x-show="previewUrl" x-cloak class="fixed inset-0 bg-slate-900/90 z-[110] flex items-center justify-center p-4 md:p-12">
+                                <button @click="previewUrl = null" class="absolute top-6 right-6 text-white hover:text-slate-300">
+                                    <i data-lucide="x" class="w-8 h-8"></i>
+                                </button>
+                                <img :src="previewUrl" class="max-w-full max-h-full object-contain rounded-xl shadow-2xl">
                             </div>
                         </div>
                     </div>

@@ -33,14 +33,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     ];
     foreach ($files_to_handle as $field) {
         if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
-            $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
-            $filename = $field . '_' . $user['id'] . '_' . time() . '.jpg'; // Store as JPG for optimization
+            $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+            $is_image = in_array($ext, ['jpg', 'jpeg', 'png', 'webp']);
+
+            // If it's an image, we'll convert to jpg for better optimization
+            $save_ext = $is_image ? 'jpg' : $ext;
+            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $save_ext;
+
             if (!is_dir('../uploads')) mkdir('../uploads', 0755, true);
 
-            if (in_array(strtolower($ext), ['jpg', 'jpeg', 'png', 'webp'])) {
-                resize_and_optimize_image($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            $target = '../uploads/' . $filename;
+            if ($is_image) {
+                // resize_and_optimize_image uses copy internally for fallback,
+                // but since this is an upload, we need to handle it properly.
+                // We'll use the original extension for images but resize_and_optimize_image
+                // will save as JPEG anyway. So .jpg is appropriate.
+                resize_and_optimize_image($_FILES[$field]['tmp_name'], $target);
             } else {
-                move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+                move_uploaded_file($_FILES[$field]['tmp_name'], $target);
             }
             $uploads[$field . '_path'] = $filename;
         }
@@ -326,5 +336,6 @@ include '../includes/dashboard-head.php';
             }
         });
     </script>
+    <script src="../assets/js/kyc-preview.js"></script>
 </body>
 </html>
