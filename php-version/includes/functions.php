@@ -54,7 +54,7 @@ function ensure_critical_tables() {
     if (!isInstalled()) return;
 
     // Quick version check to avoid redundant DB calls on every request
-    $version = '1.0.8';
+    $version = '1.0.9';
     if (getConfig('sys_db_version') === $version) return;
 
     try {
@@ -113,7 +113,8 @@ function ensure_critical_tables() {
                 'payout_consent_date' => "TIMESTAMP NULL",
                 'payout_method' => "VARCHAR(20) DEFAULT 'manual'",
                 'payout_method_status' => "VARCHAR(20) DEFAULT 'active'",
-                'pending_payout_method' => "VARCHAR(20) DEFAULT NULL"
+                'pending_payout_method' => "VARCHAR(20) DEFAULT NULL",
+                'kyc_notes' => "TEXT"
             ],
             'transactions' => [
                 'customer_email' => "VARCHAR(255)",

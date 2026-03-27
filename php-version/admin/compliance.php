@@ -237,7 +237,7 @@ include '../includes/dashboard-head.php';
                                         <div class="space-y-2">
                                             <div class="w-full aspect-square bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden hover:ring-2 hover:ring-indigo-500 transition-all group relative shadow-sm flex flex-col items-center justify-center">
                                                 <!-- Image Thumbnail -->
-                                                <template x-if="merchant[key].match(/\.(jpg|jpeg|png|webp)$|liveliness/i)">
+                                                <template x-if="merchant[key] && (merchant[key].match(/\.(jpg|jpeg|png|webp)$/i) || merchant[key].includes('liveliness'))">
                                                     <img :src="'../uploads/' + merchant[key]" class="w-full h-full object-cover cursor-pointer" @click="previewUrl = '../uploads/' + merchant[key]">
                                                 </template>
                                                 <!-- PDF Icon -->
