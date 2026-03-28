@@ -54,7 +54,7 @@ function ensure_critical_tables() {
     if (!isInstalled()) return;
 
     // Quick version check to avoid redundant DB calls on every request
-    $version = '1.1.0';
+    $version = '1.1.1';
     if (getConfig('sys_db_version') === $version) return;
 
     try {
@@ -114,7 +114,13 @@ function ensure_critical_tables() {
                 'payout_method' => "VARCHAR(20) DEFAULT 'manual'",
                 'payout_method_status' => "VARCHAR(20) DEFAULT 'active'",
                 'pending_payout_method' => "VARCHAR(20) DEFAULT NULL",
-                'kyc_notes' => "TEXT"
+                'kyc_notes' => "TEXT",
+                'country' => "VARCHAR(100) DEFAULT 'Nigeria'",
+                'id_type' => "VARCHAR(100)",
+                'id_expiry_date' => "DATE",
+                'bvn' => "VARCHAR(20)",
+                'residential_address' => "TEXT",
+                'rc_number' => "VARCHAR(100)"
             ],
             'transactions' => [
                 'customer_email' => "VARCHAR(255)",
