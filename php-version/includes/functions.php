@@ -54,7 +54,7 @@ function ensure_critical_tables() {
     if (!isInstalled()) return;
 
     // Quick version check to avoid redundant DB calls on every request
-    $version = '1.0.9';
+    $version = '1.1.0';
     if (getConfig('sys_db_version') === $version) return;
 
     try {
@@ -132,7 +132,8 @@ function ensure_critical_tables() {
                 'reference' => "VARCHAR(100)",
                 'customer_name' => "VARCHAR(255)",
                 'description' => "TEXT",
-                'status' => "ENUM('pending', 'paid', 'cancelled') DEFAULT 'pending'"
+                'status' => "ENUM('pending', 'paid', 'cancelled') DEFAULT 'pending'",
+                'is_test_mode' => "TINYINT DEFAULT 0"
             ],
             'virtual_accounts' => [
                 'customer_email' => "VARCHAR(255)",

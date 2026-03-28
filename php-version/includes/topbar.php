@@ -8,8 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $db = Database::connect();
     $stmt = $db->prepare("UPDATE users SET is_test_mode = ? WHERE id = ?");
     $stmt->execute([$new_mode, $user['id']]);
-    header("Location: " . $_SERVER['PHP_SELF'] . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : ''));
-    exit;
+    if (!headers_sent()) {
+        header("Location: " . $_SERVER['PHP_SELF'] . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : ''));
+        exit;
+    } else {
+        echo "<script>window.location.href='" . $_SERVER['PHP_SELF'] . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '') . "';</script>";
+        exit;
+    }
 }
 ?>
 <header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
