@@ -406,25 +406,33 @@ function log_transaction_event($transactionId, $type, $desc) {
 
 /**
  * Processes a payout via Paystack Transfer API.
+ * Can use merchant's default settlement details OR custom provided bank details for customer withdrawals.
  */
-function paystack_payout($userId, $amount, $reason = "Merchant Payout") {
+function paystack_payout($userId, $amount, $reason = "Merchant Payout", $customBank = []) {
     $db = Database::connect();
-    $stmt = $db->prepare("SELECT settlement_bank, settlement_bank_code, settlement_account_number, is_test_mode FROM users WHERE id = ?");
+    $stmt = $db->prepare("SELECT settlement_bank, settlement_bank_code, settlement_account_number, settlement_account_name, is_test_mode FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $u = $stmt->fetch();
 
-    if (!$u || empty($u['settlement_bank_code']) || empty($u['settlement_account_number'])) {
-        return ['status' => false, 'message' => 'Merchant settlement details incomplete'];
-    }
+    if (!$u) return ['status' => false, 'message' => 'Merchant not found'];
 
     $is_test = ($u['is_test_mode'] == 1);
+
+    // Determine target account details
+    $targetBankCode = $customBank['bank_code'] ?? $u['settlement_bank_code'];
+    $targetAccountNumber = $customBank['account_number'] ?? $u['settlement_account_number'];
+    $targetAccountName = $customBank['account_name'] ?? ($customBank['bank_name'] ?? ($u['settlement_account_name'] ?: $reason));
+
+    if (empty($targetBankCode) || empty($targetAccountNumber)) {
+        return ['status' => false, 'message' => 'Target bank details incomplete'];
+    }
 
     // 1. Create Transfer Recipient
     $recipient = paystack_call('transferrecipient', 'POST', [
         'type' => 'nuban',
-        'name' => $u['settlement_account_name'] ?: $reason,
-        'account_number' => $u['settlement_account_number'],
-        'bank_code' => $u['settlement_bank_code'],
+        'name' => $targetAccountName,
+        'account_number' => $targetAccountNumber,
+        'bank_code' => $targetBankCode,
         'currency' => 'NGN'
     ], $is_test);
 

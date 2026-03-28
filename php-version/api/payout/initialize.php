@@ -54,10 +54,20 @@ if ($user['payout_method_status'] === 'pending_switch') {
     exit;
 }
 
-// 2. Validate Settlement Details
-if (empty($user['settlement_bank_code']) || empty($user['settlement_account_number'])) {
+// 2. Resolve Target Bank Details (Custom from API OR Merchant Default)
+$custom_bank_name = sanitize($input['bank_name'] ?? '');
+$custom_bank_code = sanitize($input['bank_code'] ?? '');
+$custom_account_number = sanitize($input['account_number'] ?? '');
+$custom_account_name = sanitize($input['account_name'] ?? '');
+
+$target_bank_name = $custom_bank_name ?: $user['settlement_bank'];
+$target_bank_code = $custom_bank_code ?: $user['settlement_bank_code'];
+$target_account_number = $custom_account_number ?: $user['settlement_account_number'];
+$target_account_name = $custom_account_name ?: $user['settlement_account_name'];
+
+if (empty($target_bank_code) || empty($target_account_number)) {
     http_response_code(400);
-    echo json_encode(['status' => false, 'message' => 'Settlement bank details not configured']);
+    echo json_encode(['status' => false, 'message' => 'Target bank details incomplete (Must provide via API or configure in merchant profile)']);
     exit;
 }
 
@@ -108,20 +118,25 @@ if ($net <= 0) {
 
 $db->beginTransaction();
 try {
-    // a. Record Payout
+    // a. Record Payout (Reflecting provided bank details)
     $stmt = $db->prepare("INSERT INTO payouts (user_id, amount, fee_amount, net_amount, bank_name, account_number, status) VALUES (?, ?, ?, ?, ?, ?, 'pending')");
-    $stmt->execute([$user['id'], $amount, $fee, $net, $user['settlement_bank'], $user['settlement_account_number']]);
+    $stmt->execute([$user['id'], $amount, $fee, $net, $target_bank_name, $target_account_number]);
     $payoutId = $db->lastInsertId();
 
     // b. Log Ledger & Deduct Balance
-    log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request via API (Net: ".formatCurrency($net).") to " . $user['settlement_bank'], $is_test);
+    log_ledger_entry($user['id'], $amount, 'debit', 'payout', "Payout request via API (Net: ".formatCurrency($net).") to " . $target_bank_name, $is_test);
 
     // c. Call Paystack Transfer API (if not in review mode)
     $needs_review = (getConfig('global_payout_review') == '1') || ($user['require_payout_review'] == 1);
 
     $transfer_res = null;
     if (!$needs_review) {
-        $transfer_res = paystack_payout($user['id'], $net, $reason);
+        $transfer_res = paystack_payout($user['id'], $net, $reason, [
+            'bank_name' => $target_bank_name,
+            'bank_code' => $target_bank_code,
+            'account_number' => $target_account_number,
+            'account_name' => $target_account_name
+        ]);
         if ($transfer_res && $transfer_res['status']) {
             $stmt = $db->prepare("UPDATE payouts SET status = 'processed', status_details = ?, gateway_reference = ? WHERE id = ?");
             $stmt->execute(['Automated API Transfer', $transfer_res['data']['transfer_code'], $payoutId]);
@@ -139,8 +154,8 @@ try {
             'fee' => $fee,
             'net_amount' => $net,
             'status' => $needs_review ? 'pending' : 'processed',
-            'bank' => $user['settlement_bank'],
-            'account' => $user['settlement_account_number']
+            'bank' => $target_bank_name,
+            'account' => $target_account_number
         ]
     ]);
 
