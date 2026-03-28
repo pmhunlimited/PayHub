@@ -15,6 +15,12 @@ $error_msg = '';
 $manualPayoutGlobalEnabled = getConfig('manual_payout_enabled', '1') === '1';
 $payoutServiceEnabled = getConfig('payout_enabled', '1') === '1';
 
+// Fetch 24h Payout Limit stats for display and validation
+$max_daily = (int)getConfig('max_manual_payouts_limit', '1');
+$stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+$stmt->execute([$user['id']]);
+$daily_count = $stmt->fetch()['daily_count'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($_POST['action'] === 'submit_consent') {
         $stmt = $db->prepare("UPDATE users SET has_payout_consent = 1, payout_consent_date = CURRENT_TIMESTAMP WHERE id = ?");
@@ -50,12 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     if ($user['is_suspended']) {
         $error_msg = "Your account is suspended. Payout requests are disabled.";
     } else {
-        // Check Daily Limit from Platform Config
-        $max_daily = (int)getConfig('max_manual_payouts_limit', '1');
-        $stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
-        $stmt->execute([$user['id']]);
-        $daily_count = $stmt->fetch()['daily_count'];
-
         if ($daily_count >= $max_daily) {
             $error_msg = "You have reached the 24-hour limit of $max_daily manual payout request(s) set by the administrator.";
 
@@ -198,6 +198,29 @@ include '../includes/dashboard-head.php';
                             <p class="text-3xl font-bold text-indigo-700 tracking-tight"><?php echo formatCurrency($user['wallet_balance']); ?></p>
                         </div>
                         
+                        <div class="mb-6 p-6 bg-slate-50 rounded-3xl border border-slate-100 relative overflow-hidden group">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-[10px] text-slate-400 uppercase font-bold tracking-widest">24h Limit Status</p>
+                                <div class="w-8 h-8 <?php echo $daily_count >= $max_daily ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'; ?> rounded-xl flex items-center justify-center transition-colors">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <p class="text-2xl font-bold <?php echo $daily_count >= $max_daily ? 'text-rose-600' : 'text-slate-900'; ?>">
+                                    <?php echo $daily_count; ?> / <?php echo $max_daily; ?>
+                                </p>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Used</span>
+                            </div>
+                            <div class="mt-4 w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+                                <div class="h-full transition-all duration-500 <?php echo $daily_count >= $max_daily ? 'bg-rose-500' : 'bg-amber-500'; ?>" style="width: <?php echo min(100, ($daily_count / $max_daily) * 100); ?>%"></div>
+                            </div>
+                            <?php if ($daily_count >= $max_daily): ?>
+                                <p class="text-[10px] text-rose-500 font-bold uppercase mt-2 flex items-center gap-1">
+                                    <i data-lucide="alert-circle" class="w-3 h-3"></i> Limit Reached
+                                </p>
+                            <?php endif; ?>
+                        </div>
+
                         <div class="mb-8 p-6 bg-slate-50 rounded-3xl border border-slate-100">
                             <p class="text-[10px] text-slate-400 uppercase font-bold mb-3 tracking-widest">Settlement Destination</p>
                             <?php if ($user['settlement_bank']): ?>
@@ -236,13 +259,14 @@ include '../includes/dashboard-head.php';
                             </div>
                             <button 
                                 type="submit" 
-                                <?php echo (!$payoutServiceEnabled || !$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch' || $user['is_test_mode']) ? 'disabled' : ''; ?>
+                                <?php echo (!$payoutServiceEnabled || !$user['settlement_bank'] || $user['is_suspended'] || $user['payout_method_status'] === 'pending_switch' || $user['is_test_mode'] || $daily_count >= $max_daily) ? 'disabled' : ''; ?>
                                 class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:shadow-none"
                             >
                                 <?php
                                 if (!$payoutServiceEnabled) echo 'Service Offline';
                                 elseif ($user['is_test_mode']) echo 'Live Mode Only';
                                 elseif ($user['payout_method_status'] === 'pending_switch') echo 'Payouts on Hold';
+                                elseif ($daily_count >= $max_daily) echo 'Limit Reached';
                                 else echo 'Confirm Withdrawal';
                                 ?>
                             </button>

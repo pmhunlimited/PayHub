@@ -20,6 +20,12 @@ $stats = get_stats($user['id'], $is_test);
 
 $db = Database::connect();
 
+// Fetch 24h Payout Limit stats
+$max_payout_limit = (int)getConfig('max_manual_payouts_limit', '1');
+$stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+$stmt->execute([$user['id']]);
+$payout_count = $stmt->fetch()['daily_count'];
+
 // Fetch transactions
 $stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? AND is_test = ? ORDER BY created_at DESC LIMIT 10");
 $stmt->execute([$user['id'], $is_test]);
@@ -202,6 +208,30 @@ include '../includes/dashboard-head.php';
                     </div>
                     <p class="text-2xl font-bold text-slate-900"><?php echo $stats['success_rate']; ?></p>
                     <p class="text-xs text-slate-500 mt-1">High reliability</p>
+                </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 <?php echo $payout_count >= $max_payout_limit ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'; ?> rounded-xl flex items-center justify-center transition-colors">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">24h Payout Limit</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-2xl font-bold <?php echo $payout_count >= $max_payout_limit ? 'text-rose-600' : 'text-slate-900'; ?>">
+                            <?php echo $payout_count; ?> / <?php echo $max_payout_limit; ?>
+                        </p>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Used</span>
+                    </div>
+                    <div class="mt-4 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full transition-all duration-500 <?php echo $payout_count >= $max_payout_limit ? 'bg-rose-500' : 'bg-amber-500'; ?>" style="width: <?php echo min(100, ($payout_count / $max_payout_limit) * 100); ?>%"></div>
+                    </div>
+                    <?php if ($payout_count >= $max_payout_limit): ?>
+                        <p class="text-[10px] text-rose-500 font-bold uppercase mt-2 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="w-3 h-3"></i> Limit Reached
+                        </p>
+                    <?php else: ?>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Requests remaining</p>
+                    <?php endif; ?>
                 </div>
             </div>
 
