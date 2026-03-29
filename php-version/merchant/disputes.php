@@ -36,7 +36,7 @@ include '../includes/dashboard-head.php';
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-6xl mx-auto">
                 <?php if ($success_msg): ?>
                     <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium"><?php echo $success_msg; ?></div>
@@ -53,20 +53,23 @@ include '../includes/dashboard-head.php';
                         <table class="w-full text-left">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-100">
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Transaction Ref</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Reason</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Transaction</th>
+                                    <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
+                                    <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Reason</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 sm:px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
                                 <?php foreach ($disputes as $d): ?>
                                     <tr class="hover:bg-slate-50/50 transition-colors">
-                                        <td class="px-6 py-4 text-sm font-mono font-bold text-slate-900"><?php echo $d['transaction_ref']; ?></td>
-                                        <td class="px-6 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($d['amount']); ?></td>
-                                        <td class="px-6 py-4 text-sm font-medium text-slate-600"><?php echo $d['reason']; ?></td>
-                                        <td class="px-6 py-4">
+                                        <td class="px-4 sm:px-6 py-4">
+                                            <div class="text-sm font-mono font-bold text-slate-900 truncate max-w-[120px] sm:max-w-none"><?php echo $d['transaction_ref']; ?></div>
+                                            <div class="sm:hidden text-[10px] font-bold text-slate-500"><?php echo formatCurrency($d['amount']); ?></div>
+                                        </td>
+                                        <td class="hidden sm:table-cell px-6 py-4 text-sm font-bold text-slate-900"><?php echo formatCurrency($d['amount']); ?></td>
+                                        <td class="hidden md:table-cell px-6 py-4 text-sm font-medium text-slate-600"><?php echo $d['reason']; ?></td>
+                                        <td class="px-4 sm:px-6 py-4">
                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider <?php echo $d['status'] === 'open' ? 'bg-amber-100 text-amber-700' : ($d['status'] === 'won' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'); ?>">
                                                 <?php echo $d['status']; ?>
                                             </span>
@@ -100,7 +103,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Upload Evidence Modal -->
-        <div x-show="showUpload" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showUpload" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-[2rem] w-full max-w-md overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Upload Evidence</h3>

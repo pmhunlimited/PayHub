@@ -22,14 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-4xl mx-auto">
                 <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">API Keys & Webhooks</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">API Keys & Webhooks</h1>
                     <p class="text-slate-500">Access your Public and Secret keys to integrate Payhub into your applications</p>
                 </div>
 

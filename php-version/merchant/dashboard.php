@@ -15,13 +15,20 @@ $tab = $_GET['tab'] ?? 'overview';
 $pageTitle = 'Dashboard - Payhub';
 
 // Fetch stats for overview
-$stats = get_stats($user['id']);
+$is_test = $user['is_test_mode'];
+$stats = get_stats($user['id'], $is_test);
 
 $db = Database::connect();
 
-// Fetch transactions
-$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? ORDER BY created_at DESC LIMIT 10");
+// Fetch 24h Payout Limit stats
+$max_payout_limit = (int)getConfig('max_manual_payouts_limit', '1');
+$stmt = $db->prepare("SELECT COUNT(*) as daily_count FROM payouts WHERE user_id = ? AND request_date >= DATE_SUB(NOW(), INTERVAL 24 HOUR)");
 $stmt->execute([$user['id']]);
+$payout_count = $stmt->fetch()['daily_count'];
+
+// Fetch transactions
+$stmt = $db->prepare("SELECT * FROM transactions WHERE user_id = ? AND is_test = ? ORDER BY created_at DESC LIMIT 10");
+$stmt->execute([$user['id'], $is_test]);
 $recentTransactions = $stmt->fetchAll();
 
 // Fetch revenue data for chart (last 7 days)
@@ -30,12 +37,12 @@ $stmt = $db->prepare("
         DATE(created_at) as date,
         SUM(amount) as revenue
     FROM transactions 
-    WHERE user_id = ? AND status = 'success'
+    WHERE user_id = ? AND status = 'success' AND is_test = ?
     GROUP BY DATE(created_at)
     ORDER BY date DESC
     LIMIT 7
 ");
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], $is_test]);
 $revenueRaw = array_reverse($stmt->fetchAll());
 $revenueData = [];
 $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -52,10 +59,10 @@ $stmt = $db->prepare("
         payment_method,
         COUNT(*) as count
     FROM transactions
-    WHERE user_id = ? AND status = 'success'
+    WHERE user_id = ? AND status = 'success' AND is_test = ?
     GROUP BY payment_method
 ");
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], $is_test]);
 $methodCounts = $stmt->fetchAll();
 $totalMethods = array_sum(array_column($methodCounts, 'count'));
 
@@ -95,7 +102,7 @@ foreach($onboardingSteps as $step) {
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
     <?php include '../includes/sidebar.php'; ?>
 
     <!-- Main Content -->
@@ -103,7 +110,7 @@ include '../includes/dashboard-head.php';
         <?php include '../includes/topbar.php'; ?>
 
         <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
@@ -202,6 +209,30 @@ include '../includes/dashboard-head.php';
                     <p class="text-2xl font-bold text-slate-900"><?php echo $stats['success_rate']; ?></p>
                     <p class="text-xs text-slate-500 mt-1">High reliability</p>
                 </div>
+                <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-10 h-10 <?php echo $payout_count >= $max_payout_limit ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'; ?> rounded-xl flex items-center justify-center transition-colors">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">24h Payout Limit</span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="text-2xl font-bold <?php echo $payout_count >= $max_payout_limit ? 'text-rose-600' : 'text-slate-900'; ?>">
+                            <?php echo $payout_count; ?> / <?php echo $max_payout_limit; ?>
+                        </p>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Used</span>
+                    </div>
+                    <div class="mt-4 w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div class="h-full transition-all duration-500 <?php echo $payout_count >= $max_payout_limit ? 'bg-rose-500' : 'bg-amber-500'; ?>" style="width: <?php echo min(100, ($payout_count / $max_payout_limit) * 100); ?>%"></div>
+                    </div>
+                    <?php if ($payout_count >= $max_payout_limit): ?>
+                        <p class="text-[10px] text-rose-500 font-bold uppercase mt-2 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="w-3 h-3"></i> Limit Reached
+                        </p>
+                    <?php else: ?>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-2">Requests remaining</p>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- Chart and Methods -->
@@ -241,7 +272,7 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Reference</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Customer</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount</th>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                             </tr>
@@ -250,7 +281,7 @@ include '../includes/dashboard-head.php';
                             <?php foreach ($recentTransactions as $tx): ?>
                                 <tr class="hover:bg-slate-50/50 transition-colors">
                                     <td class="px-6 py-4 font-mono text-sm"><?php echo $tx['reference']; ?></td>
-                                    <td class="px-6 py-4 text-sm"><?php echo $tx['customer_email']; ?></td>
+                                    <td class="hidden sm:table-cell px-6 py-4 text-sm"><?php echo $tx['customer_email']; ?></td>
                                     <td class="px-6 py-4 text-sm font-bold"><?php echo formatCurrency($tx['amount']); ?></td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $tx['status'] === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'; ?>">

@@ -37,9 +37,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $currency = sanitize($_POST['settlement_currency']);
         
         try {
-            $stmt = $db->prepare("UPDATE users SET settlement_bank = ?, settlement_bank_code = ?, settlement_account_number = ?, settlement_account_name = ?, payout_method = ?, settlement_currency = ? WHERE id = ?");
-            $stmt->execute([$bank_name, $bank_code, $account_number, $account_name, $payout_method, $currency, $user['id']]);
-            $success_msg = "Settlement details updated successfully!";
+            if ($payout_method !== $user['payout_method']) {
+                $stmt = $db->prepare("UPDATE users SET settlement_bank = ?, settlement_bank_code = ?, settlement_account_number = ?, settlement_account_name = ?, payout_method_status = 'pending_switch', pending_payout_method = ?, settlement_currency = ? WHERE id = ?");
+                $stmt->execute([$bank_name, $bank_code, $account_number, $account_name, $payout_method, $currency, $user['id']]);
+                $success_msg = "Settlement details updated. Payout method switch to " . ucfirst($payout_method) . " is pending admin review.";
+            } else {
+                $stmt = $db->prepare("UPDATE users SET settlement_bank = ?, settlement_bank_code = ?, settlement_account_number = ?, settlement_account_name = ?, settlement_currency = ? WHERE id = ?");
+                $stmt->execute([$bank_name, $bank_code, $account_number, $account_name, $currency, $user['id']]);
+                $success_msg = "Settlement details updated successfully!";
+            }
             $user = getAuthUser();
         } catch (Exception $e) {
             $error_msg = "Failed to update settlement details: " . $e->getMessage();
@@ -139,11 +145,19 @@ include '../includes/dashboard-head.php';
                                 </div>
                                 <div class="grid md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Payout Method</label>
-                                        <select name="payout_method" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium">
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">
+                                            Payout Method
+                                            <?php if ($user['payout_method_status'] === 'pending_switch'): ?>
+                                                <span class="text-[10px] text-amber-500 normal-case">(Pending switch to <?php echo ucfirst($user['pending_payout_method']); ?>)</span>
+                                            <?php endif; ?>
+                                        </label>
+                                        <select name="payout_method" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium <?php echo $user['payout_method_status'] === 'pending_switch' ? 'opacity-50 cursor-not-allowed' : ''; ?>" <?php echo $user['payout_method_status'] === 'pending_switch' ? 'disabled' : ''; ?>>
                                             <option value="manual" <?php echo $user['payout_method'] === 'manual' ? 'selected' : ''; ?>>Manual Request</option>
                                             <option value="automated" <?php echo $user['payout_method'] === 'automated' ? 'selected' : ''; ?>>Automated Next Day</option>
                                         </select>
+                                        <?php if ($user['payout_method_status'] === 'pending_switch'): ?>
+                                            <input type="hidden" name="payout_method" value="<?php echo $user['payout_method']; ?>">
+                                        <?php endif; ?>
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Settlement Currency</label>

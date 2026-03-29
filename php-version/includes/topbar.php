@@ -2,17 +2,38 @@
 // php-version/topbar.php
 require_once 'functions.php';
 $user = getAuthUser();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toggle_env') {
+    $new_mode = (int)$_POST['is_test'];
+    $db = Database::connect();
+    $stmt = $db->prepare("UPDATE users SET is_test_mode = ? WHERE id = ?");
+    $stmt->execute([$new_mode, $user['id']]);
+    if (!headers_sent()) {
+        header("Location: " . $_SERVER['PHP_SELF'] . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : ''));
+        exit;
+    } else {
+        echo "<script>window.location.href='" . $_SERVER['PHP_SELF'] . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '') . "';</script>";
+        exit;
+    }
+}
 ?>
-<header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+<header class="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 shrink-0">
     <div class="flex items-center gap-4">
-        <button @click="mobileMenuOpen = true" class="md:hidden flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-100">
+        <button @click="$store.nav.mobileMenuOpen = true" class="md:hidden flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors p-2 rounded-lg hover:bg-slate-100 relative z-[70]">
             <i data-lucide="menu" class="w-6 h-6"></i>
         </button>
         <?php if ($user['role'] !== 'admin'): ?>
-            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-                <div class="w-2 h-2 rounded-full <?php echo $user['is_test_mode'] ? 'bg-amber-500' : 'bg-emerald-500'; ?>"></div>
-                <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider"><?php echo $user['is_test_mode'] ? 'Test Mode' : 'Live Mode'; ?></span>
-            </div>
+            <form method="POST" class="hidden md:flex items-center gap-3 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-2xl">
+                <input type="hidden" name="action" value="toggle_env">
+                <input type="hidden" name="is_test" value="<?php echo $user['is_test_mode'] ? '0' : '1'; ?>">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full <?php echo $user['is_test_mode'] ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'; ?>"></div>
+                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider"><?php echo $user['is_test_mode'] ? 'Test Mode' : 'Live Mode'; ?></span>
+                </div>
+                <button type="submit" class="text-[9px] font-bold <?php echo $user['is_test_mode'] ? 'text-indigo-600 hover:text-indigo-700' : 'text-slate-400 hover:text-slate-600'; ?> uppercase tracking-widest border-l border-slate-200 pl-3">
+                    Switch to <?php echo $user['is_test_mode'] ? 'Live' : 'Test'; ?>
+                </button>
+            </form>
         <?php endif; ?>
     </div>
 

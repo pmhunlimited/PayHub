@@ -27,12 +27,12 @@ $cron_jobs = [
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
-            <div class="mb-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 class="text-2xl font-bold text-slate-900 mb-2">Cron Job Manager</h1>
                 <p class="text-slate-500">Copy these commands to your cPanel or server cron scheduler</p>
             </div>

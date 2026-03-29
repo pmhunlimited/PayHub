@@ -26,12 +26,16 @@ if (is_holiday(date('Y-m-d'))) {
     exit("Today is a weekend or holiday. No payouts today.");
 }
 
+if (getConfig('payout_enabled', '1') !== '1') {
+    exit("Global payout service is disabled.");
+}
+
 $db = Database::connect();
 
 // Fetch merchants with automated payout and balance > min_payout_amount
 $min_payout = (float)getConfig('min_payout_amount', '1000');
 
-$stmt = $db->prepare("SELECT * FROM users WHERE role = 'merchant' AND payout_method = 'automated' AND wallet_balance >= ? AND is_suspended = 0");
+$stmt = $db->prepare("SELECT * FROM users WHERE role = 'merchant' AND payout_method = 'automated' AND payout_method_status = 'active' AND is_test_mode = 0 AND wallet_balance >= ? AND is_suspended = 0");
 $stmt->execute([$min_payout]);
 $merchants = $stmt->fetchAll();
 
@@ -53,7 +57,7 @@ foreach ($merchants as $m) {
     // In a real system, we'd have sub-wallets.
     // Here we enforce settlement currency from user settings.
 
-    $fee = (float)getConfig('payout_fee', '50');
+    $fee = (float)getConfig('automated_payout_fee', '50');
     $net = $amount - $fee;
 
     if ($net <= 0) continue;

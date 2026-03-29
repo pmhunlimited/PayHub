@@ -75,10 +75,10 @@ include 'includes/header.php';
             <div class="mb-12 p-6 bg-emerald-50 text-emerald-700 rounded-3xl border border-emerald-100 font-bold text-center"><?php echo $success_msg; ?></div>
         <?php endif; ?>
 
-        <div class="grid md:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div class="md:col-span-2">
                 <h2 class="text-2xl font-bold text-slate-900 mb-8">Popular Articles</h2>
-                <div class="grid md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <?php
                     $db = Database::connect();
                     $articles = $db->query("SELECT * FROM blog_posts ORDER BY created_at DESC LIMIT 4")->fetchAll();
@@ -98,7 +98,7 @@ include 'includes/header.php';
                     <?php endif; ?>
                     <form method="POST" class="space-y-6">
                         <input type="hidden" name="action" value="contact">
-                        <div class="grid md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
                                 <input type="email" name="email" required placeholder="your@email.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -112,11 +112,13 @@ include 'includes/header.php';
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Message</label>
                             <textarea name="message" required rows="5" placeholder="Detailed description..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20"></textarea>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="bg-slate-100 px-4 py-3 rounded-xl font-bold text-slate-600">
-                                <?php echo $_SESSION['captcha_a']; ?> + <?php echo $_SESSION['captcha_b']; ?> = ?
+                        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-slate-100 px-4 py-3 rounded-xl font-bold text-slate-600 whitespace-nowrap">
+                                    <?php echo $_SESSION['captcha_a']; ?> + <?php echo $_SESSION['captcha_b']; ?> = ?
+                                </div>
+                                <input type="number" name="captcha" required placeholder="Answer" class="w-24 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                             </div>
-                            <input type="number" name="captcha" required placeholder="Answer" class="w-32 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
                             <button type="submit" class="flex-1 bg-indigo-600 text-white py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">Send Message</button>
                         </div>
                     </form>

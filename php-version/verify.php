@@ -14,10 +14,71 @@ $tx = $stmt->fetch();
 $status = 'pending';
 $amount = 0;
 
+// Detect if it's an invoice payment or standard transaction
+$is_invoice = (strpos($ref, 'INV_') === 0);
+$is_test_mode = false;
+
 if ($tx) {
-    // Call Paystack to verify
-    $res = paystack_call("transaction/verify/" . $ref, 'GET', [], (bool)$tx['is_test']);
-    if ($res['status'] && $res['data']['status'] === 'success') {
+    $is_test_mode = (bool)$tx['is_test'];
+} elseif ($is_invoice) {
+    // For invoices, we determine test mode from the invoice's merchant
+    $parts = explode('_', $ref);
+    if (count($parts) >= 2) {
+        $inv_ref = $parts[1];
+        $stmt = $db->prepare("SELECT u.is_test_mode FROM invoices i JOIN users u ON i.user_id = u.id WHERE i.reference = ?");
+        $stmt->execute([$inv_ref]);
+        $m = $stmt->fetch();
+        if ($m) $is_test_mode = (bool)$m['is_test_mode'];
+    }
+}
+
+// Call Paystack to verify
+$res = paystack_call("transaction/verify/" . $ref, 'GET', [], $is_test_mode);
+
+if ($res && $res['status'] && $res['data']['status'] === 'success') {
+    $status = 'success';
+    $amount = $res['data']['amount'] / 100;
+
+    // If transaction doesn't exist (e.g. direct invoice payment), create it
+    if (!$tx) {
+        $db->beginTransaction();
+        try {
+            $merchant_id = null;
+            $invoice_id = null;
+            $customer_email = $res['data']['customer']['email'];
+            $customer_name = trim(($res['data']['customer']['first_name'] ?? '') . ' ' . ($res['data']['customer']['last_name'] ?? ''));
+
+            if ($is_invoice) {
+                $parts = explode('_', $ref);
+                $inv_ref = $parts[1];
+                $stmt = $db->prepare("SELECT id, user_id FROM invoices WHERE reference = ?");
+                $stmt->execute([$inv_ref]);
+                $inv_data = $stmt->fetch();
+                if ($inv_data) {
+                    $invoice_id = $inv_data['id'];
+                    $merchant_id = $inv_data['user_id'];
+                }
+            }
+
+            if ($merchant_id) {
+                $stmt = $db->prepare("INSERT INTO transactions (user_id, reference, amount, customer_email, customer_name, status, is_test, invoice_id) VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)");
+                $stmt->execute([$merchant_id, $ref, $amount, $customer_email, $customer_name, $is_test_mode ? 1 : 0, $invoice_id]);
+                $tx_id = $db->lastInsertId();
+
+                // Fetch the new tx to proceed with standard logic
+                $stmt = $db->prepare("SELECT * FROM transactions WHERE id = ?");
+                $stmt->execute([$tx_id]);
+                $tx = $stmt->fetch();
+                $db->commit();
+            } else {
+                $db->rollBack();
+            }
+        } catch (Exception $e) {
+            $db->rollBack();
+        }
+    }
+
+    if ($tx && $tx['status'] === 'pending') {
         $status = 'success';
         $amount = $res['data']['amount'] / 100;
 
@@ -45,23 +106,58 @@ if ($tx) {
                 }
 
                 // Handle Invoice Payment
-                if (isset($res['data']['metadata']['invoice_id'])) {
-                    $inv_id = (int)$res['data']['metadata']['invoice_id'];
+                $inv_id = $tx['invoice_id'] ?: ($res['data']['metadata']['invoice_id'] ?? null);
+                if ($inv_id) {
                     $db->prepare("UPDATE invoices SET status = 'paid' WHERE id = ?")->execute([$inv_id]);
-                    $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
+                    if (!$tx['invoice_id']) {
+                        $db->prepare("UPDATE transactions SET invoice_id = ? WHERE id = ?")->execute([$inv_id, $tx['id']]);
+                    }
                 }
 
-                // Log ledger and update user balance
-                log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref");
+                // Log ledger and update user balance (prevent real crediting for test mode)
+                $is_test_tx = (bool)$tx['is_test'] || ($res['data']['domain'] === 'test');
+                log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment verified for Ref: $ref", $is_test_tx);
 
                 log_transaction_event($tx['id'], 'verified', "Payment verified via direct lookup.");
+
+                // Trigger Webhook if configured
+                $stmt = $db->prepare("SELECT webhook_url FROM users WHERE id = ?");
+                $stmt->execute([$tx['user_id']]);
+                $webhook_url = $stmt->fetchColumn();
+
+                if ($webhook_url) {
+                    $payload = [
+                        'event' => 'charge.success',
+                        'data' => [
+                            'id' => $tx['id'],
+                            'reference' => $tx['reference'],
+                            'amount' => $tx['amount'],
+                            'status' => 'success',
+                            'customer' => [
+                                'email' => $tx['customer_email'],
+                                'name' => $tx['customer_name']
+                            ],
+                            'metadata' => $res['data']['metadata'] ?? []
+                        ]
+                    ];
+                    $ch = curl_init($webhook_url);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                    curl_exec($ch);
+                    curl_close($ch);
+                }
 
                 $db->commit();
             } catch (Exception $e) {
                 $db->rollBack();
             }
         }
-    } else {
+    }
+} else {
+    if ($res && isset($res['data']['status']) && $res['data']['status'] === 'failed') {
         $status = 'failed';
     }
 }

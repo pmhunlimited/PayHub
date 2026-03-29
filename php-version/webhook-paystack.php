@@ -47,8 +47,9 @@ if ($event['event'] === 'charge.success') {
     $amount = $data['amount'] / 100;
     $currency = $data['currency'];
 
-    $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
-    $stmt->execute([$ref]);
+    // Find transaction by reference OR gateway reference
+    $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ? OR gateway_reference = ?");
+    $stmt->execute([$ref, $data['id']]);
     $tx = $stmt->fetch();
 
     // If no transaction found, check if it's a payment to a dedicated virtual account
@@ -67,31 +68,51 @@ if ($event['event'] === 'charge.success') {
             $acc_number = $data['authorization']['account_number'];
         }
 
+        // Check metadata if Paystack didn't explicitly label it as dedicated_account
+        if (!$acc_number && isset($data['metadata']['receiver_account_number'])) {
+            $acc_number = $data['metadata']['receiver_account_number'];
+        }
+
         if ($acc_number) {
-            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ?");
-            $stmt->execute([$acc_number]);
+            // Clean account number (Paystack sometimes sends it with leading zeros or slightly different)
+            $clean_acc = ltrim($acc_number, '0');
+            $stmt = $db->prepare("SELECT * FROM virtual_accounts WHERE account_number = ? OR account_number = ? OR account_number = ?");
+            $stmt->execute([$acc_number, str_pad($clean_acc, 10, '0', STR_PAD_LEFT), $clean_acc]);
             $va = $stmt->fetch();
 
             if ($va) {
+                // Determine if it's a test transaction
+                $is_test_va = ($data['domain'] === 'test');
+
+                // Recover metadata if missing or lacks custom fields
+                $va_meta = json_decode($va['metadata'] ?? '[]', true);
+                $rtx_meta = $data['metadata'] ?? [];
+                // Merge, prioritizing rtx_meta for gateway fields but keeping VA's custom fields
+                $recovered_metadata = array_merge($va_meta, $rtx_meta);
+                if (is_array($recovered_metadata)) $recovered_metadata = json_encode($recovered_metadata);
+
                 // Create a pending transaction for this VA payment
                 // Using INSERT IGNORE in case webhook is retried quickly
-                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer')");
-                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email']]);
+                $stmt = $db->prepare("INSERT IGNORE INTO transactions (user_id, reference, amount, status, customer_email, payment_method, is_test, metadata) VALUES (?, ?, ?, 'pending', ?, 'bank_transfer', ?, ?)");
+                $stmt->execute([$va['user_id'], $ref, $amount, $va['customer_email'], $is_test_va ? 1 : 0, $recovered_metadata]);
 
                 $stmt = $db->prepare("SELECT * FROM transactions WHERE reference = ?");
                 $stmt->execute([$ref]);
                 $tx = $stmt->fetch();
 
-                file_put_contents('webhook_debug.log', "Matched Virtual Account: $acc_number for user " . $va['user_id'] . PHP_EOL, FILE_APPEND);
+                file_put_contents('webhook_debug.log', "Matched Virtual Account: $acc_number for user " . $va['user_id'] . " (Test: ".($is_test_va?'Yes':'No').")" . PHP_EOL, FILE_APPEND);
             } else {
                 file_put_contents('webhook_debug.log', "Dedicated Account payment but NO MATCH in DB: $acc_number" . PHP_EOL, FILE_APPEND);
             }
         }
     }
 
-    if ($tx && $tx['status'] === 'pending') {
+    if ($tx && $tx['status'] !== 'success') {
         $db->beginTransaction();
         try {
+            // Detailed Logging of fulfillment start
+            file_put_contents('webhook_debug.log', "[" . date('Y-m-d H:i:s') . "] Fulfilling Tx ID: " . $tx['id'] . " for Amount: " . $amount . PHP_EOL, FILE_APPEND);
+
             // Update transaction
             $stmt = $db->prepare("UPDATE transactions SET status = 'success', currency = ?, gateway_reference = ? WHERE id = ?");
             $stmt->execute([$currency, $data['id'], $tx['id']]);
@@ -101,26 +122,64 @@ if ($event['event'] === 'charge.success') {
             $fee = calculate_fees($amount, $is_intl, $tx['user_id']);
             $settled = $amount - $fee;
 
-            $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ? WHERE id = ?");
-            $stmt->execute([$fee, $settled, $tx['id']]);
+            $stmt = $db->prepare("UPDATE transactions SET fee_amount = ?, settled_amount = ?, payment_method = ? WHERE id = ?");
+            $stmt->execute([$fee, $settled, $data['channel'] ?? $tx['payment_method'], $tx['id']]);
 
-            // Log ledger and update user balance
-            log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment received for Ref: $ref");
+            // Log ledger and update user balance (prevent real crediting for test mode)
+            $is_test_tx = (bool)$tx['is_test'] || ($data['domain'] === 'test');
+            log_ledger_entry($tx['user_id'], $settled, 'credit', 'payment', "Payment received for Ref: $ref", $is_test_tx);
 
             log_transaction_event($tx['id'], 'payment_completed', 'Payment successfully processed and confirmed via Webhook');
 
             $db->commit();
-
-            // Notify Merchant
-            $stmt = $db->prepare("SELECT email, business_name FROM users WHERE id = ?");
-            $stmt->execute([$tx['user_id']]);
-            $m = $stmt->fetch();
-
-            sendEmail($m['email'], "New Payment Received", "<h2>Payment Confirmed</h2><p>You have received a payment of <strong>".formatCurrency($amount)."</strong>.</p><p>Reference: $ref</p>");
+            $fulfillment_success = true;
 
         } catch (Exception $e) {
             $db->rollBack();
+            $fulfillment_success = false;
             file_put_contents('webhook_debug.log', "Transaction Error: " . $e->getMessage() . PHP_EOL, FILE_APPEND);
+        }
+
+        if ($fulfillment_success) {
+            // Notify Merchant & Forward Webhook (Outside Transaction to prevent timeouts/locks)
+            $stmt = $db->prepare("SELECT email, business_name, webhook_url FROM users WHERE id = ?");
+            $stmt->execute([$tx['user_id']]);
+            $m = $stmt->fetch();
+
+            if ($m) {
+                sendEmail($m['email'], "New Payment Received", "<h2>Payment Confirmed</h2><p>You have received a payment of <strong>".formatCurrency($amount)."</strong>.</p><p>Reference: $ref</p>");
+
+                // Forward Webhook to Merchant Site
+                if (!empty($m['webhook_url'])) {
+                    // Recover metadata for payload - merge what we have in DB with what came in
+                    $db_meta = json_decode($tx['metadata'] ?? '[]', true);
+                    $final_metadata = array_merge($db_meta, $data['metadata'] ?? []);
+
+                    $payload = [
+                        'event' => 'charge.success',
+                        'data' => array_merge($data, [
+                            'metadata' => $final_metadata
+                        ])
+                    ];
+
+                    $ch = curl_init();
+                    curl_setopt($ch, CURLOPT_URL, $m['webhook_url']);
+                    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch, CURLOPT_POST, true);
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+                    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+                    $res = curl_exec($ch);
+                    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                    curl_close($ch);
+
+                    // Log Webhook Forwarding
+                    try {
+                        $stmtLog = $db->prepare("INSERT INTO webhook_logs (user_id, event_type, payload, response_code) VALUES (?, ?, ?, ?)");
+                        $stmtLog->execute([$tx['user_id'], 'charge.success', json_encode($payload), (int)$code]);
+                    } catch (\Throwable $t) {}
+                }
+            }
         }
     }
 } elseif ($event['event'] === 'refund.processed') {

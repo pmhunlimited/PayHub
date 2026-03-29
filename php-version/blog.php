@@ -65,7 +65,7 @@ include 'includes/header.php';
                 <article class="bg-white rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all group">
                     <a href="blog-post.php?slug=<?php echo $post['slug']; ?>">
                         <img
-                            src="<?php echo $post['featured_image'] ? 'uploads/'.$post['featured_image'] : 'https://picsum.photos/seed/'.$post['slug'].'/800/400'; ?>"
+                            src="<?php echo ($post['featured_image'] ?? null) ? 'uploads/'.$post['featured_image'] : 'https://picsum.photos/seed/'.$post['slug'].'/800/400'; ?>"
                             alt="<?php echo $post['title']; ?>"
                             class="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
                         >

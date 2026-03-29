@@ -2,7 +2,12 @@
 // php-version/admin/merchants.php
 require_once '../includes/functions.php';
 
-if (!isLoggedIn() || !isAdmin()) redirect('../login.php');
+if (!isLoggedIn()) redirect('../login.php');
+
+// Allow "Exit Impersonation" even if role is merchant
+if (!isAdmin() && (!isset($_POST['action']) || $_POST['action'] !== 'exit_impersonation')) {
+    redirect('../login.php');
+}
 
 $user = getAuthUser();
 $pageTitle = 'Merchant Directory - Admin Hub';
@@ -43,6 +48,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         $stmt = $db->prepare("UPDATE users SET require_payout_review = ? WHERE id = ?");
         $stmt->execute([$status, $merchantId]);
         $success_msg = "Payout review status updated for merchant.";
+    } elseif ($_POST['action'] === 'approve_payout_switch') {
+        $merchantId = (int)$_POST['merchant_id'];
+        $stmt = $db->prepare("SELECT pending_payout_method, email, business_name FROM users WHERE id = ?");
+        $stmt->execute([$merchantId]);
+        $m = $stmt->fetch();
+        if ($m && $m['pending_payout_method']) {
+            $new_method = $m['pending_payout_method'];
+            $stmt = $db->prepare("UPDATE users SET payout_method = ?, payout_method_status = 'active', pending_payout_method = NULL WHERE id = ?");
+            $stmt->execute([$new_method, $merchantId]);
+
+            $site_name = getConfig('site_name', 'Payhub');
+            sendEmail($m['email'], "Payout Method Switch Approved - $site_name", "
+                <h2 style='color: #10b981;'>Request Approved</h2>
+                <p>Hello {$m['business_name']},</p>
+                <p>Your request to switch your payout method to <strong>" . ucfirst($new_method) . "</strong> has been approved.</p>
+                <p>Your payouts are no longer on hold.</p>
+            ");
+            $success_msg = "Payout method switch approved for {$m['business_name']}.";
+        }
+    } elseif ($_POST['action'] === 'reject_payout_switch') {
+        $merchantId = (int)$_POST['merchant_id'];
+        $stmt = $db->prepare("SELECT payout_method, email, business_name FROM users WHERE id = ?");
+        $stmt->execute([$merchantId]);
+        $m = $stmt->fetch();
+        if ($m) {
+            $stmt = $db->prepare("UPDATE users SET payout_method_status = 'active', pending_payout_method = NULL WHERE id = ?");
+            $stmt->execute([$merchantId]);
+
+            $site_name = getConfig('site_name', 'Payhub');
+            sendEmail($m['email'], "Payout Method Switch Rejected - $site_name", "
+                <h2 style='color: #ef4444;'>Request Rejected</h2>
+                <p>Hello {$m['business_name']},</p>
+                <p>Your request to change your payout method has been rejected by the administrator.</p>
+                <p>Your payout method has been restored to <strong>" . ucfirst($m['payout_method']) . "</strong>.</p>
+                <p>Your payouts are no longer on hold.</p>
+            ");
+            $success_msg = "Payout method switch rejected for {$m['business_name']}.";
+        }
     } elseif ($_POST['action'] === 'impersonate') {
         $merchantId = (int)$_POST['merchant_id'];
         if ($merchantId != $user['id']) {
@@ -56,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $_SESSION['user_id'] = $_SESSION['admin_user_id'];
             $_SESSION['role'] = 'admin';
             unset($_SESSION['admin_user_id']);
-            $success_msg = "Exited impersonation mode.";
+            redirect('index.php');
         }
     } elseif ($_POST['action'] === 'reset_password') {
         $merchantId = (int)$_POST['merchant_id'];
@@ -93,6 +136,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 $tab = $_GET['tab'] ?? 'active';
 if ($tab === 'deleted') {
     $stmt = $db->query("SELECT m.*, p.business_name as parent_name FROM users m LEFT JOIN users p ON m.parent_id = p.id WHERE m.role = 'merchant' AND m.is_deleted = 1 ORDER BY m.created_at DESC");
+} elseif ($tab === 'pending_switches') {
+    $stmt = $db->query("SELECT m.*, p.business_name as parent_name FROM users m LEFT JOIN users p ON m.parent_id = p.id WHERE m.role = 'merchant' AND m.payout_method_status = 'pending_switch' AND m.is_deleted = 0 ORDER BY m.created_at DESC");
 } else {
     $stmt = $db->query("SELECT m.*, p.business_name as parent_name FROM users m LEFT JOIN users p ON m.parent_id = p.id WHERE m.role = 'merchant' AND m.is_deleted = 0 ORDER BY m.created_at DESC");
 }
@@ -129,18 +174,19 @@ include '../includes/dashboard-head.php';
         }
     }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <?php if (isset($success_msg)): ?>
                 <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 font-medium">
                     <?php echo $success_msg; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="mb-8 flex justify-between items-center">
+            <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 class="text-2xl font-bold text-slate-900 mb-2">Merchant Directory</h1>
                     <div class="flex gap-4 mt-2">
                         <a href="?tab=active" class="text-sm font-bold <?php echo $tab === 'active' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'; ?> pb-1">Active Merchants</a>
+                        <a href="?tab=pending_switches" class="text-sm font-bold <?php echo $tab === 'pending_switches' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'; ?> pb-1">Pending Switches</a>
                         <a href="?tab=deleted" class="text-sm font-bold <?php echo $tab === 'deleted' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-400 hover:text-slate-600'; ?> pb-1">Deleted Accounts</a>
                     </div>
                 </div>
@@ -157,12 +203,15 @@ include '../includes/dashboard-head.php';
                         <thead>
                             <tr class="bg-slate-50/50 border-b border-slate-100">
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Business Name</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
-                                <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Custom Fees</th>
+                                <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
+                                <th class="hidden xl:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Joined On</th>
+                                <th class="hidden sm:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">KYC Status</th>
+                                <th class="hidden md:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Account Status</th>
+                                <th class="hidden lg:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Payout Review</th>
+                                <th class="hidden xl:table-cell px-6 py-4 text-xs font-bold text-slate-500 uppercase">Custom Fees</th>
+                                <?php if ($tab === 'pending_switches'): ?>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Switch Request</th>
+                                <?php endif; ?>
                                 <th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
@@ -173,7 +222,7 @@ include '../includes/dashboard-head.php';
                                         <div class="font-bold text-slate-900"><?php echo $m['business_name']; ?></div>
                                         <div class="text-xs text-slate-500"><?php echo $m['email']; ?></div>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden lg:table-cell px-6 py-4">
                                         <?php if ($m['parent_id']): ?>
                                             <div class="flex flex-col">
                                                 <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-purple-100 text-purple-700 w-fit">Sub-account</span>
@@ -183,20 +232,20 @@ include '../includes/dashboard-head.php';
                                             <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Main Account</span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-500">
+                                    <td class="hidden xl:table-cell px-6 py-4 text-sm font-medium text-slate-500">
                                         <?php echo date('M d, Y', strtotime($m['created_at'])); ?>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden sm:table-cell px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $m['is_kyc_verified'] == 1 ? 'bg-emerald-100 text-emerald-700' : ($m['is_kyc_verified'] == 2 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'); ?>">
                                             <?php echo $m['is_kyc_verified'] == 1 ? 'Verified' : ($m['is_kyc_verified'] == 2 ? 'Submitted' : 'Pending'); ?>
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden md:table-cell px-6 py-4">
                                         <span class="px-2 py-1 rounded-full text-xs font-bold <?php echo $m['is_suspended'] ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'; ?>">
                                             <?php echo $m['is_suspended'] ? 'Suspended' : 'Active'; ?>
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4">
+                                    <td class="hidden lg:table-cell px-6 py-4">
                                         <form method="POST" class="inline">
                                             <input type="hidden" name="action" value="toggle_payout_review">
                                             <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
@@ -206,7 +255,7 @@ include '../includes/dashboard-head.php';
                                             </button>
                                         </form>
                                     </td>
-                                    <td class="px-6 py-4 text-sm">
+                                    <td class="hidden xl:table-cell px-6 py-4 text-sm">
                                         <?php if ($m['fee_percentage'] !== null): ?>
                                             <span class="text-indigo-600 font-bold"><?php echo $m['fee_percentage']; ?>% + <?php echo $m['fee_flat']; ?></span>
                                         <?php else: ?>
@@ -216,7 +265,23 @@ include '../includes/dashboard-head.php';
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
-                                            <?php if ($tab === 'active'): ?>
+                                            <?php if ($tab === 'pending_switches'): ?>
+                                                <div class="flex flex-col gap-2">
+                                                    <span class="text-[10px] font-bold text-amber-600 uppercase">Switching to <?php echo ucfirst($m['pending_payout_method']); ?></span>
+                                                    <div class="flex gap-2">
+                                                        <form method="POST" class="inline">
+                                                            <input type="hidden" name="action" value="approve_payout_switch">
+                                                            <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
+                                                            <button type="submit" class="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-200 transition-all">Approve</button>
+                                                        </form>
+                                                        <form method="POST" class="inline">
+                                                            <input type="hidden" name="action" value="reject_payout_switch">
+                                                            <input type="hidden" name="merchant_id" value="<?php echo $m['id']; ?>">
+                                                            <button type="submit" class="px-3 py-1 bg-rose-100 text-rose-700 rounded-lg text-[10px] font-bold hover:bg-rose-200 transition-all">Reject</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            <?php elseif ($tab === 'active'): ?>
                                                 <button @click="showEdit = true; merchantId = <?php echo $m['id']; ?>; merchantName = '<?php echo addslashes($m['business_name']); ?>'; merchantEmail = '<?php echo addslashes($m['email']); ?>'" class="p-2 bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title="Edit Details">
                                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                                 </button>
@@ -265,7 +330,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Reset Password Modal -->
-        <div x-show="showReset" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showReset" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Reset Password</h3>
@@ -286,7 +351,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Edit Modal -->
-        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showEdit" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Edit Merchant</h3>
@@ -313,7 +378,7 @@ include '../includes/dashboard-head.php';
         </div>
 
         <!-- Fee Modal -->
-        <div x-show="showFees" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div x-show="showFees" x-cloak class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
             <div class="bg-white rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl border border-slate-200">
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                     <h3 class="font-bold text-slate-900">Custom Fees</h3>

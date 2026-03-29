@@ -33,10 +33,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     ];
     foreach ($files_to_handle as $field) {
         if (isset($_FILES[$field]) && $_FILES[$field]['error'] === UPLOAD_ERR_OK) {
-            $ext = pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION);
-            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $ext;
-            if (!is_dir('../uploads')) mkdir('../uploads');
-            move_uploaded_file($_FILES[$field]['tmp_name'], '../uploads/' . $filename);
+            $ext = strtolower(pathinfo($_FILES[$field]['name'], PATHINFO_EXTENSION));
+            $is_image = in_array($ext, ['jpg', 'jpeg', 'png', 'webp']);
+
+            // If it's an image, we'll convert to jpg for better optimization
+            $save_ext = $is_image ? 'jpg' : $ext;
+            $filename = $field . '_' . $user['id'] . '_' . time() . '.' . $save_ext;
+
+            if (!is_dir('../uploads')) mkdir('../uploads', 0755, true);
+
+            $target = '../uploads/' . $filename;
+            if ($is_image) {
+                // resize_and_optimize_image uses copy internally for fallback,
+                // but since this is an upload, we need to handle it properly.
+                // We'll use the original extension for images but resize_and_optimize_image
+                // will save as JPEG anyway. So .jpg is appropriate.
+                resize_and_optimize_image($_FILES[$field]['tmp_name'], $target);
+            } else {
+                move_uploaded_file($_FILES[$field]['tmp_name'], $target);
+            }
             $uploads[$field . '_path'] = $filename;
         }
     }
@@ -88,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 include '../includes/dashboard-head.php';
 ?>
-<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data="{ mobileMenuOpen: false }">
+<body class="bg-slate-50 text-slate-900 flex h-screen overflow-hidden" x-data>
     <?php include '../includes/sidebar.php'; ?>
     <main class="flex-1 flex flex-col min-w-0 overflow-hidden" x-data="{
         businessType: '<?php echo $user['business_type'] ?: 'Starter'; ?>',
@@ -119,10 +134,10 @@ include '../includes/dashboard-head.php';
         }
     }">
         <?php include '../includes/topbar.php'; ?>
-        <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex-1 overflow-y-auto p-4 sm:p-8">
             <div class="max-w-4xl mx-auto">
                 <div class="mb-8">
-                    <h1 class="text-3xl font-bold text-slate-900 mb-2">Compliance & KYC</h1>
+                    <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Compliance & KYC</h1>
                     <p class="text-slate-500">Provide required documents to verify your business and increase limits</p>
                 </div>
 
@@ -164,7 +179,7 @@ include '../includes/dashboard-head.php';
 
                                 <div class="space-y-6">
                                     <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Identity Information</h4>
-                                    <div class="grid md:grid-cols-2 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Government ID Type</label>
                                             <select name="id_type" x-model="idType" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20">
@@ -181,7 +196,7 @@ include '../includes/dashboard-head.php';
                                             <input type="date" name="id_expiry_date" value="<?php echo $user['id_expiry_date']; ?>" :required="needsExpiry" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                         </div>
                                     </div>
-                                    <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div x-show="isNigerian">
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BVN / NIN Number</label>
                                             <input type="text" name="bvn" value="<?php echo $user['bvn']; ?>" placeholder="222********" :required="isNigerian" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
@@ -191,7 +206,7 @@ include '../includes/dashboard-head.php';
                                             <input type="text" name="registration_number" value="<?php echo $user['registration_number']; ?>" placeholder="RC123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
                                         </div>
                                     </div>
-                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-show="businessType !== 'Starter'">
                                         <div>
                                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">BN Number</label>
                                             <input type="text" name="bn_number" value="<?php echo $user['bn_number']; ?>" placeholder="BN123456" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none">
@@ -209,7 +224,7 @@ include '../includes/dashboard-head.php';
 
                                 <div class="space-y-6">
                                     <h4 class="font-bold text-slate-900 border-b border-slate-100 pb-2">Document Uploads</h4>
-                                    <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="id_card" required class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="credit-card" class="text-slate-400 mb-2"></i>
@@ -223,7 +238,7 @@ include '../includes/dashboard-head.php';
                                             <p class="text-[9px] text-slate-400 mt-1">Proof of address (last 3 months)</p>
                                         </div>
                                     </div>
-                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Registered'">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-show="businessType === 'Registered'">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="cac_cert" :required="businessType === 'Registered'" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="award" class="text-slate-400 mb-2"></i>
@@ -241,7 +256,7 @@ include '../includes/dashboard-head.php';
                                         </div>
                                     </div>
 
-                                    <div class="grid md:grid-cols-2 gap-6" x-show="businessType === 'Special'">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-show="businessType === 'Special'">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="ngo_form" :required="businessType === 'Special'" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="file-check" class="text-slate-400 mb-2"></i>
@@ -259,7 +274,7 @@ include '../includes/dashboard-head.php';
                                         </div>
                                     </div>
 
-                                    <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div class="p-6 border-2 border-dashed border-slate-200 rounded-3xl text-center relative hover:border-indigo-400 transition-colors">
                                             <input type="file" name="business_address_proof" class="absolute inset-0 opacity-0 cursor-pointer">
                                             <i data-lucide="map-pin" class="text-slate-400 mb-2"></i>
@@ -321,5 +336,6 @@ include '../includes/dashboard-head.php';
             }
         });
     </script>
+    <script src="../assets/js/kyc-preview.js"></script>
 </body>
 </html>

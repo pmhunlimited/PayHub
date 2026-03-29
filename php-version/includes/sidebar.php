@@ -6,19 +6,19 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $role = $_SESSION['role'] ?? 'merchant';
 ?>
 <!-- Mobile Overlay -->
-<div x-show="mobileMenuOpen"
+<div x-show="$store.nav.mobileMenuOpen"
      x-transition:enter="transition-opacity ease-linear duration-300"
      x-transition:enter-start="opacity-0"
      x-transition:enter-end="opacity-100"
      x-transition:leave="transition-opacity ease-linear duration-300"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     @click="mobileMenuOpen = false"
+     @click="$store.nav.mobileMenuOpen = false"
      class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden" x-cloak></div>
 
 <aside
-    :class="mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
-    class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-50 transition-transform duration-300 shrink-0"
+    :class="$store.nav.mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+    class="fixed md:static inset-y-0 left-0 w-64 bg-white border-r border-slate-200 flex flex-col z-[60] transition-transform duration-300 shrink-0"
 >
     <div class="p-6 border-b border-slate-100 flex items-center justify-between">
         <a href="<?php echo BASE_URL; ?>index.php" class="flex items-center gap-2">
@@ -32,7 +32,7 @@ $role = $_SESSION['role'] ?? 'merchant';
             <?php endif; ?>
             <span class="text-xl font-bold tracking-tight text-slate-900"><?php echo getConfig('site_name', 'Payhub'); ?></span>
         </a>
-        <button @click="mobileMenuOpen = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+        <button @click="$store.nav.mobileMenuOpen = false" class="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
     </div>
@@ -126,12 +126,6 @@ $role = $_SESSION['role'] ?? 'merchant';
                 <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
                 Transactions
             </a>
-            <?php if ($user['business_type'] !== 'Starter' && $user['is_kyc_verified'] == 1): ?>
-            <a href="<?php echo BASE_URL; ?>merchant/virtual-accounts.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'virtual-accounts.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
-                <i data-lucide="wallet" class="w-5 h-5"></i>
-                Virtual Accounts
-            </a>
-            <?php endif; ?>
             <a href="<?php echo BASE_URL; ?>merchant/invoices.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'invoices.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="file-text" class="w-5 h-5"></i>
                 Invoices
@@ -173,6 +167,10 @@ $role = $_SESSION['role'] ?? 'merchant';
             <a href="<?php echo BASE_URL; ?>merchant/api-keys.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'api-keys.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="code" class="w-5 h-5"></i>
                 API Keys
+            </a>
+            <a href="<?php echo BASE_URL; ?>merchant/reconcile.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'reconcile.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                Reconcile
             </a>
             <a href="<?php echo BASE_URL; ?>merchant/settings.php" class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all <?php echo $current_page === 'settings.php' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'; ?>">
                 <i data-lucide="settings" class="w-5 h-5"></i>
